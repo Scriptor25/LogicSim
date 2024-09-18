@@ -1,0 +1,8 @@
+type: component
+id: button
+class: io.scriptor.imgui.component.Button
+fields:
+  - name: label
+    type: string
+  - name: event
+    type: string

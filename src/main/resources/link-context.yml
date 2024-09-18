@@ -1,0 +1,10 @@
+uses: [ "button.yml", "popup.yml" ]
+type: element
+id: link-context
+content:
+  type: popup
+  id: link-context
+  elements:
+    - type: button
+      label: "Delete"
+      event: delete

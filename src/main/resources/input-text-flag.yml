@@ -1,0 +1,47 @@
+type: enum
+id: input-text-flag
+entries:
+  - name: none
+    value: 0
+  - name: chars-decimal
+    value: 1
+  - name: chars-hexadecimal
+    value: 2
+  - name: chars-uppercase
+    value: 4
+  - name: chars-no-blank
+    value: 8
+  - name: auto-select-all
+    value: 16
+  - name: enter-returns-true
+    value: 32
+  - name: callback-completion
+    value: 64
+  - name: callback-history
+    value: 128
+  - name: callback-always
+    value: 256
+  - name: callback-char-filter
+    value: 512
+  - name: allow-tab-input
+    value: 1024
+  - name: ctrl-enter-for-new-line
+    value: 2048
+  - name: no-horizontal-scroll
+    value: 4096
+  - name: always-overwrite
+    value: 8192
+  - name: read-only
+    value: 16384
+  - name: password
+    value: 32768
+  - name: no-undo-redo
+    value: 65536
+  - name: chars-scientific
+    value: 131072
+  - name: callback-resize
+    value: 262144
+  - name: callback-edit
+    value: 524288
+  - name: always-insert-mode
+    value: 8192

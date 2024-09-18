@@ -1,0 +1,11 @@
+type: enum
+id: node-editor-minimap-location
+entries:
+  - name: bottom-left
+    value: 0
+  - name: bottom-right
+    value: 1
+  - name: top-left
+    value: 2
+  - name: top-right
+    value: 3

@@ -1,0 +1,55 @@
+type: enum
+id: dock-node-flag
+entries:
+  - name: none
+    value: 0
+  - name: keep-alive-only
+    value: 1
+  - name: no-docking-in-central-node
+    value: 4
+  - name: passthru-central-node
+    value: 8
+  - name: no-split
+    value: 16
+  - name: no-resize
+    value: 32
+  - name: auto-hide-top-bar
+    value: 64
+  - name: dock-space
+    value: 1024
+  - name: central-node
+    value: 2048
+  - name: no-top-bar
+    value: 4096
+  - name: hidden-top-bar
+    value: 8192
+  - name: no-window-menu-button
+    value: 16384
+  - name: no-close-button
+    value: 32768
+  - name: no-docking
+    value: 65536
+  - name: no-docking-split-me
+    value: 131072
+  - name: no-docking-split-other
+    value: 262144
+  - name: no-docking-over-me
+    value: 524288
+  - name: no-docking-over-other
+    value: 1048576
+  - name: no-docking-over-empty
+    value: 2097152
+  - name: no-resize-x
+    value: 4194304
+  - name: no-resize-y
+    value: 8388608
+  - name: shared-flags-inherit-mask
+    value: -1
+  - name: no-resize-flags-mask
+    value: 12582944
+  - name: local-flags-mask
+    value: 12713072
+  - name: local-flags-transfer-mask
+    value: 12712048
+  - name: saved-flags-mask
+    value: 12712992

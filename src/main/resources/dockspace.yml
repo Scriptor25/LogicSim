@@ -1,0 +1,10 @@
+uses: [ "dockspace-viewport.yml", "dock-node-flag.yml" ]
+type: component
+id: dockspace
+class: io.scriptor.imgui.component.Dockspace
+fields:
+  - name: viewport
+    type: dockspace-viewport
+  - name: flags
+    type: dock-node-flag
+    array: on

@@ -1,0 +1,12 @@
+uses: [ "input-text-flag.yml" ]
+type: component
+id: input-text
+class: io.scriptor.imgui.component.InputText
+fields:
+  - name: label
+    type: string
+  - name: flags
+    type: input-text-flag
+    array: on
+  - name: event
+    type: string

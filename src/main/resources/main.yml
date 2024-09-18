@@ -1,0 +1,33 @@
+uses:
+  - "dockspace.yml"
+  - "window.yml"
+  - "node-editor.yml"
+  - "pin-context.yml"
+  - "node-context.yml"
+  - "link-context.yml"
+  - "editor-context.yml"
+  - "create-link-context.yml"
+  - "rename-context.yml"
+  - "delete-context.yml"
+type: layout
+elements:
+  - type: dockspace
+    viewport: main
+    flags: [ passthru-central-node ]
+  - type: window
+    id: editor
+    title: "Node Editor"
+    elements:
+      - type: node-editor
+        id: editor
+        minimap:
+          enable: on
+          size: 0.2
+          location: bottom-right
+      - use: pin-context
+      - use: node-context
+      - use: link-context
+      - use: editor-context
+      - use: create-link-context
+      - use: rename-context
+      - use: delete-context

@@ -1,0 +1,12 @@
+uses: [ "input-text.yml", "popup.yml" ]
+type: element
+id: rename-context
+content:
+  type: popup
+  id: rename-context
+  elements:
+    - type: input-text
+      id: label
+      label: "Label"
+      flags: [ enter-returns-true ]
+      event: enter

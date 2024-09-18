@@ -1,0 +1,11 @@
+uses: [ "node-editor-minimap-location.yml" ]
+type: component
+id: node-editor-minimap
+class: io.scriptor.imgui.component.Minimap
+fields:
+  - name: enable
+    type: boolean
+  - name: size
+    type: float
+  - name: location
+    type: node-editor-minimap-location
