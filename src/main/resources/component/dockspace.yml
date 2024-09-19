@@ -1,0 +1,10 @@
+type: component
+id: dockspace
+class: io.scriptor.imgui.Dockspace
+fields:
+  - name: viewport
+    type: enum:dockspace-viewport
+    default: main
+  - name: flags
+    type: enum:dock-node-flag
+    array: on

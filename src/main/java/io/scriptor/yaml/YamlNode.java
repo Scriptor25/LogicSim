@@ -50,11 +50,11 @@ public class YamlNode implements Iterable<YamlNode> {
         this.value = value;
     }
 
-    public boolean isEmpty() {
+    public boolean notEmpty() {
         return switch (type) {
-            case MAP -> childrenMap.isEmpty();
-            case LIST -> childrenList.isEmpty();
-            case VALUE -> value == null;
+            case MAP -> !childrenMap.isEmpty();
+            case LIST -> !childrenList.isEmpty();
+            case VALUE -> value != null;
         };
     }
 
@@ -80,6 +80,7 @@ public class YamlNode implements Iterable<YamlNode> {
 
     public <T> T as(final Class<T> c) {
         if (type != Type.VALUE) throw new IllegalStateException();
+        if (value == null) throw new IllegalStateException();
         return c.cast(value);
     }
 
@@ -90,15 +91,19 @@ public class YamlNode implements Iterable<YamlNode> {
     }
 
     public int count() {
-        if (type == Type.MAP) return childrenMap.size();
-        if (type == Type.LIST) return childrenList.size();
-        throw new IllegalStateException();
+        return switch (type) {
+            case MAP -> childrenMap.size();
+            case LIST -> childrenList.size();
+            case VALUE -> value == null ? 0 : 1;
+        };
     }
 
     @Override
     public Iterator<YamlNode> iterator() {
-        if (type == Type.MAP) return childrenMap.values().iterator();
-        if (type == Type.LIST) return childrenList.iterator();
-        throw new IllegalStateException();
+        return switch (type) {
+            case MAP -> childrenMap.values().iterator();
+            case LIST -> childrenList.iterator();
+            case VALUE -> Collections.emptyIterator();
+        };
     }
 }

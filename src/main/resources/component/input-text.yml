@@ -1,0 +1,12 @@
+type: component
+id: input-text
+class: io.scriptor.imgui.InputText
+fields:
+  - name: label
+    type: string
+  - name: flags
+    type: enum:input-text-flag
+    array: on
+  - name: event
+    type: string
+    default: enter

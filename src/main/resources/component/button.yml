@@ -1,0 +1,9 @@
+type: component
+id: button
+class: io.scriptor.imgui.Button
+fields:
+  - name: label
+    type: string
+  - name: event
+    type: string
+    default: click

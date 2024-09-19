@@ -1,28 +1,31 @@
 package io.scriptor.imgui;
 
-import io.scriptor.manager.EventManager;
+import imgui.ImGui;
+import io.scriptor.imgui.Element;
+import io.scriptor.imgui.Layout;
 
 import java.util.Arrays;
 import java.util.Objects;
 
-public class Layout {
+public class Popup extends Element {
 
-    private final EventManager events;
     private final Element[] elements;
 
-    public Layout(final EventManager events, final Element[] elements) {
-        this.events = events;
+    public Popup(final Layout root, final String id, final Element[] elements) {
+        super(root, id);
         this.elements = elements;
     }
 
+    @Override
     public void show() {
-        Arrays.stream(elements).forEach(Element::show);
+        if (ImGui.beginPopup(getId())) {
+            for (final var element : elements)
+                element.show();
+            ImGui.endPopup();
+        }
     }
 
-    public EventManager getEvents() {
-        return events;
-    }
-
+    @Override
     public <T extends Element> T findElement(final String id) {
         return Arrays.stream(elements)
                 .filter(e -> id.startsWith(e.getId()))

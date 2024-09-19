@@ -1,7 +1,0 @@
-type: component
-id: popup
-class: io.scriptor.imgui.component.Popup
-fields:
-  - name: elements
-    type: element
-    array: on

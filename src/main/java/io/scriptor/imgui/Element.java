@@ -1,6 +1,6 @@
 package io.scriptor.imgui;
 
-import io.scriptor.EventManager;
+import io.scriptor.manager.EventManager;
 
 public abstract class Element {
 

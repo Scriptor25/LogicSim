@@ -1,7 +1,0 @@
-uses: [ "node-editor-minimap.yml" ]
-type: component
-id: node-editor
-class: io.scriptor.imgui.component.NodeEditor
-fields:
-  - name: minimap
-    type: node-editor-minimap

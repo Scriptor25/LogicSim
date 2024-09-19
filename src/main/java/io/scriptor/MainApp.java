@@ -5,8 +5,8 @@ import imgui.app.Application;
 import imgui.extension.imnodes.ImNodes;
 import imgui.flag.ImGuiConfigFlags;
 import io.scriptor.imgui.Layout;
-import io.scriptor.imgui.component.NodeEditor;
-import io.scriptor.nodes.Graph;
+import io.scriptor.manager.EventManager;
+import io.scriptor.manager.ResourceManager;
 
 import java.util.Date;
 import java.util.logging.ConsoleHandler;
@@ -48,24 +48,9 @@ public class MainApp extends Application {
     private final EventManager events = new EventManager();
     private final ResourceManager resources = new ResourceManager();
     private final Layout layout;
-    private final Graph graph;
 
     public MainApp() {
-        layout = resources.parseLayout(events, "main.yml");
-
-        final NodeEditor editor = layout.findElement("editor.editor");
-        graph = editor.getGraph();
-
-        final var andNode = graph.createNode("And");
-        andNode.createIn("In A");
-        andNode.createIn("In B");
-        final var andOut = andNode.createOut("Out");
-
-        final var notNode = graph.createNode("Not");
-        final var notIn = notNode.createIn("In");
-        notNode.createOut("Out");
-
-        graph.createLink(andOut, notIn);
+        layout = resources.parseLayout(events, "layout/main.yml");
     }
 
     @Override

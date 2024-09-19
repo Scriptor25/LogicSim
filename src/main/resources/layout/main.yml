@@ -1,0 +1,43 @@
+type: layout
+elements:
+  - type: dockspace
+    flags: [ passthru-central-node ]
+  - type: window
+    id: io
+    title: "IO"
+    elements:
+      - type: button
+        id: input
+        label: "New Input"
+      - type: same-line
+      - type: button
+        id: output
+        label: "New Output"
+      - type: child
+        id: container
+        elements:
+          - type: array
+            id: array
+  - type: window
+    id: library
+    title: "Library"
+    elements:
+      - type: button
+        id: new
+        label: "New"
+      - type: same-line
+      - type: button
+        id: save
+        label: "Save"
+      - type: same-line
+      - type: button
+        id: save-as
+        label: "Save As"
+      - type: child
+        id: container
+        elements:
+          - type: array
+            id: array
+  - type: window
+    id: editor
+    title: "Node Editor"

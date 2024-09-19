@@ -1,0 +1,9 @@
+type: component
+id: selectable
+class: io.scriptor.imgui.Selectable
+fields:
+  - name: label
+    type: string
+  - name: event
+    type: string
+    default: click
