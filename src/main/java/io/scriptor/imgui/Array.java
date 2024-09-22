@@ -2,8 +2,6 @@ package io.scriptor.imgui;
 
 import imgui.ImGui;
 import imgui.type.ImInt;
-import io.scriptor.imgui.Element;
-import io.scriptor.imgui.Layout;
 import io.scriptor.util.Range;
 
 public class Array extends Element {
@@ -21,7 +19,7 @@ public class Array extends Element {
     }
 
     @Override
-    public void show() {
+    protected void onShow() {
         if (range != null) {
             final var i = new ImInt();
             range.stream().forEach(value -> {

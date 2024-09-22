@@ -2,8 +2,6 @@ package io.scriptor.imgui;
 
 import imgui.ImGui;
 import imgui.type.ImString;
-import io.scriptor.imgui.Element;
-import io.scriptor.imgui.Layout;
 
 public class InputText extends Element {
 
@@ -27,11 +25,11 @@ public class InputText extends Element {
     }
 
     public void set(final String string) {
-        buffer.set(string);
+        buffer.set(string, true);
     }
 
     @Override
-    public void show() {
+    protected void onShow() {
         if (ImGui.inputText(label, buffer, flags))
             getEvents().invoke(event, this, buffer.get());
         ImGui.setItemDefaultFocus();

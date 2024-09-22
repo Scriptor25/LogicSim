@@ -1,0 +1,12 @@
+type: element
+id: attribute-context
+content:
+  type: popup
+  id: attribute-context
+  elements:
+    - type: selectable
+      id: rename
+      label: "Rename"
+    - type: selectable
+      id: delete
+      label: "Delete"

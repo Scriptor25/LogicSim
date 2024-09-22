@@ -1,4 +1,4 @@
-package io.scriptor.yaml;
+package io.scriptor.util;
 
 import java.util.*;
 

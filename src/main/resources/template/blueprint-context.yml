@@ -1,0 +1,12 @@
+type: element
+id: blueprint-context
+content:
+  type: popup
+  id: blueprint-context
+  elements:
+    - type: selectable
+      id: rename
+      label: "Rename"
+    - type: selectable
+      id: delete
+      label: "Delete"

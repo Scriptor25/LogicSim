@@ -1,0 +1,11 @@
+type: element
+id: add-context
+content:
+  type: popup
+  id: add-context
+  elements:
+    - type: array
+      id: attributes
+    - type: separator
+    - type: array
+      id: blueprints

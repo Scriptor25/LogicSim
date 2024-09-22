@@ -1,8 +1,6 @@
 package io.scriptor.imgui;
 
 import imgui.ImGui;
-import io.scriptor.imgui.Element;
-import io.scriptor.imgui.Layout;
 
 import java.util.Arrays;
 import java.util.Objects;
@@ -19,10 +17,16 @@ public class Window extends Element {
     }
 
     @Override
-    public void show() {
-        if (ImGui.begin(title))
+    protected void onStart() {
+        Arrays.stream(elements).forEach(Element::start);
+    }
+
+    @Override
+    protected void onShow() {
+        if (ImGui.begin(title)) {
             Arrays.stream(elements).forEach(Element::show);
-        getEvents().runTasks();
+            getEvents().runTasks();
+        }
         ImGui.end();
     }
 

@@ -1,6 +1,8 @@
 package io.scriptor.imgui;
 
-public record Component(String id, Class<?> clazz, Field[] fields) {
+import io.scriptor.util.YamlNode;
+
+public record Component(String id, Class<?> clazz, Field[] fields, YamlNode elementsYaml) {
 
     public record Field(String name, String type, boolean array, Object def) {
 

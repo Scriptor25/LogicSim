@@ -1,0 +1,9 @@
+type: element
+id: link-context
+content:
+  type: popup
+  id: link-context
+  elements:
+    - type: selectable
+      id: delete
+      label: "Delete"

@@ -4,7 +4,7 @@ import io.scriptor.imgui.Component;
 import io.scriptor.imgui.Element;
 import io.scriptor.imgui.Enumeration;
 import io.scriptor.imgui.Layout;
-import io.scriptor.yaml.YamlNode;
+import io.scriptor.util.YamlNode;
 import org.yaml.snakeyaml.Yaml;
 
 import java.io.BufferedReader;
@@ -13,9 +13,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.lang.reflect.Array;
 import java.lang.reflect.InvocationTargetException;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Stream;
 
 import static io.scriptor.MainApp.getLogger;
@@ -145,7 +143,9 @@ public class ResourceManager {
             fields[i++] = new Component.Field(fieldName, fieldType, fieldArray, fieldDefault);
         }
 
-        putComponent(id, new Component(id, clazz, fields));
+        final var elementsYaml = yaml.get("elements");
+
+        putComponent(id, new Component(id, clazz, fields, elementsYaml));
     }
 
     public void parseEnumeration(final YamlNode yaml) {
@@ -174,19 +174,16 @@ public class ResourceManager {
         final var yaml = getYaml(name);
         parseUses(yaml);
 
-        final var elementsYaml = yaml.get("elements");
-        final var elements = new Element[elementsYaml.count()];
-
+        final List<Element> elements = new ArrayList<>();
         final var layout = new Layout(events, elements);
 
-        int i = 0;
-        for (final var elementYaml : elementsYaml)
-            elements[i++] = parseElement(elementYaml, layout, null);
+        for (final var elementYaml : yaml.get("elements"))
+            elements.addAll(Arrays.asList(parseElement(elementYaml, layout, null)));
 
         return layout;
     }
 
-    public Element parseElement(final YamlNode yaml, final Layout root, final String parentId) {
+    public Element[] parseElement(final YamlNode yaml, final Layout root, final String parentId) {
         if (yaml.get("use").notEmpty()) {
             final var id = yaml.get("use").as(String.class);
             return parseElement(getTemplate(id), root, parentId);
@@ -195,7 +192,7 @@ public class ResourceManager {
         final var id = yaml.get("id").as(String.class, "");
         final var type = yaml.get("type").as(String.class);
 
-        return parseComponent(yaml, root, parentId, id, getComponent(type));
+        return parseElement(yaml, root, parentId, id, getComponent(type));
     }
 
     public Class<?> getClassForType(final String type) {
@@ -226,11 +223,15 @@ public class ResourceManager {
 
     public Object parseField(final YamlNode yaml, final Layout root, final String parentId, final Component.Field field) {
         if (field.array()) {
-            final var values = (Object[]) Array.newInstance(getClassForType(field.type()), yaml.count());
-            int i = -1;
-            for (final var subYaml : yaml)
-                values[++i] = parseField(subYaml, root, parentId, field.index(i));
-            return values;
+            final List<Object> values = new ArrayList<>();
+            int i = 0;
+            for (final var subYaml : yaml) {
+                final var value = parseField(subYaml, root, parentId, field.index(i++));
+                if (value instanceof Object[] array)
+                    values.addAll(Arrays.asList(array));
+                else values.add(value);
+            }
+            return values.toArray(size -> (Object[]) Array.newInstance(getClassForType(field.type()), size));
         }
 
         switch (field.type()) {
@@ -259,12 +260,12 @@ public class ResourceManager {
                             .orElse(Integer.MAX_VALUE);
                 }
 
-                return parseComponent(yaml, root, parentId, field.name(), getComponent(field.type()));
+                return parseElement(yaml, root, parentId, field.name(), getComponent(field.type()));
             }
         }
     }
 
-    public Element parseComponent(final YamlNode yaml, final Layout root, final String parentId, final String id, final Component component) {
+    public Element[] parseElement(final YamlNode yaml, final Layout root, final String parentId, final String id, final Component component) {
 
         final var elementId = parentId == null ? id : parentId + '.' + id;
         final var args = Stream.concat(
@@ -272,6 +273,7 @@ public class ResourceManager {
                 Arrays.stream(component.fields()).map(field -> parseField(yaml.get(field.name()), root, elementId, field))
         ).toArray();
 
+        final Element element;
         try {
             final var ctor = component.clazz().getConstructor(
                     Arrays.stream(args)
@@ -279,7 +281,7 @@ public class ResourceManager {
                             .toArray(Class[]::new)
             );
             final var instance = ctor.newInstance(args);
-            return (Element) instance;
+            element = (Element) instance;
         } catch (final NoSuchMethodException |
                        InstantiationException |
                        IllegalAccessException |
@@ -287,5 +289,15 @@ public class ResourceManager {
             getLogger().warning(e::getMessage);
             throw new IllegalStateException("failed to create instance of component: " + component.id());
         }
+
+        if (component.elementsYaml().notEmpty()) {
+            final List<Element> elements = new ArrayList<>();
+            elements.add(element);
+            for (final var elementYaml : component.elementsYaml())
+                elements.addAll(Arrays.asList(parseElement(elementYaml, root, parentId)));
+            return elements.toArray(Element[]::new);
+        }
+
+        return new Element[]{element};
     }
 }

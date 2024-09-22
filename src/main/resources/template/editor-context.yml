@@ -1,0 +1,15 @@
+type: element
+id: editor-context
+content:
+  type: popup
+  id: editor-context
+  elements:
+    - type: selectable
+      id: paste
+      label: "Paste"
+    - type: selectable
+      id: add
+      label: "Add Node"
+    - type: selectable
+      id: clear
+      label: "Clear"

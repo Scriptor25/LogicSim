@@ -1,21 +1,22 @@
 package io.scriptor.util;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 public class Range<E> {
 
-    private final Collection<E> collection;
-    private final int start;
-    private final int end;
+    private Collection<E> collection;
+    private int start;
+    private int end;
 
     private final List<Comparator<E>> comparators = new ArrayList<>();
     private final List<Predicate<E>> filters = new ArrayList<>();
     private final List<Predicate<E>> tempFilters = new ArrayList<>();
+
+    public Range() {
+        this(Collections.emptyList(), 0, 0);
+    }
 
     public Range(final Collection<E> collection) {
         this(collection, 0, 0);
@@ -24,6 +25,30 @@ public class Range<E> {
     public Range(final Collection<E> collection, final int start, final int end) {
         this.collection = collection;
         this.start = start;
+        this.end = end;
+    }
+
+    public Collection<E> collection() {
+        return collection;
+    }
+
+    public void collection(final Collection<E> collection) {
+        this.collection = collection;
+    }
+
+    public int start() {
+        return start;
+    }
+
+    public void start(final int start) {
+        this.start = start;
+    }
+
+    public int end() {
+        return end;
+    }
+
+    public void end(final int end) {
         this.end = end;
     }
 

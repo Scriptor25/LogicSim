@@ -28,7 +28,18 @@ public abstract class Element {
         return root.getEvents();
     }
 
-    public abstract void show();
+    public void start() {
+        onStart();
+    }
+
+    public void show() {
+        onShow();
+    }
+
+    protected void onStart() {
+    }
+
+    protected abstract void onShow();
 
     public <T extends Element> T findElement(final String id) {
         if (id.equals(this.id))

@@ -1,8 +1,6 @@
 package io.scriptor.imgui;
 
 import imgui.ImGui;
-import io.scriptor.imgui.Element;
-import io.scriptor.imgui.Layout;
 
 import java.util.Arrays;
 import java.util.Objects;
@@ -17,10 +15,14 @@ public class Popup extends Element {
     }
 
     @Override
-    public void show() {
+    protected void onStart() {
+        Arrays.stream(elements).forEach(Element::start);
+    }
+
+    @Override
+    protected void onShow() {
         if (ImGui.beginPopup(getId())) {
-            for (final var element : elements)
-                element.show();
+            Arrays.stream(elements).forEach(Element::show);
             ImGui.endPopup();
         }
     }

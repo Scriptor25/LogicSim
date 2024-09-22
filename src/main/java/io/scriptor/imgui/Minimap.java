@@ -1,8 +1,6 @@
 package io.scriptor.imgui;
 
 import imgui.extension.imnodes.ImNodes;
-import io.scriptor.imgui.Element;
-import io.scriptor.imgui.Layout;
 
 public class Minimap extends Element {
 
@@ -18,7 +16,7 @@ public class Minimap extends Element {
     }
 
     @Override
-    public void show() {
+    protected void onShow() {
         if (enable) ImNodes.miniMap(size, location);
     }
 }

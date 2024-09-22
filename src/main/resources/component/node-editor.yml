@@ -1,0 +1,10 @@
+type: component
+id: node-editor
+class: io.scriptor.NodeEditor
+fields: [ ]
+elements:
+  - use: node-context
+  - use: link-context
+  - use: editor-context
+  - use: add-context
+  - use: delete-context

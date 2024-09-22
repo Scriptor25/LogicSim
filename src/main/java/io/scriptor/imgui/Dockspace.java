@@ -2,8 +2,6 @@ package io.scriptor.imgui;
 
 import imgui.ImGui;
 import imgui.ImGuiViewport;
-import io.scriptor.imgui.Element;
-import io.scriptor.imgui.Layout;
 
 public class Dockspace extends Element {
 
@@ -19,7 +17,7 @@ public class Dockspace extends Element {
     }
 
     @Override
-    public void show() {
+    protected void onShow() {
         final ImGuiViewport v;
         if (viewport == 0) v = ImGui.getMainViewport();
         else if (viewport == 1) v = ImGui.getWindowViewport();

@@ -1,8 +1,6 @@
 package io.scriptor.imgui;
 
 import imgui.ImGui;
-import io.scriptor.imgui.Element;
-import io.scriptor.imgui.Layout;
 
 import java.util.Arrays;
 import java.util.Objects;
@@ -17,7 +15,12 @@ public class Child extends Element {
     }
 
     @Override
-    public void show() {
+    protected void onStart() {
+        Arrays.stream(elements).forEach(Element::start);
+    }
+
+    @Override
+    protected void onShow() {
         if (ImGui.beginChild(getId()))
             Arrays.stream(elements).forEach(Element::show);
         ImGui.endChild();

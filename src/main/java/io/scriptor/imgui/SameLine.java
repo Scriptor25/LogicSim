@@ -1,8 +1,6 @@
 package io.scriptor.imgui;
 
 import imgui.ImGui;
-import io.scriptor.imgui.Element;
-import io.scriptor.imgui.Layout;
 
 public class SameLine extends Element {
 
@@ -11,7 +9,7 @@ public class SameLine extends Element {
     }
 
     @Override
-    public void show() {
+    protected void onShow() {
         ImGui.sameLine();
     }
 }

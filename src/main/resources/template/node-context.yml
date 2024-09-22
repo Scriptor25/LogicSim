@@ -1,0 +1,18 @@
+type: element
+id: node-context
+content:
+  type: popup
+  id: node-context
+  elements:
+    - type: selectable
+      id: copy
+      label: "Copy"
+    - type: selectable
+      id: cut
+      label: "Cut"
+    - type: selectable
+      id: duplicate
+      label: "Duplicate"
+    - type: selectable
+      id: delete
+      label: "Delete"

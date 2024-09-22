@@ -1,8 +1,6 @@
 package io.scriptor.imgui;
 
 import imgui.ImGui;
-import io.scriptor.imgui.Element;
-import io.scriptor.imgui.Layout;
 
 public class Selectable extends Element {
 
@@ -16,7 +14,7 @@ public class Selectable extends Element {
     }
 
     @Override
-    public void show() {
+    protected void onShow() {
         if (ImGui.selectable(label))
             getEvents().invoke(event, this);
     }

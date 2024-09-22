@@ -1,0 +1,12 @@
+type: element
+id: delete-context
+content:
+  type: popup
+  id: delete-context
+  elements:
+    - type: selectable
+      id: nodes
+      label: "Nodes"
+    - type: selectable
+      id: links
+      label: "Links"

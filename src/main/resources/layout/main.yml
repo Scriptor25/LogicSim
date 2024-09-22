@@ -3,41 +3,40 @@ elements:
   - type: dockspace
     flags: [ passthru-central-node ]
   - type: window
-    id: io
-    title: "IO"
+    id: attributes
+    title: "Attributes"
     elements:
       - type: button
-        id: input
-        label: "New Input"
+        id: add-input
+        label: "Add Input"
       - type: same-line
       - type: button
-        id: output
-        label: "New Output"
+        id: add-output
+        label: "Add Output"
       - type: child
         id: container
         elements:
           - type: array
             id: array
+      - use: attribute-context
+      - use: rename-context
   - type: window
-    id: library
-    title: "Library"
+    id: blueprints
+    title: "Blueprints"
     elements:
       - type: button
-        id: new
-        label: "New"
-      - type: same-line
-      - type: button
-        id: save
-        label: "Save"
-      - type: same-line
-      - type: button
-        id: save-as
-        label: "Save As"
+        id: create
+        label: "Create Blueprint"
       - type: child
         id: container
         elements:
           - type: array
             id: array
+      - use: blueprint-context
+      - use: rename-context
   - type: window
     id: editor
     title: "Node Editor"
+    elements:
+      - type: node-editor
+        id: editor

@@ -1,8 +1,6 @@
 package io.scriptor.imgui;
 
 import imgui.ImGui;
-import io.scriptor.imgui.Element;
-import io.scriptor.imgui.Layout;
 
 public class Button extends Element {
 
@@ -16,7 +14,7 @@ public class Button extends Element {
     }
 
     @Override
-    public void show() {
+    protected void onShow() {
         if (ImGui.button(label))
             getEvents().invoke(event, this);
     }
