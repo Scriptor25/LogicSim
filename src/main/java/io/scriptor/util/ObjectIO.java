@@ -87,7 +87,7 @@ public class ObjectIO {
     public static int readInt(final InputStream in) throws IOException {
         final var bytes = in.readNBytes(4);
         if (bytes.length < 4) return -1;
-        return (int) bytes[0] << 24 | (int) bytes[1] << 16 | (int) bytes[2] << 8 | (int) bytes[3];
+        return bytes[0] << 24 | bytes[1] << 16 | bytes[2] << 8 | bytes[3];
     }
 
     public static boolean readBool(final InputStream in) throws IOException {

@@ -2,6 +2,7 @@ package io.scriptor.node;
 
 import imgui.ImGui;
 import imgui.extension.imnodes.ImNodes;
+import imgui.extension.imnodes.flag.ImNodesCol;
 import io.scriptor.Context;
 import io.scriptor.util.ObjectIO;
 
@@ -64,13 +65,16 @@ public class Input implements INode {
     }
 
     @Override
-    public void show() {
+    public void show(final Graph graph) {
         ImNodes.beginNode(id());
+        final var powered = attribute.powered().get();
+        if (powered) ImNodes.pushColorStyle(ImNodesCol.Pin, 0x770000ff);
         ImNodes.beginOutputAttribute(pin.id());
         ImGui.checkbox("##powered", attribute.powered());
         ImGui.sameLine();
         ImGui.textUnformatted(attribute.label().get());
         ImNodes.endOutputAttribute();
+        if (powered) ImNodes.popColorStyle();
         ImNodes.endNode();
     }
 

@@ -8,7 +8,7 @@ import imgui.flag.ImGuiConfigFlags;
 import io.scriptor.imgui.Array;
 import io.scriptor.imgui.InputText;
 import io.scriptor.imgui.Layout;
-import io.scriptor.logic.Logic;
+import io.scriptor.node.Logic;
 import io.scriptor.manager.EventManager;
 import io.scriptor.manager.ResourceManager;
 import io.scriptor.node.Attribute;

@@ -6,7 +6,6 @@ import imgui.extension.imnodes.ImNodes;
 import imgui.extension.imnodes.flag.ImNodesCol;
 import imgui.type.ImString;
 import io.scriptor.Context;
-import io.scriptor.logic.ILogic;
 import io.scriptor.util.IUnique;
 import io.scriptor.util.ObjectIO;
 
@@ -20,27 +19,6 @@ public record Blueprint(
         ImString label,
         int baseColor,
         ILogic logic) implements IUnique {
-
-    public static void read(final Context context, final InputStream in) throws IOException {
-        final var builder = new Builder();
-
-        final var uuid = ObjectIO.readUUID(in);
-        builder.uuid(uuid);
-        builder.label(ObjectIO.readString(in));
-        builder.baseColor(ObjectIO.readInt(in));
-
-        context.<ILogic>getRef(ObjectIO.readUUID(in))
-                .get(x -> context.getRef(uuid).set(builder.logic(x).build()));
-    }
-
-    public void write(final Context context, final OutputStream out) throws IOException {
-        ObjectIO.write(out, uuid);
-        ObjectIO.write(out, label.get());
-        ObjectIO.write(out, baseColor);
-        ObjectIO.write(out, logic.uuid());
-
-        context.next(logic);
-    }
 
     public static class Builder {
 
@@ -78,6 +56,27 @@ public record Blueprint(
         }
     }
 
+    public static void read(final Context context, final InputStream in) throws IOException {
+        final var builder = new Builder();
+
+        final var uuid = ObjectIO.readUUID(in);
+        builder.uuid(uuid);
+        builder.label(ObjectIO.readString(in));
+        builder.baseColor(ObjectIO.readInt(in));
+
+        context.<ILogic>getRef(ObjectIO.readUUID(in))
+                .get(x -> context.getRef(uuid).set(builder.logic(x).build()));
+    }
+
+    public void write(final Context context, final OutputStream out) throws IOException {
+        ObjectIO.write(out, uuid);
+        ObjectIO.write(out, label.get());
+        ObjectIO.write(out, baseColor);
+        ObjectIO.write(out, logic.uuid());
+
+        context.next(logic);
+    }
+
     @Override
     public String toString() {
         return label.get();
@@ -91,7 +90,7 @@ public record Blueprint(
         return logic.outputs() > 0;
     }
 
-    public void show(final Node node) {
+    public void show(final Graph graph, final Node node) {
         pushColorStyle();
         ImNodes.beginNode(node.id());
 
@@ -101,11 +100,11 @@ public record Blueprint(
 
         int i = 0;
         for (; i < Math.min(logic.inputs(), logic.outputs()); i++) {
-            showInput(node.input(i));
+            showInput(graph, node.input(i));
             ImGui.sameLine();
             showOutput(node.output(i));
         }
-        for (; i < logic.inputs(); i++) showInput(node.input(i));
+        for (; i < logic.inputs(); i++) showInput(graph, node.input(i));
         for (; i < logic.outputs(); i++) showOutput(node.output(i));
 
         ImNodes.endNode();
@@ -135,15 +134,20 @@ public record Blueprint(
         ImNodes.popColorStyle();
     }
 
-    private void showInput(final Pin pin) {
+    private void showInput(final Graph graph, final Pin pin) {
+        final var powered = pin.predecessor(graph).map(Pin::powered).orElse(false);
+        if (powered) ImNodes.pushColorStyle(ImNodesCol.Pin, 0x770000ff);
         ImNodes.beginInputAttribute(pin.id());
         ImGui.textUnformatted(logic.input(pin.index()));
         ImNodes.endInputAttribute();
+        if (powered) ImNodes.popColorStyle();
     }
 
     private void showOutput(final Pin pin) {
+        if (pin.powered()) ImNodes.pushColorStyle(ImNodesCol.Pin, 0x770000ff);
         ImNodes.beginOutputAttribute(pin.id());
         ImGui.textUnformatted(logic.output(pin.index()));
         ImNodes.endOutputAttribute();
+        if (pin.powered()) ImNodes.popColorStyle();
     }
 }

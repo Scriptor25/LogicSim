@@ -1,7 +1,7 @@
 package io.scriptor;
 
-import io.scriptor.logic.AndLogic;
-import io.scriptor.logic.NotLogic;
+import io.scriptor.node.AndLogic;
+import io.scriptor.node.NotLogic;
 import io.scriptor.node.Blueprint;
 import io.scriptor.util.IUnique;
 import io.scriptor.util.ObjectIO;

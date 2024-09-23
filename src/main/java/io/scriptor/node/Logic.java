@@ -1,8 +1,6 @@
-package io.scriptor.logic;
+package io.scriptor.node;
 
 import io.scriptor.Context;
-import io.scriptor.node.Attribute;
-import io.scriptor.node.Graph;
 import io.scriptor.util.ObjectIO;
 
 import java.io.IOException;
@@ -47,10 +45,12 @@ public class Logic implements ILogic {
     private final Graph graph;
 
     public Logic(final UUID uuid, final Attribute[] attributes, final Graph graph) {
-        this.uuid = uuid;
-        this.inputs = Arrays.stream(attributes).filter(Attribute::input).toArray(Attribute[]::new);
-        this.outputs = Arrays.stream(attributes).filter(Attribute::output).toArray(Attribute[]::new);
-        this.graph = graph;
+        this(
+                uuid,
+                Arrays.stream(attributes).filter(Attribute::input).toArray(Attribute[]::new),
+                Arrays.stream(attributes).filter(Attribute::output).toArray(Attribute[]::new),
+                graph
+        );
     }
 
     public Logic(final UUID uuid, final Attribute[] inputs, final Attribute[] outputs, final Graph graph) {

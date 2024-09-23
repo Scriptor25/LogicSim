@@ -1,4 +1,4 @@
-package io.scriptor.logic;
+package io.scriptor.node;
 
 import io.scriptor.Context;
 import io.scriptor.util.ObjectIO;
@@ -9,27 +9,26 @@ import java.io.OutputStream;
 import java.util.UUID;
 
 /**
- * UUID(0, 1)
+ * UUID(0, 0)
  * <ul>
- * <li>pin 0 - In A</li>
- * <li>pin 1 - In B</li>
- * <li>pin 2 - Out</li>
+ * <li>pin 0 - In</li>
+ * <li>pin 1 - Out</li>
  * </ul>
  */
-public class AndLogic implements ILogic {
+public class NotLogic implements ILogic {
 
     public static void read(final Context context, final InputStream in) throws IOException {
         final var uuid = ObjectIO.readUUID(in);
-        context.getRef(uuid).set(new AndLogic(uuid));
+        context.getRef(uuid).set(new NotLogic(uuid));
     }
 
     private final UUID uuid;
 
-    public AndLogic() {
+    public NotLogic() {
         this(UUID.randomUUID());
     }
 
-    public AndLogic(final UUID uuid) {
+    public NotLogic(final UUID uuid) {
         this.uuid = uuid;
     }
 
@@ -40,7 +39,7 @@ public class AndLogic implements ILogic {
 
     @Override
     public int inputs() {
-        return 2;
+        return 1;
     }
 
     @Override
@@ -50,11 +49,8 @@ public class AndLogic implements ILogic {
 
     @Override
     public String input(final int i) {
-        return switch (i) {
-            case 0 -> "In A";
-            case 1 -> "In B";
-            default -> throw new IllegalStateException();
-        };
+        if (i == 0) return "In";
+        throw new IllegalStateException();
     }
 
     @Override
@@ -70,6 +66,6 @@ public class AndLogic implements ILogic {
 
     @Override
     public void cycle(final boolean[] inputs, final boolean[] outputs) {
-        outputs[0] = inputs[0] && inputs[1];
+        outputs[0] = !inputs[0];
     }
 }

@@ -8,5 +8,8 @@ content:
       id: rename
       label: "Rename"
     - type: selectable
+      id: color
+      label: "Color"
+    - type: selectable
       id: delete
       label: "Delete"

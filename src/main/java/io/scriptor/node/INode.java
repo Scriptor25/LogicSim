@@ -24,7 +24,7 @@ public interface INode extends IUnique {
 
     boolean noPredecessor(final Graph graph);
 
-    void show();
+    void show(final Graph graph);
 
     INode copy();
 

@@ -66,13 +66,13 @@ public class Node implements INode {
     }
 
     @Override
-    public boolean noPredecessor(Graph graph) {
+    public boolean noPredecessor(final Graph graph) {
         return Arrays.stream(inputs).allMatch(x -> x.predecessor(graph).isEmpty());
     }
 
     @Override
-    public void show() {
-        blueprint.show(this);
+    public void show(final Graph graph) {
+        blueprint.show(graph, this);
     }
 
     @Override

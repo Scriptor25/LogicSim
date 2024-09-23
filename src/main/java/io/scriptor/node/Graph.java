@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.*;
+import java.util.stream.Stream;
 
 public class Graph implements IUnique {
 
@@ -49,7 +50,7 @@ public class Graph implements IUnique {
     }
 
     public void show() {
-        nodes.forEach(INode::show);
+        nodes.forEach(node -> node.show(this));
         links.forEach(Link::show);
     }
 
@@ -107,6 +108,11 @@ public class Graph implements IUnique {
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .findFirst();
+    }
+
+    public Stream<INode> findEntryPoints() {
+        return nodes.stream()
+                .filter(node -> node.noPredecessor(this));
     }
 
     public Graph copy(final INode[] nodes) {

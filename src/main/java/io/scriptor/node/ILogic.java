@@ -1,4 +1,4 @@
-package io.scriptor.logic;
+package io.scriptor.node;
 
 import io.scriptor.Context;
 import io.scriptor.util.IUnique;

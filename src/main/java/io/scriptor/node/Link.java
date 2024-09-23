@@ -1,6 +1,7 @@
 package io.scriptor.node;
 
 import imgui.extension.imnodes.ImNodes;
+import imgui.extension.imnodes.flag.ImNodesCol;
 import io.scriptor.Context;
 import io.scriptor.util.IUnique;
 import io.scriptor.util.ObjectIO;
@@ -29,7 +30,9 @@ public record Link(UUID uuid, Pin source, Pin target) implements IUnique {
     }
 
     public void show() {
+        if (source.powered()) ImNodes.pushColorStyle(ImNodesCol.Link, 0x770000ff);
         ImNodes.link(id(), source.id(), target.id());
+        if (source.powered()) ImNodes.popColorStyle();
     }
 
     public boolean uses(final INode node) {

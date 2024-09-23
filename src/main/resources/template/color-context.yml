@@ -1,0 +1,9 @@
+type: element
+id: color-context
+content:
+  type: popup
+  id: color-context
+  elements:
+    - type: color-edit
+      id: color
+      label: "Color"
