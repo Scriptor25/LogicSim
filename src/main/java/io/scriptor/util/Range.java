@@ -6,7 +6,8 @@ import java.util.stream.Stream;
 
 public class Range<E> {
 
-    private Collection<E> collection;
+    private final Class<E> type;
+    private Collection<?> collection;
     private int start;
     private int end;
 
@@ -14,25 +15,26 @@ public class Range<E> {
     private final List<Predicate<E>> filters = new ArrayList<>();
     private final List<Predicate<E>> tempFilters = new ArrayList<>();
 
-    public Range() {
-        this(Collections.emptyList(), 0, 0);
+    public Range(final Class<E> type) {
+        this(Collections.emptyList(), type, 0, 0);
     }
 
-    public Range(final Collection<E> collection) {
-        this(collection, 0, 0);
+    public Range(final Collection<?> collection, final Class<E> type) {
+        this(collection, type, 0, 0);
     }
 
-    public Range(final Collection<E> collection, final int start, final int end) {
+    public Range(final Collection<?> collection, final Class<E> type, final int start, final int end) {
         this.collection = collection;
+        this.type = type;
         this.start = start;
         this.end = end;
     }
 
-    public Collection<E> collection() {
+    public Collection<?> collection() {
         return collection;
     }
 
-    public void collection(final Collection<E> collection) {
+    public void collection(final Collection<?> collection) {
         this.collection = collection;
     }
 
@@ -76,7 +78,9 @@ public class Range<E> {
     public Stream<E> stream() {
         var stream = collection
                 .stream()
-                .skip(start);
+                .skip(start)
+                .filter(type::isInstance)
+                .map(type::cast);
         if (end > 0)
             stream = stream.limit((long) end - start);
         for (final var filter : filters)

@@ -1,13 +1,21 @@
 package io.scriptor.logic;
 
-import java.io.PrintStream;
-import java.util.UUID;
+import io.scriptor.Context;
+import io.scriptor.IUnique;
 
-public interface ILogic {
+import java.io.PrintWriter;
 
-    UUID uuid();
+public interface ILogic extends IUnique {
 
-    void write(final PrintStream out);
+    int inputs();
+
+    int outputs();
+
+    String input(final int i);
+
+    String output(final int i);
+
+    void write(final Context context, final PrintWriter out);
 
     void cycle(final boolean[] inputs, final boolean[] outputs);
 }

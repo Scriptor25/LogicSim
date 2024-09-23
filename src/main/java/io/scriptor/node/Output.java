@@ -2,17 +2,35 @@ package io.scriptor.node;
 
 import imgui.ImGui;
 import imgui.extension.imnodes.ImNodes;
+import io.scriptor.Context;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.Optional;
 import java.util.Queue;
+import java.util.UUID;
 
 public class Output implements INode {
 
+    public static void read(final Context context, final BufferedReader in) throws IOException {
+        final var uuid = UUID.fromString(in.readLine());
+        context.<Attribute>getRef(UUID.fromString(in.readLine()))
+                .get(x -> context.getRef(uuid).set(new Output(uuid, x)));
+    }
+
+    private final UUID uuid;
     private final Attribute attribute;
     private final Pin pin = new Pin(this, 0, false);
 
-    public Output(final Attribute attribute) {
+    public Output(final UUID uuid, final Attribute attribute) {
+        this.uuid = uuid;
         this.attribute = attribute;
+    }
+
+    @Override
+    public UUID uuid() {
+        return uuid;
     }
 
     @Override
@@ -55,7 +73,15 @@ public class Output implements INode {
 
     @Override
     public Output copy() {
-        return new Output(attribute);
+        return new Output(UUID.randomUUID(), attribute);
+    }
+
+    @Override
+    public void write(final Context context, final PrintWriter out) {
+        out.println(uuid);
+        out.println(attribute.uuid());
+
+        context.next(attribute);
     }
 
     @Override

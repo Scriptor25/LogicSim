@@ -11,17 +11,14 @@ import io.scriptor.imgui.Layout;
 import io.scriptor.node.*;
 import io.scriptor.util.Range;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 
 public class NodeEditor extends Element {
 
     private Graph graph = new Graph();
 
-    private final Range<Attribute> attributes = new Range<>();
-    private final Range<Blueprint> blueprints = new Range<>();
+    private final Range<Attribute> attributes = new Range<>(Attribute.class);
+    private final Range<Blueprint> blueprints = new Range<>(Blueprint.class);
 
     private INode hoveredNode;
     private Link hoveredLink;
@@ -61,11 +58,11 @@ public class NodeEditor extends Element {
         graph = new Graph();
     }
 
-    public void blueprints(final Collection<Blueprint> blueprints) {
+    public void blueprints(final Collection<?> blueprints) {
         this.blueprints.collection(blueprints);
     }
 
-    public void attributes(final Collection<Attribute> attributes) {
+    public void attributes(final Collection<?> attributes) {
         this.attributes.collection(attributes);
     }
 
@@ -129,14 +126,15 @@ public class NodeEditor extends Element {
         final var attribute = (Attribute) args[1];
 
         final INode node;
-        if (attribute.output()) node = new Output(attribute);
-        else node = new Input(attribute);
+        if (attribute.output()) node = new Output(UUID.randomUUID(), attribute);
+        else node = new Input(UUID.randomUUID(), attribute);
 
         onAddNode(node);
     }
 
     private void onAddContextBlueprintsSelect(final Object... args) {
-        final var node = new Node((Blueprint) args[1]);
+        final var blueprint = (Blueprint) args[1];
+        final var node = new Node(UUID.randomUUID(), blueprint);
         onAddNode(node);
     }
 
@@ -151,8 +149,8 @@ public class NodeEditor extends Element {
             else graph.findLinks(target).forEach(graph::remove);
 
             final Link link;
-            if (source.output()) link = new Link(source, target);
-            else link = new Link(target, source);
+            if (source.output()) link = new Link(UUID.randomUUID(), source, target);
+            else link = new Link(UUID.randomUUID(), target, source);
             graph.add(link);
 
             source = null;
@@ -174,7 +172,8 @@ public class NodeEditor extends Element {
 
     @Override
     protected void onShow() {
-        graph.cycle();
+        final var delta = graph.cycle();
+        ImGui.textUnformatted("Delta: %d".formatted(delta));
 
         ImNodes.beginNodeEditor();
         graph.show();
@@ -255,9 +254,9 @@ public class NodeEditor extends Element {
             graph.findPin(pinId.get()).ifPresent(pin -> {
                 source = pin;
                 attributes.clearTempFilters();
-                attributes.tempFilter(x -> pin.output() == x.output());
+                attributes.tempFilter(attribute -> pin.output() == attribute.output());
                 blueprints.clearTempFilters();
-                blueprints.tempFilter(x -> pin.output() ? x.hasInput() : x.hasOutput());
+                blueprints.tempFilter(blueprint -> pin.output() ? blueprint.hasInput() : blueprint.hasOutput());
             });
         }
     }
@@ -274,8 +273,8 @@ public class NodeEditor extends Element {
             else graph.findLinks(target).forEach(graph::remove);
 
             final Link link;
-            if (source.output()) link = new Link(source, target);
-            else link = new Link(target, source);
+            if (source.output()) link = new Link(UUID.randomUUID(), source, target);
+            else link = new Link(UUID.randomUUID(), target, source);
             graph.add(link);
 
             source = null;

@@ -1,30 +1,42 @@
 package io.scriptor.node;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
-import java.util.Queue;
+import io.scriptor.Context;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.*;
 import java.util.stream.Stream;
 
 public class Node implements INode {
 
+    public static void read(final Context context, final BufferedReader in) throws IOException {
+        final var uuid = UUID.fromString(in.readLine());
+        context.<Blueprint>getRef(UUID.fromString(in.readLine()))
+                .get(x -> context.getRef(uuid).set(new Node(uuid, x)));
+    }
+
+    private final UUID uuid;
     private final Blueprint blueprint;
+
     private final Pin[] inputs;
     private final Pin[] outputs;
-
     private final boolean[] powered;
 
-    public Node(final Blueprint blueprint) {
+    public Node(final UUID uuid, final Blueprint blueprint) {
+        this.uuid = uuid;
         this.blueprint = blueprint;
 
-        inputs = new Pin[blueprint.inputLabels().length];
-        outputs = new Pin[blueprint.outputLabels().length];
-        powered = new boolean[outputs.length];
+        this.inputs = new Pin[blueprint.logic().inputs()];
+        this.outputs = new Pin[blueprint.logic().outputs()];
+        this.powered = new boolean[outputs.length];
+        for (int i = 0; i < inputs.length; ++i) this.inputs[i] = new Pin(this, i, false);
+        for (int i = 0; i < outputs.length; ++i) this.outputs[i] = new Pin(this, i, true);
+    }
 
-        for (int i = 0; i < inputs.length; ++i)
-            inputs[i] = new Pin(this, i, false);
-        for (int i = 0; i < outputs.length; ++i)
-            outputs[i] = new Pin(this, i, true);
+    @Override
+    public UUID uuid() {
+        return uuid;
     }
 
     @Override
@@ -64,7 +76,15 @@ public class Node implements INode {
 
     @Override
     public Node copy() {
-        return new Node(blueprint);
+        return new Node(UUID.randomUUID(), blueprint);
+    }
+
+    @Override
+    public void write(final Context context, final PrintWriter out) {
+        out.println(uuid);
+        out.println(blueprint.uuid());
+
+        context.next(blueprint);
     }
 
     @Override

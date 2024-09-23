@@ -2,18 +2,36 @@ package io.scriptor.node;
 
 import imgui.ImGui;
 import imgui.extension.imnodes.ImNodes;
+import io.scriptor.Context;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.List;
 import java.util.Optional;
 import java.util.Queue;
+import java.util.UUID;
 
 public class Input implements INode {
 
+    public static void read(final Context context, final BufferedReader in) throws IOException {
+        final var uuid = UUID.fromString(in.readLine());
+        context.<Attribute>getRef(UUID.fromString(in.readLine()))
+                .get(x -> context.getRef(uuid).set(new Input(uuid, x)));
+    }
+
+    private final UUID uuid;
     private final Attribute attribute;
     private final Pin pin = new Pin(this, 0, true);
 
-    public Input(final Attribute attribute) {
+    public Input(final UUID uuid, final Attribute attribute) {
+        this.uuid = uuid;
         this.attribute = attribute;
+    }
+
+    @Override
+    public UUID uuid() {
+        return uuid;
     }
 
     @Override
@@ -57,7 +75,15 @@ public class Input implements INode {
 
     @Override
     public Input copy() {
-        return new Input(attribute);
+        return new Input(UUID.randomUUID(), attribute);
+    }
+
+    @Override
+    public void write(final Context context, final PrintWriter out) {
+        out.println(uuid);
+        out.println(attribute.uuid());
+
+        context.next(attribute);
     }
 
     @Override
@@ -65,7 +91,6 @@ public class Input implements INode {
         graph.findLinks(pin)
                 .stream()
                 .map(link -> link.target().node())
-                .filter(node -> !callQueue.contains(node))
                 .forEach(callQueue::add);
     }
 

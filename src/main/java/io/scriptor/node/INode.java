@@ -1,9 +1,13 @@
 package io.scriptor.node;
 
+import io.scriptor.Context;
+import io.scriptor.IUnique;
+
+import java.io.PrintWriter;
 import java.util.Optional;
 import java.util.Queue;
 
-public interface INode {
+public interface INode extends IUnique {
 
     default int id() {
         return hashCode();
@@ -22,6 +26,8 @@ public interface INode {
     void show();
 
     INode copy();
+
+    void write(final Context context, final PrintWriter out);
 
     void cycle(final Graph graph, final Queue<INode> callQueue);
 }

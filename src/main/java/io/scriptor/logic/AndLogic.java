@@ -1,6 +1,10 @@
 package io.scriptor.logic;
 
-import java.io.PrintStream;
+import io.scriptor.Context;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.UUID;
 
 /**
@@ -13,14 +17,54 @@ import java.util.UUID;
  */
 public class AndLogic implements ILogic {
 
-    @Override
-    public UUID uuid() {
-        return new UUID(0, 1);
+    public static void read(final Context context, final BufferedReader in) throws IOException {
+        final var uuid = UUID.fromString(in.readLine());
+        context.getRef(uuid).set(new AndLogic(uuid));
+    }
+
+    private final UUID uuid;
+
+    public AndLogic() {
+        this(UUID.randomUUID());
+    }
+
+    public AndLogic(final UUID uuid) {
+        this.uuid = uuid;
     }
 
     @Override
-    public void write(PrintStream out) {
+    public UUID uuid() {
+        return uuid;
+    }
 
+    @Override
+    public int inputs() {
+        return 2;
+    }
+
+    @Override
+    public int outputs() {
+        return 1;
+    }
+
+    @Override
+    public String input(final int i) {
+        return switch (i) {
+            case 0 -> "In A";
+            case 1 -> "In B";
+            default -> throw new IllegalStateException();
+        };
+    }
+
+    @Override
+    public String output(final int i) {
+        if (i == 0) return "Out";
+        throw new IllegalStateException();
+    }
+
+    @Override
+    public void write(final Context context, final PrintWriter out) {
+        out.println(uuid());
     }
 
     @Override
