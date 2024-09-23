@@ -1,10 +1,11 @@
 package io.scriptor.logic;
 
 import io.scriptor.Context;
+import io.scriptor.util.ObjectIO;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.PrintWriter;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.UUID;
 
 /**
@@ -16,8 +17,8 @@ import java.util.UUID;
  */
 public class NotLogic implements ILogic {
 
-    public static void read(final Context context, final BufferedReader in) throws IOException {
-        final var uuid = UUID.fromString(in.readLine());
+    public static void read(final Context context, final InputStream in) throws IOException {
+        final var uuid = ObjectIO.readUUID(in);
         context.getRef(uuid).set(new NotLogic(uuid));
     }
 
@@ -59,8 +60,8 @@ public class NotLogic implements ILogic {
     }
 
     @Override
-    public void write(final Context context, final PrintWriter out) {
-        out.println(uuid());
+    public void write(final Context context, final OutputStream out) throws IOException {
+        ObjectIO.write(out, uuid());
     }
 
     @Override

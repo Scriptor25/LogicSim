@@ -3,10 +3,11 @@ package io.scriptor.logic;
 import io.scriptor.Context;
 import io.scriptor.node.Attribute;
 import io.scriptor.node.Graph;
+import io.scriptor.util.ObjectIO;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.PrintWriter;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.UUID;
@@ -14,13 +15,13 @@ import java.util.function.Consumer;
 
 public class Logic implements ILogic {
 
-    public static void read(final Context context, final BufferedReader in) throws IOException {
-        final var uuid = UUID.fromString(in.readLine());
-        final var attributeCount = Integer.parseInt(in.readLine());
+    public static void read(final Context context, final InputStream in) throws IOException {
+        final var uuid = ObjectIO.readUUID(in);
+        final var attributeCount = ObjectIO.readInt(in);
         final var attributeUUIDs = new UUID[attributeCount];
         for (int i = 0; i < attributeCount; ++i)
-            attributeUUIDs[i] = UUID.fromString(in.readLine());
-        final var graphUUID = UUID.fromString(in.readLine());
+            attributeUUIDs[i] = ObjectIO.readUUID(in);
+        final var graphUUID = ObjectIO.readUUID(in);
 
         final var attributes = new ArrayList<Attribute>();
         final var consumers = new ArrayList<Consumer<Attribute>>();
@@ -85,18 +86,18 @@ public class Logic implements ILogic {
     }
 
     @Override
-    public void write(final Context context, final PrintWriter out) {
-        out.println(uuid());
-        out.println(inputs.length + outputs.length);
+    public void write(final Context context, final OutputStream out) throws IOException {
+        ObjectIO.write(out, uuid());
+        ObjectIO.write(out, inputs.length + outputs.length);
         for (final var attribute : inputs) {
-            out.println(attribute.uuid());
+            ObjectIO.write(out, attribute.uuid());
             context.next(attribute);
         }
         for (final var attribute : outputs) {
-            out.println(attribute.uuid());
+            ObjectIO.write(out, attribute.uuid());
             context.next(attribute);
         }
-        out.println(graph.uuid());
+        ObjectIO.write(out, graph.uuid());
 
         context.next(graph);
     }

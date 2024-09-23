@@ -3,10 +3,11 @@ package io.scriptor.node;
 import imgui.ImGui;
 import imgui.extension.imnodes.ImNodes;
 import io.scriptor.Context;
+import io.scriptor.util.ObjectIO;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.PrintWriter;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.List;
 import java.util.Optional;
 import java.util.Queue;
@@ -14,9 +15,9 @@ import java.util.UUID;
 
 public class Input implements INode {
 
-    public static void read(final Context context, final BufferedReader in) throws IOException {
-        final var uuid = UUID.fromString(in.readLine());
-        context.<Attribute>getRef(UUID.fromString(in.readLine()))
+    public static void read(final Context context, final InputStream in) throws IOException {
+        final var uuid = ObjectIO.readUUID(in);
+        context.<Attribute>getRef(ObjectIO.readUUID(in))
                 .get(x -> context.getRef(uuid).set(new Input(uuid, x)));
     }
 
@@ -79,9 +80,9 @@ public class Input implements INode {
     }
 
     @Override
-    public void write(final Context context, final PrintWriter out) {
-        out.println(uuid);
-        out.println(attribute.uuid());
+    public void write(final Context context, final OutputStream out) throws IOException {
+        ObjectIO.write(out, uuid);
+        ObjectIO.write(out, attribute.uuid());
 
         context.next(attribute);
     }

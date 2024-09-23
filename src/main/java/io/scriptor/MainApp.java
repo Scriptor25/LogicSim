@@ -166,11 +166,5 @@ public class MainApp extends Application {
     @Override
     public void process() {
         layout.show();
-
-        final var dt = ImGui.getIO().getDeltaTime();
-        if (ImGui.begin("Info")) {
-            ImGui.textUnformatted("Delta: %f".formatted(dt));
-        }
-        ImGui.end();
     }
 }

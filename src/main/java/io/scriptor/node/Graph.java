@@ -2,26 +2,27 @@ package io.scriptor.node;
 
 import io.scriptor.Context;
 import io.scriptor.util.IUnique;
+import io.scriptor.util.ObjectIO;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.PrintWriter;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.*;
 
 public class Graph implements IUnique {
 
-    public static void read(final Context context, final BufferedReader in) throws IOException {
-        final var uuid = UUID.fromString(in.readLine());
-        final var nodeCount = Integer.parseInt(in.readLine());
+    public static void read(final Context context, final InputStream in) throws IOException {
+        final var uuid = ObjectIO.readUUID(in);
+        final var nodeCount = ObjectIO.readInt(in);
         final var nodes = new ArrayList<INode>();
         for (int i = 0; i < nodeCount; ++i) {
-            final var nodeUUID = UUID.fromString(in.readLine());
+            final var nodeUUID = ObjectIO.readUUID(in);
             context.<INode>getRef(nodeUUID).get(nodes::add);
         }
-        final var linkCount = Integer.parseInt(in.readLine());
+        final var linkCount = ObjectIO.readInt(in);
         final var links = new ArrayList<Link>();
         for (int i = 0; i < linkCount; ++i) {
-            final var linkUUID = UUID.fromString(in.readLine());
+            final var linkUUID = ObjectIO.readUUID(in);
             context.<Link>getRef(linkUUID).get(links::add);
         }
         context.getRef(uuid).set(new Graph(uuid, nodes, links));
@@ -175,16 +176,16 @@ public class Graph implements IUnique {
         return System.currentTimeMillis() - start;
     }
 
-    public void write(final Context context, final PrintWriter out) {
-        out.println(uuid);
-        out.println(nodes.size());
+    public void write(final Context context, final OutputStream out) throws IOException {
+        ObjectIO.write(out, uuid);
+        ObjectIO.write(out, nodes.size());
         for (final var node : nodes) {
-            out.println(node.uuid());
+            ObjectIO.write(out, node.uuid());
             context.next(node);
         }
-        out.println(links.size());
+        ObjectIO.write(out, links.size());
         for (final var link : links) {
-            out.println(link.uuid());
+            ObjectIO.write(out, link.uuid());
             context.next(link);
         }
     }

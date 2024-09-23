@@ -47,10 +47,8 @@ public class Context {
         this(new FileInputStream(file));
     }
 
-    public Context(final InputStream stream) throws IOException {
-        try (final var in = new BufferedReader(new InputStreamReader(stream))) {
-            while (true) if (!handle(() -> ObjectIO.read(this, in))) break;
-        }
+    public Context(final InputStream in) {
+        while (true) if (!handle(() -> ObjectIO.read(this, in))) break;
 
         for (final var entry : storage.entrySet()) {
             if (entry.getValue() instanceof Reference<?> ref) {
@@ -69,15 +67,13 @@ public class Context {
         write(new FileOutputStream(file));
     }
 
-    public void write(final OutputStream stream) {
-        try (final var out = new PrintWriter(stream)) {
-            next.clear();
-            storage.values().forEach(object -> handle(() -> ObjectIO.write(this, out, object)));
+    public void write(final OutputStream out) {
+        next.clear();
+        storage.values().forEach(object -> handle(() -> ObjectIO.write(this, out, object)));
 
-            for (int i = 0; i < next.size(); ++i) {
-                final var j = i;
-                handle(() -> ObjectIO.write(this, out, next.get(j)));
-            }
+        for (int i = 0; i < next.size(); ++i) {
+            final var j = i;
+            handle(() -> ObjectIO.write(this, out, next.get(j)));
         }
     }
 

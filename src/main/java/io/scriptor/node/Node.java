@@ -1,18 +1,19 @@
 package io.scriptor.node;
 
 import io.scriptor.Context;
+import io.scriptor.util.ObjectIO;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.PrintWriter;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.*;
 import java.util.stream.Stream;
 
 public class Node implements INode {
 
-    public static void read(final Context context, final BufferedReader in) throws IOException {
-        final var uuid = UUID.fromString(in.readLine());
-        context.<Blueprint>getRef(UUID.fromString(in.readLine()))
+    public static void read(final Context context, final InputStream in) throws IOException {
+        final var uuid = ObjectIO.readUUID(in);
+        context.<Blueprint>getRef(ObjectIO.readUUID(in))
                 .get(x -> context.getRef(uuid).set(new Node(uuid, x)));
     }
 
@@ -80,9 +81,9 @@ public class Node implements INode {
     }
 
     @Override
-    public void write(final Context context, final PrintWriter out) {
-        out.println(uuid);
-        out.println(blueprint.uuid());
+    public void write(final Context context, final OutputStream out) throws IOException {
+        ObjectIO.write(out, uuid);
+        ObjectIO.write(out, blueprint.uuid());
 
         context.next(blueprint);
     }

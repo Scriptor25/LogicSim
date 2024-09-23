@@ -4,18 +4,19 @@ import imgui.type.ImBoolean;
 import imgui.type.ImString;
 import io.scriptor.Context;
 import io.scriptor.util.IUnique;
+import io.scriptor.util.ObjectIO;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.PrintWriter;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.UUID;
 
 public record Attribute(UUID uuid, ImString label, boolean output, ImBoolean powered) implements IUnique {
 
-    public static void read(final Context context, final BufferedReader in) throws IOException {
-        final var uuid = UUID.fromString(in.readLine());
-        final var label = in.readLine();
-        final var output = Boolean.parseBoolean(in.readLine());
+    public static void read(final Context context, final InputStream in) throws IOException {
+        final var uuid = ObjectIO.readUUID(in);
+        final var label = ObjectIO.readString(in);
+        final var output = ObjectIO.readBool(in);
         context.getRef(uuid).set(new Attribute(uuid, new ImString(label), output, new ImBoolean()));
     }
 
@@ -36,9 +37,9 @@ public record Attribute(UUID uuid, ImString label, boolean output, ImBoolean pow
         return !output;
     }
 
-    public void write(final Context context, final PrintWriter out) {
-        out.println(uuid);
-        out.println(label);
-        out.println(output);
+    public void write(final Context context, final OutputStream out) throws IOException {
+        ObjectIO.write(out, uuid);
+        ObjectIO.write(out, label.get());
+        ObjectIO.write(out, output);
     }
 }

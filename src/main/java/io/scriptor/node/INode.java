@@ -3,7 +3,8 @@ package io.scriptor.node;
 import io.scriptor.Context;
 import io.scriptor.util.IUnique;
 
-import java.io.PrintWriter;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.util.Optional;
 import java.util.Queue;
 
@@ -27,7 +28,7 @@ public interface INode extends IUnique {
 
     INode copy();
 
-    void write(final Context context, final PrintWriter out);
+    void write(final Context context, final OutputStream out) throws IOException;
 
     void cycle(final Graph graph, final Queue<INode> callQueue);
 }

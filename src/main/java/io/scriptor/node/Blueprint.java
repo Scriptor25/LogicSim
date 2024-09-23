@@ -6,12 +6,13 @@ import imgui.extension.imnodes.ImNodes;
 import imgui.extension.imnodes.flag.ImNodesCol;
 import imgui.type.ImString;
 import io.scriptor.Context;
-import io.scriptor.util.IUnique;
 import io.scriptor.logic.ILogic;
+import io.scriptor.util.IUnique;
+import io.scriptor.util.ObjectIO;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.PrintWriter;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.UUID;
 
 public record Blueprint(
@@ -20,23 +21,23 @@ public record Blueprint(
         int baseColor,
         ILogic logic) implements IUnique {
 
-    public static void read(final Context context, final BufferedReader in) throws IOException {
+    public static void read(final Context context, final InputStream in) throws IOException {
         final var builder = new Builder();
 
-        final var uuid = UUID.fromString(in.readLine());
+        final var uuid = ObjectIO.readUUID(in);
         builder.uuid(uuid);
-        builder.label(in.readLine());
-        builder.baseColor(Integer.parseInt(in.readLine()));
+        builder.label(ObjectIO.readString(in));
+        builder.baseColor(ObjectIO.readInt(in));
 
-        context.<ILogic>getRef(UUID.fromString(in.readLine()))
+        context.<ILogic>getRef(ObjectIO.readUUID(in))
                 .get(x -> context.getRef(uuid).set(builder.logic(x).build()));
     }
 
-    public void write(final Context context, final PrintWriter out) {
-        out.println(uuid);
-        out.println(label);
-        out.println(baseColor);
-        out.println(logic.uuid());
+    public void write(final Context context, final OutputStream out) throws IOException {
+        ObjectIO.write(out, uuid);
+        ObjectIO.write(out, label.get());
+        ObjectIO.write(out, baseColor);
+        ObjectIO.write(out, logic.uuid());
 
         context.next(logic);
     }
