@@ -2,7 +2,7 @@ package io.scriptor.node;
 
 import imgui.extension.imnodes.ImNodes;
 import io.scriptor.Context;
-import io.scriptor.IUnique;
+import io.scriptor.util.IUnique;
 
 import java.io.BufferedReader;
 import java.io.IOException;

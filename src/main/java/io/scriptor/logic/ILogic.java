@@ -1,7 +1,7 @@
 package io.scriptor.logic;
 
 import io.scriptor.Context;
-import io.scriptor.IUnique;
+import io.scriptor.util.IUnique;
 
 import java.io.PrintWriter;
 

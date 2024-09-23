@@ -1,4 +1,6 @@
-package io.scriptor;
+package io.scriptor.util;
+
+import io.scriptor.Context;
 
 import java.io.BufferedReader;
 import java.io.IOException;

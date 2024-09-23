@@ -6,7 +6,7 @@ import imgui.extension.imnodes.ImNodes;
 import imgui.extension.imnodes.flag.ImNodesCol;
 import imgui.type.ImString;
 import io.scriptor.Context;
-import io.scriptor.IUnique;
+import io.scriptor.util.IUnique;
 import io.scriptor.logic.ILogic;
 
 import java.io.BufferedReader;

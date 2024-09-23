@@ -3,7 +3,7 @@ package io.scriptor.node;
 import imgui.type.ImBoolean;
 import imgui.type.ImString;
 import io.scriptor.Context;
-import io.scriptor.IUnique;
+import io.scriptor.util.IUnique;
 
 import java.io.BufferedReader;
 import java.io.IOException;

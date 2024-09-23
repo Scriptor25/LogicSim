@@ -3,11 +3,14 @@ package io.scriptor;
 import io.scriptor.logic.AndLogic;
 import io.scriptor.logic.NotLogic;
 import io.scriptor.node.Blueprint;
+import io.scriptor.util.IUnique;
+import io.scriptor.util.ObjectIO;
+import io.scriptor.util.Reference;
 
 import java.io.*;
 import java.util.*;
 
-import static io.scriptor.Task.handle;
+import static io.scriptor.util.Task.handle;
 
 public class Context {
 

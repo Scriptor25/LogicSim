@@ -1,4 +1,4 @@
-package io.scriptor;
+package io.scriptor.util;
 
 import java.util.ArrayList;
 import java.util.List;

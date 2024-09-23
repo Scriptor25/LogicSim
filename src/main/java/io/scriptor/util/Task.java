@@ -1,4 +1,4 @@
-package io.scriptor;
+package io.scriptor.util;
 
 import static io.scriptor.MainApp.getLogger;
 

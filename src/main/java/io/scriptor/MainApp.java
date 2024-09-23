@@ -22,7 +22,7 @@ import java.util.logging.Formatter;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 
-import static io.scriptor.Task.handle;
+import static io.scriptor.util.Task.handle;
 
 public class MainApp extends Application {
 
