@@ -1,0 +1,9 @@
+type: component
+id: color-edit
+class: io.scriptor.imgui.ColorEdit
+fields:
+  - name: label
+    type: string
+  - name: event
+    type: string
+    default: select

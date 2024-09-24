@@ -6,11 +6,13 @@ import imgui.ImGui;
 public class ColorEdit extends Element {
 
     private final String label;
+    private final String event;
     private final float[] col = new float[3];
 
-    public ColorEdit(final Layout root, final String id, final String label) {
+    public ColorEdit(final Layout root, final String id, final String label, final String event) {
         super(root, id);
         this.label = label;
+        this.event = id + '.' + event;
     }
 
     public void color(final float r, final float g, final float b) {
@@ -32,6 +34,7 @@ public class ColorEdit extends Element {
 
     @Override
     protected void onShow() {
-        ImGui.colorEdit3(label, col);
+        if (ImGui.colorEdit3(label, col))
+            getEvents().invoke(event, this, color());
     }
 }

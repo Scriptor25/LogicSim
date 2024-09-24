@@ -5,8 +5,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static io.scriptor.MainApp.getLogger;
-
 public class EventManager {
 
     @FunctionalInterface
@@ -15,21 +13,15 @@ public class EventManager {
         void invoke(final Object... args);
     }
 
-    private final Map<String, IEventCallback> events = new HashMap<>();
+    private final Map<String, List<IEventCallback>> events = new HashMap<>();
     private final List<Runnable> tasks = new ArrayList<>();
 
     public void register(final String id, final IEventCallback callback) {
-        if (events.containsKey(id))
-            getLogger().warning(() -> "overwriting event with id '%s'".formatted(id));
-        events.put(id, callback);
+        events.computeIfAbsent(id, key -> new ArrayList<>()).add(callback);
     }
 
     public void invoke(final String id, final Object... args) {
-        if (!events.containsKey(id)) {
-            getLogger().warning(() -> "no event with id '%s'".formatted(id));
-            return;
-        }
-        events.get(id).invoke(args);
+        events.computeIfAbsent(id, key -> new ArrayList<>()).forEach(callback -> callback.invoke(args));
     }
 
     public void schedule(final Runnable task) {

@@ -1,13 +1,17 @@
 package io.scriptor;
 
 import io.scriptor.node.AndLogic;
-import io.scriptor.node.NotLogic;
 import io.scriptor.node.Blueprint;
+import io.scriptor.node.NotLogic;
 import io.scriptor.util.IUnique;
 import io.scriptor.util.ObjectIO;
 import io.scriptor.util.Reference;
 
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.file.Files;
 import java.util.*;
 
 import static io.scriptor.util.Task.handle;
@@ -40,40 +44,44 @@ public class Context {
     }
 
     public Context(final String filename) throws IOException {
-        this(new FileInputStream(filename));
+        this(new File(filename));
     }
 
     public Context(final File file) throws IOException {
-        this(new FileInputStream(file));
+        this(Files.newInputStream(file.toPath()));
     }
 
-    public Context(final InputStream in) {
-        while (true) if (!handle(() -> ObjectIO.read(this, in))) break;
+    public Context(final InputStream in) throws IOException {
+        try (in) {
+            while (true) if (!handle(() -> ObjectIO.read(this, in))) break;
 
-        for (final var entry : storage.entrySet()) {
-            if (entry.getValue() instanceof Reference<?> ref) {
-                if (!ref.valid())
-                    throw new IllegalStateException();
-                storage.put(entry.getKey(), ((Reference<IUnique>) ref).get());
+            for (final var entry : storage.entrySet()) {
+                if (entry.getValue() instanceof Reference<?> ref) {
+                    if (!ref.valid())
+                        throw new IllegalStateException();
+                    storage.put(entry.getKey(), ((Reference<IUnique>) ref).get());
+                }
             }
         }
     }
 
-    public void write(final String filename) throws FileNotFoundException {
-        write(new FileOutputStream(filename));
+    public void write(final String filename) throws IOException {
+        write(new File(filename));
     }
 
-    public void write(final File file) throws FileNotFoundException {
-        write(new FileOutputStream(file));
+    public void write(final File file) throws IOException {
+        write(Files.newOutputStream(file.toPath()));
     }
 
-    public void write(final OutputStream out) {
-        next.clear();
-        storage.values().forEach(object -> handle(() -> ObjectIO.write(this, out, object)));
+    public void write(final OutputStream out) throws IOException {
+        try (out) {
+            next.clear();
+            storage.values().forEach(object -> handle(() -> ObjectIO.write(this, out, object)));
 
-        for (int i = 0; i < next.size(); ++i) {
-            final var j = i;
-            handle(() -> ObjectIO.write(this, out, next.get(j)));
+            for (int i = 0; i < next.size(); ++i) {
+                final var j = i;
+                handle(() -> ObjectIO.write(this, out, next.get(j)));
+            }
         }
     }
 

@@ -89,8 +89,7 @@ public class ResourceManager {
         try (final var stream = ClassLoader.getSystemResourceAsStream(name)) {
             if (stream != null) {
                 final var reader = new BufferedReader(new InputStreamReader(stream));
-                for (String line; (line = reader.readLine()) != null; )
-                    parse(name + File.separatorChar + line);
+                reader.lines().forEach(line -> parse(name + File.separatorChar + line));
                 return;
             }
         } catch (final IOException e) {

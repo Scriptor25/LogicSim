@@ -16,7 +16,7 @@ public record Attribute(UUID uuid, ImString label, boolean output, ImBoolean pow
     public static void read(final Context context, final InputStream in) throws IOException {
         final var uuid = ObjectIO.readUUID(in);
         final var label = ObjectIO.readString(in);
-        final var output = ObjectIO.readBool(in);
+        final var output = ObjectIO.readBoolean(in);
         context.getRef(uuid).set(new Attribute(uuid, new ImString(label), output, new ImBoolean()));
     }
 

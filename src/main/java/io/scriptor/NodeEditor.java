@@ -2,6 +2,7 @@ package io.scriptor;
 
 import imgui.ImGui;
 import imgui.extension.imnodes.ImNodes;
+import imgui.extension.imnodes.flag.ImNodesMiniMapLocation;
 import imgui.flag.ImGuiKey;
 import imgui.flag.ImGuiMouseButton;
 import imgui.type.ImInt;
@@ -32,9 +33,7 @@ public class NodeEditor extends Element {
     public NodeEditor(final Layout root, final String id) {
         super(root, id);
 
-        attributes.sorted(Comparator.comparing(Attribute::label));
         attributes.sorted(Comparator.comparing(Attribute::output));
-        blueprints.sorted(Comparator.comparing(Blueprint::label));
 
         getEvents().register(getParentId() + ".node-context.copy.click", this::onNodeContextCopyClick);
         getEvents().register(getParentId() + ".node-context.cut.click", this::onNodeContextCutClick);
@@ -115,9 +114,6 @@ public class NodeEditor extends Element {
     private void onEditorContextAddClick(final Object... args) {
         getEvents().schedule(() -> ImGui.openPopup(getParentId() + ".add-context"));
 
-        mouseX = ImGui.getMousePosX();
-        mouseY = ImGui.getMousePosY();
-
         attributes.clearTempFilters();
         blueprints.clearTempFilters();
     }
@@ -135,6 +131,7 @@ public class NodeEditor extends Element {
     private void onAddContextBlueprintsSelect(final Object... args) {
         final var blueprint = (Blueprint) args[1];
         final var node = new Node(UUID.randomUUID(), blueprint);
+
         onAddNode(node);
     }
 
@@ -178,6 +175,7 @@ public class NodeEditor extends Element {
         ImNodes.beginNodeEditor();
         graph.show();
         final var isEditorHovered = ImNodes.isEditorHovered();
+        ImNodes.miniMap(.2f, ImNodesMiniMapLocation.BottomRight);
         ImNodes.endNodeEditor();
 
         handleMouse(isEditorHovered);
@@ -211,6 +209,11 @@ public class NodeEditor extends Element {
         if (ImGui.isMouseClicked(ImGuiMouseButton.Right)) {
             final var hoveredNodeId = ImNodes.getHoveredNode();
             final var hoveredLinkId = ImNodes.getHoveredLink();
+
+            mouseX = ImGui.getMousePosX();
+            mouseY = ImGui.getMousePosY();
+            source = null;
+            target = null;
 
             if (hoveredNodeId != -1) {
                 getEvents().schedule(() -> ImGui.openPopup(getParentId() + ".node-context"));
@@ -251,6 +254,9 @@ public class NodeEditor extends Element {
 
             mouseX = ImGui.getMousePosX();
             mouseY = ImGui.getMousePosY();
+            source = null;
+            target = null;
+
             graph.findPin(pinId.get()).ifPresent(pin -> {
                 source = pin;
                 attributes.clearTempFilters();

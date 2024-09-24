@@ -4,6 +4,7 @@ import imgui.ImColor;
 import imgui.ImGui;
 import imgui.extension.imnodes.ImNodes;
 import imgui.extension.imnodes.flag.ImNodesCol;
+import imgui.type.ImInt;
 import imgui.type.ImString;
 import io.scriptor.Context;
 import io.scriptor.util.IUnique;
@@ -17,7 +18,7 @@ import java.util.UUID;
 public record Blueprint(
         UUID uuid,
         ImString label,
-        int baseColor,
+        ImInt baseColor,
         ILogic logic) implements IUnique {
 
     public static class Builder {
@@ -51,18 +52,18 @@ public record Blueprint(
             return new Blueprint(
                     uuid,
                     new ImString(label),
-                    baseColor,
+                    new ImInt(baseColor),
                     logic);
         }
     }
 
     public static void read(final Context context, final InputStream in) throws IOException {
-        final var builder = new Builder();
-
         final var uuid = ObjectIO.readUUID(in);
-        builder.uuid(uuid);
-        builder.label(ObjectIO.readString(in));
-        builder.baseColor(ObjectIO.readInt(in));
+
+        final var builder = new Builder()
+                .uuid(uuid)
+                .label(ObjectIO.readString(in))
+                .baseColor(ObjectIO.readInt(in));
 
         context.<ILogic>getRef(ObjectIO.readUUID(in))
                 .get(x -> context.getRef(uuid).set(builder.logic(x).build()));
@@ -71,7 +72,7 @@ public record Blueprint(
     public void write(final Context context, final OutputStream out) throws IOException {
         ObjectIO.write(out, uuid);
         ObjectIO.write(out, label.get());
-        ObjectIO.write(out, baseColor);
+        ObjectIO.write(out, baseColor.get());
         ObjectIO.write(out, logic.uuid());
 
         context.next(logic);
@@ -113,9 +114,9 @@ public record Blueprint(
 
     private void pushColorStyle() {
         final var scale = 1.f / 255.f;
-        final var r = (baseColor >> 16 & 0xff) * scale;
-        final var g = (baseColor >> 8 & 0xff) * scale;
-        final var b = (baseColor & 0xff) * scale;
+        final var r = (baseColor.get() >> 16 & 0xff) * scale;
+        final var g = (baseColor.get() >> 8 & 0xff) * scale;
+        final var b = (baseColor.get() & 0xff) * scale;
 
         ImNodes.pushColorStyle(ImNodesCol.NodeBackground, ImColor.rgb(r, g, b));
         ImNodes.pushColorStyle(ImNodesCol.NodeBackgroundHovered, ImColor.rgb(r * 0.9f, g * 0.9f, b * 0.9f));

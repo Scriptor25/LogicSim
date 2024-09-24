@@ -115,6 +115,10 @@ public class Graph implements IUnique {
                 .filter(node -> node.noPredecessor(this));
     }
 
+    public Graph copy() {
+        return copy(nodes.toArray(INode[]::new));
+    }
+
     public Graph copy(final INode[] nodes) {
         final var graph = new Graph();
 
