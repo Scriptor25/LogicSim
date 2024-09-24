@@ -3,6 +3,7 @@ package io.scriptor;
 import io.scriptor.node.AndLogic;
 import io.scriptor.node.Blueprint;
 import io.scriptor.node.NotLogic;
+import io.scriptor.node.SRLogic;
 import io.scriptor.util.IUnique;
 import io.scriptor.util.ObjectIO;
 import io.scriptor.util.Reference;
@@ -28,6 +29,9 @@ public class Context {
         final var andLogic = new AndLogic();
         put(andLogic.uuid(), andLogic);
 
+        final var srLogic = new SRLogic();
+        put(srLogic.uuid(), srLogic);
+
         final var not = new Blueprint.Builder()
                 .label("Not")
                 .baseColor(0x3c689f)
@@ -41,6 +45,13 @@ public class Context {
                 .logic(andLogic)
                 .build();
         put(and.uuid(), and);
+
+        final var sr = new Blueprint.Builder()
+                .label("SR Latch")
+                .baseColor(0xa2943a)
+                .logic(srLogic)
+                .build();
+        put(sr.uuid(), sr);
     }
 
     public Context(final String filename) throws IOException {

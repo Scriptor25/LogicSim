@@ -95,7 +95,7 @@ public class Node implements INode {
             final var j = i;
             inputs[i].predecessor(graph).ifPresent(pin -> in[j] = pin.powered());
         }
-        blueprint.logic().cycle(in, powered);
+        blueprint.logic().cycle(this, in, powered);
 
         for (final var output : outputs)
             output.successors(graph).stream().map(Pin::node).filter(x -> !callQueue.contains(x)).forEach(callQueue::add);

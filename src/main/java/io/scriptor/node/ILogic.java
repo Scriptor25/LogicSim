@@ -18,5 +18,5 @@ public interface ILogic extends IUnique {
 
     void write(final Context context, final OutputStream out) throws IOException;
 
-    void cycle(final boolean[] inputs, final boolean[] outputs);
+    void cycle(final INode parent, final boolean[] inputs, final boolean[] outputs);
 }

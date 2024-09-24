@@ -6,29 +6,24 @@ import io.scriptor.util.ObjectIO;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
-/**
- * UUID(0, 0)
- * <ul>
- * <li>pin 0 - In</li>
- * <li>pin 1 - Out</li>
- * </ul>
- */
-public class NotLogic implements ILogic {
+public class SRLogic implements ILogic {
 
     public static void read(final Context context, final InputStream in) throws IOException {
         final var uuid = ObjectIO.readUUID(in);
-        context.getRef(uuid).set(new NotLogic(uuid));
+        context.getRef(uuid).set(new SRLogic(uuid));
     }
 
     private final UUID uuid;
 
-    public NotLogic() {
+    public SRLogic() {
         this(UUID.randomUUID());
     }
 
-    public NotLogic(final UUID uuid) {
+    public SRLogic(final UUID uuid) {
         this.uuid = uuid;
     }
 
@@ -39,7 +34,7 @@ public class NotLogic implements ILogic {
 
     @Override
     public int inputs() {
-        return 1;
+        return 2;
     }
 
     @Override
@@ -49,8 +44,11 @@ public class NotLogic implements ILogic {
 
     @Override
     public String input(final int i) {
-        if (i == 0) return "In";
-        throw new IllegalStateException();
+        return switch (i) {
+            case 0 -> "Set";
+            case 1 -> "Reset";
+            default -> throw new IllegalStateException();
+        };
     }
 
     @Override
@@ -64,8 +62,12 @@ public class NotLogic implements ILogic {
         ObjectIO.write(out, uuid());
     }
 
+    private final Map<INode, Boolean> states = new HashMap<>();
+
     @Override
     public void cycle(final INode parent, final boolean[] inputs, final boolean[] outputs) {
-        outputs[0] = !inputs[0];
+        if (inputs[0]) states.put(parent, true);
+        if (inputs[1]) states.put(parent, false);
+        outputs[0] = states.getOrDefault(parent, false);
     }
 }

@@ -103,7 +103,7 @@ public class Logic implements ILogic {
     }
 
     @Override
-    public void cycle(final boolean[] in, final boolean[] out) {
+    public void cycle(final INode parent, final boolean[] in, final boolean[] out) {
         for (int i = 0; i < inputs.length; ++i)
             inputs[i].powered().set(in[i]);
 
