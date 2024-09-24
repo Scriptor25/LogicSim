@@ -65,7 +65,7 @@ public class NotLogic implements ILogic {
     }
 
     @Override
-    public void cycle(final INode parent, final boolean[] inputs, final boolean[] outputs) {
+    public void cycle(final long key, final boolean[] inputs, final boolean[] outputs) {
         outputs[0] = !inputs[0];
     }
 }

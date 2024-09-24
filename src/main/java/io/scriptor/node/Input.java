@@ -92,7 +92,7 @@ public class Input implements INode {
     }
 
     @Override
-    public void cycle(final Graph graph, final Queue<INode> callQueue) {
+    public void cycle(final long key, final Graph graph, final Queue<INode> callQueue) {
         graph.findLinks(pin)
                 .stream()
                 .map(link -> link.target().node())

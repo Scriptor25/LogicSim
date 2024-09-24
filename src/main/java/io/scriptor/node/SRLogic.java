@@ -62,12 +62,12 @@ public class SRLogic implements ILogic {
         ObjectIO.write(out, uuid());
     }
 
-    private final Map<INode, Boolean> states = new HashMap<>();
+    private final Map<Long, Boolean> states = new HashMap<>();
 
     @Override
-    public void cycle(final INode parent, final boolean[] inputs, final boolean[] outputs) {
-        if (inputs[0]) states.put(parent, true);
-        if (inputs[1]) states.put(parent, false);
-        outputs[0] = states.getOrDefault(parent, false);
+    public void cycle(final long key, final boolean[] inputs, final boolean[] outputs) {
+        if (inputs[0]) states.put(key, true);
+        if (inputs[1]) states.put(key, false);
+        outputs[0] = states.getOrDefault(key, false);
     }
 }

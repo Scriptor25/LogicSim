@@ -169,7 +169,7 @@ public class NodeEditor extends Element {
 
     @Override
     protected void onShow() {
-        final var delta = graph.cycle();
+        final var delta = graph.cycle(0);
         ImGui.textUnformatted("Delta: %d".formatted(delta));
 
         ImNodes.beginNodeEditor();

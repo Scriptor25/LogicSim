@@ -103,11 +103,11 @@ public class Logic implements ILogic {
     }
 
     @Override
-    public void cycle(final INode parent, final boolean[] in, final boolean[] out) {
+    public void cycle(final long key, final boolean[] in, final boolean[] out) {
         for (int i = 0; i < inputs.length; ++i)
             inputs[i].powered().set(in[i]);
 
-        graph.cycle();
+        graph.cycle(key + uuid.hashCode());
 
         for (int i = 0; i < outputs.length; ++i)
             out[i] = outputs[i].powered().get();

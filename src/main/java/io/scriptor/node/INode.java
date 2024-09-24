@@ -30,5 +30,5 @@ public interface INode extends IUnique {
 
     void write(final Context context, final OutputStream out) throws IOException;
 
-    void cycle(final Graph graph, final Queue<INode> callQueue);
+    void cycle(final long key, final Graph graph, final Queue<INode> callQueue);
 }

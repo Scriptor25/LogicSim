@@ -166,7 +166,7 @@ public class Graph implements IUnique {
         copies.values().forEach(this::add);
     }
 
-    public long cycle() {
+    public long cycle(final long key) {
         final var start = System.currentTimeMillis();
         final Queue<INode> callQueue = new ArrayDeque<>();
 
@@ -178,7 +178,7 @@ public class Graph implements IUnique {
         while (!callQueue.isEmpty()) {
             final var next = callQueue.poll();
             cycled.add(next);
-            next.cycle(this, callQueue);
+            next.cycle(key + uuid.hashCode(), this, callQueue);
 
             for (final var node : cycled)
                 callQueue.remove(node);

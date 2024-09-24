@@ -89,7 +89,7 @@ public class Output implements INode {
     }
 
     @Override
-    public void cycle(final Graph graph, final Queue<INode> callQueue) {
+    public void cycle(final long key, final Graph graph, final Queue<INode> callQueue) {
         pin.predecessor(graph).ifPresent(x -> attribute.powered().set(x.powered()));
     }
 

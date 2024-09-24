@@ -89,13 +89,13 @@ public class Node implements INode {
     }
 
     @Override
-    public void cycle(final Graph graph, final Queue<INode> callQueue) {
+    public void cycle(final long key, final Graph graph, final Queue<INode> callQueue) {
         final var in = new boolean[inputs.length];
         for (int i = 0; i < inputs.length; ++i) {
             final var j = i;
             inputs[i].predecessor(graph).ifPresent(pin -> in[j] = pin.powered());
         }
-        blueprint.logic().cycle(this, in, powered);
+        blueprint.logic().cycle(key + uuid.hashCode(), in, powered);
 
         for (final var output : outputs)
             output.successors(graph).stream().map(Pin::node).filter(x -> !callQueue.contains(x)).forEach(callQueue::add);
