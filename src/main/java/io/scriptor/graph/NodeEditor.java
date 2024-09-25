@@ -1,4 +1,4 @@
-package io.scriptor;
+package io.scriptor.graph;
 
 import imgui.ImGui;
 import imgui.extension.imnodes.ImNodes;
@@ -9,14 +9,13 @@ import imgui.type.ImInt;
 import io.scriptor.imgui.Array;
 import io.scriptor.imgui.Element;
 import io.scriptor.imgui.Layout;
-import io.scriptor.node.*;
 import io.scriptor.util.Range;
 
 import java.util.*;
 
 public class NodeEditor extends Element {
 
-    private Graph graph = new Graph();
+    private Graph graph;
 
     private final Range<Attribute> attributes = new Range<>(Attribute.class);
     private final Range<Blueprint> blueprints = new Range<>(Blueprint.class);
@@ -49,20 +48,16 @@ public class NodeEditor extends Element {
         getEvents().register(getParentId() + ".delete-context.links.click", args -> deleteSelectedLinks());
     }
 
-    public Graph graph() {
-        return graph;
+    public void graph(final Graph graph) {
+        this.graph = graph;
     }
 
-    public void newGraph() {
-        graph = new Graph();
+    public Range<Attribute> attributes() {
+        return attributes;
     }
 
     public void blueprints(final Collection<?> blueprints) {
         this.blueprints.collection(blueprints);
-    }
-
-    public void attributes(final Collection<?> attributes) {
-        this.attributes.collection(attributes);
     }
 
     private void onNodeContextCopyClick(final Object... args) {
@@ -169,12 +164,13 @@ public class NodeEditor extends Element {
 
     @Override
     protected void onShow() {
-        final var delta = graph.cycle(0);
-        ImGui.textUnformatted("Delta: %d".formatted(delta));
-
         ImNodes.beginNodeEditor();
+
+        graph.cycle();
         graph.show();
+
         final var isEditorHovered = ImNodes.isEditorHovered();
+
         ImNodes.miniMap(.2f, ImNodesMiniMapLocation.BottomRight);
         ImNodes.endNodeEditor();
 
@@ -262,7 +258,7 @@ public class NodeEditor extends Element {
                 attributes.clearTempFilters();
                 attributes.tempFilter(attribute -> pin.output() == attribute.output());
                 blueprints.clearTempFilters();
-                blueprints.tempFilter(blueprint -> pin.output() ? blueprint.hasInput() : blueprint.hasOutput());
+                blueprints.tempFilter(blueprint -> pin.output() ? blueprint.function().numInputs() > 0 : blueprint.function().numOutputs() > 0);
             });
         }
     }

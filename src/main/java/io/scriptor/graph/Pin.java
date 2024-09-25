@@ -1,4 +1,4 @@
-package io.scriptor.node;
+package io.scriptor.graph;
 
 import java.util.List;
 import java.util.Optional;
@@ -21,9 +21,5 @@ public record Pin(INode node, int index, boolean output) {
     public List<Pin> successors(final Graph graph) {
         if (!output) throw new IllegalStateException();
         return graph.findLinks(this).stream().map(Link::target).toList();
-    }
-
-    public boolean powered() {
-        return node.powered(index);
     }
 }

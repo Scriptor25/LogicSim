@@ -1,6 +1,6 @@
 type: component
 id: node-editor
-class: io.scriptor.NodeEditor
+class: io.scriptor.graph.NodeEditor
 fields: [ ]
 elements:
   - use: node-context

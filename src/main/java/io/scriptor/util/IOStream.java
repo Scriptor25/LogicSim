@@ -1,20 +1,11 @@
 package io.scriptor.util;
 
-import io.scriptor.Context;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.lang.reflect.InvocationTargetException;
 import java.util.UUID;
 
-public class ObjectIO {
-
-    public static void write(final Context context, final OutputStream out, final Object object)
-            throws NoSuchMethodException, InvocationTargetException, IllegalAccessException, IOException {
-        write(out, object.getClass().getName());
-        object.getClass().getMethod("write", Context.class, OutputStream.class).invoke(object, context, out);
-    }
+public class IOStream {
 
     public static void write(final OutputStream out, final UUID uuid) throws IOException {
         write(out, uuid.getMostSignificantBits());
@@ -57,15 +48,6 @@ public class ObjectIO {
         out.write((byte) (l >> 16));
         out.write((byte) (l >> 8));
         out.write((byte) l);
-    }
-
-    public static boolean read(final Context context, final InputStream in)
-            throws IOException, ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
-        final var className = readString(in);
-        if (className == null) return false;
-        final var type = ClassLoader.getSystemClassLoader().loadClass(className);
-        type.getMethod("read", Context.class, InputStream.class).invoke(null, context, in);
-        return true;
     }
 
     public static UUID readUUID(final InputStream in) throws IOException {
@@ -120,6 +102,6 @@ public class ObjectIO {
         return l;
     }
 
-    private ObjectIO() {
+    private IOStream() {
     }
 }

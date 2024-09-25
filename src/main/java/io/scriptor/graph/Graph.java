@@ -1,52 +1,52 @@
-package io.scriptor.node;
+package io.scriptor.graph;
 
-import io.scriptor.Context;
+import io.scriptor.context.Registry;
+import io.scriptor.context.State;
+import io.scriptor.function.Function;
 import io.scriptor.util.IUnique;
-import io.scriptor.util.ObjectIO;
+import io.scriptor.util.Range;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.*;
 import java.util.stream.Stream;
 
 public class Graph implements IUnique {
 
-    public static void read(final Context context, final InputStream in) throws IOException {
-        final var uuid = ObjectIO.readUUID(in);
-        final var nodeCount = ObjectIO.readInt(in);
-        final var nodes = new ArrayList<INode>();
-        for (int i = 0; i < nodeCount; ++i) {
-            final var nodeUUID = ObjectIO.readUUID(in);
-            context.<INode>getRef(nodeUUID).get(nodes::add);
-        }
-        final var linkCount = ObjectIO.readInt(in);
-        final var links = new ArrayList<Link>();
-        for (int i = 0; i < linkCount; ++i) {
-            final var linkUUID = ObjectIO.readUUID(in);
-            context.<Link>getRef(linkUUID).get(links::add);
-        }
-        context.getRef(uuid).set(new Graph(uuid, nodes, links));
-    }
+    private final Registry registry;
 
     private final UUID uuid;
+    private final List<Attribute> attributes;
     private final List<INode> nodes;
     private final List<Link> links;
 
-    public Graph() {
-        uuid = UUID.randomUUID();
-        nodes = new ArrayList<>();
-        links = new ArrayList<>();
+    private Function function;
+    private State state;
+
+    public Graph(final Registry registry) {
+        this(registry, UUID.randomUUID(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>());
     }
 
-    public Graph(final UUID uuid, final List<INode> nodes, final List<Link> links) {
+    public Graph(final Registry registry, final UUID uuid, final List<Attribute> attributes, final List<INode> nodes, final List<Link> links) {
+        this.registry = registry;
         this.uuid = uuid;
+        this.attributes = attributes;
         this.nodes = nodes;
         this.links = links;
     }
 
     public UUID uuid() {
         return uuid;
+    }
+
+    public void attributes(final Range<Attribute> range) {
+        range.collection(attributes);
+    }
+
+    public Stream<Attribute> inputs() {
+        return attributes.stream().filter(Attribute::input);
+    }
+
+    public Stream<Attribute> outputs() {
+        return attributes.stream().filter(Attribute::output);
     }
 
     public void show() {
@@ -57,25 +57,45 @@ public class Graph implements IUnique {
     public void clear() {
         nodes.clear();
         links.clear();
+        attributes.clear();
+        function = null;
     }
 
     public void add(final INode node) {
-        if (!nodes.contains(node))
+        if (!nodes.contains(node)) {
             nodes.add(node);
+            function = null;
+        }
     }
 
     public void add(final Link link) {
-        if (!links.contains(link))
+        if (!links.contains(link)) {
             links.add(link);
+            function = null;
+        }
+    }
+
+    public void add(final Attribute attribute) {
+        if (!attributes.contains(attribute)) {
+            attributes.add(attribute);
+            function = null;
+        }
     }
 
     public void remove(final INode node) {
-        nodes.remove(node);
+        if (!nodes.remove(node)) return;
         links.removeIf(link -> link.uses(node));
+        function = null;
     }
 
     public void remove(final Link link) {
-        links.remove(link);
+        if (!links.remove(link)) return;
+        function = null;
+    }
+
+    public void remove(final Attribute attribute) {
+        if (!attributes.remove(attribute)) return;
+        function = null;
     }
 
     public Optional<INode> findNode(final int id) {
@@ -111,20 +131,24 @@ public class Graph implements IUnique {
     }
 
     public Stream<INode> findEntryPoints() {
-        return nodes.stream()
-                .filter(node -> node.noPredecessor(this));
+        return nodes.stream().filter(node -> node.noPredecessor(this));
+    }
+
+    public Stream<INode> findExitPoints() {
+        return nodes.stream().filter(node -> node.noSuccessors(this));
     }
 
     public Graph copy() {
-        return copy(nodes.toArray(INode[]::new));
+        final var graph = copy(nodes.toArray(INode[]::new));
+        attributes.forEach(graph::add);
+        return graph;
     }
 
     public Graph copy(final INode[] nodes) {
-        final var graph = new Graph();
+        final var graph = new Graph(registry);
 
         final Map<INode, INode> copies = new HashMap<>();
-        for (final var node : nodes)
-            copies.put(node, node.copy());
+        for (final var node : nodes) copies.put(node, node.copy());
 
         for (final var link : links) {
             if (!link.uses(nodes)) continue;
@@ -166,37 +190,37 @@ public class Graph implements IUnique {
         copies.values().forEach(this::add);
     }
 
-    public long cycle(final long key) {
-        final var start = System.currentTimeMillis();
-        final Queue<INode> callQueue = new ArrayDeque<>();
+    public Function compile(final boolean store) {
+        final var fn = new Function(
+                store ? registry : null,
+                uuid,
+                inputs()
+                        .map(Attribute::uuid)
+                        .toArray(UUID[]::new),
+                outputs()
+                        .map(Attribute::uuid)
+                        .toArray(UUID[]::new)
+        );
 
-        for (final var node : nodes)
-            if (node.noPredecessor(this))
-                callQueue.add(node);
-
-        final Set<INode> cycled = new HashSet<>();
-        while (!callQueue.isEmpty()) {
-            final var next = callQueue.poll();
-            cycled.add(next);
-            next.cycle(key + uuid.hashCode(), this, callQueue);
-
-            for (final var node : cycled)
-                callQueue.remove(node);
-        }
-        return System.currentTimeMillis() - start;
+        findExitPoints().forEach(node -> node.compile(this, fn, new HashSet<>()));
+        return fn;
     }
 
-    public void write(final Context context, final OutputStream out) throws IOException {
-        ObjectIO.write(out, uuid);
-        ObjectIO.write(out, nodes.size());
-        for (final var node : nodes) {
-            ObjectIO.write(out, node.uuid());
-            context.next(node);
+    public void cycle() {
+        if (function == null) {
+            function = compile(false);
+            state = new State(registry);
         }
-        ObjectIO.write(out, links.size());
-        for (final var link : links) {
-            ObjectIO.write(out, link.uuid());
-            context.next(link);
-        }
+
+        final var inputs = attributes.stream().filter(Attribute::input).toArray(Attribute[]::new);
+        final var outputs = attributes.stream().filter(Attribute::output).toArray(Attribute[]::new);
+
+        final var in = new boolean[inputs.length];
+        for (int i = 0; i < inputs.length; i++) in[i] = inputs[i].powered().get();
+
+        final var out = new boolean[outputs.length];
+        function.exec(state, in, out);
+
+        for (int i = 0; i < outputs.length; i++) outputs[i].powered().set(out[i]);
     }
 }

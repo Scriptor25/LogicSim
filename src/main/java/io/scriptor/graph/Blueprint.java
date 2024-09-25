@@ -1,4 +1,4 @@
-package io.scriptor.node;
+package io.scriptor.graph;
 
 import imgui.ImColor;
 import imgui.ImGui;
@@ -6,27 +6,34 @@ import imgui.extension.imnodes.ImNodes;
 import imgui.extension.imnodes.flag.ImNodesCol;
 import imgui.type.ImInt;
 import imgui.type.ImString;
-import io.scriptor.Context;
+import io.scriptor.context.Context;
+import io.scriptor.function.IFunction;
+import io.scriptor.util.IOStream;
 import io.scriptor.util.IUnique;
-import io.scriptor.util.ObjectIO;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 public record Blueprint(
         UUID uuid,
         ImString label,
         ImInt baseColor,
-        ILogic logic) implements IUnique {
+        String[] inputs,
+        String[] outputs,
+        IFunction function) implements IUnique {
 
     public static class Builder {
 
         private UUID uuid = UUID.randomUUID();
         private String label = "";
         private int baseColor = 0x212121;
-        private ILogic logic;
+        private final List<String> inputs = new ArrayList<>();
+        private final List<String> outputs = new ArrayList<>();
+        private IFunction function;
 
         public Builder uuid(final UUID uuid) {
             this.uuid = uuid;
@@ -43,8 +50,18 @@ public record Blueprint(
             return this;
         }
 
-        public Builder logic(final ILogic logic) {
-            this.logic = logic;
+        public Builder inputs(final String... inputs) {
+            this.inputs.addAll(List.of(inputs));
+            return this;
+        }
+
+        public Builder outputs(final String... outputs) {
+            this.outputs.addAll(List.of(outputs));
+            return this;
+        }
+
+        public Builder function(final IFunction function) {
+            this.function = function;
             return this;
         }
 
@@ -53,29 +70,42 @@ public record Blueprint(
                     uuid,
                     new ImString(label),
                     new ImInt(baseColor),
-                    logic);
+                    inputs.toArray(String[]::new),
+                    outputs.toArray(String[]::new),
+                    function);
         }
     }
 
-    public static void read(final Context context, final InputStream in) throws IOException {
-        final var uuid = ObjectIO.readUUID(in);
+    public static void read(final InputStream in, final Context context) throws IOException {
+        final var uuid = IOStream.readUUID(in);
 
         final var builder = new Builder()
                 .uuid(uuid)
-                .label(ObjectIO.readString(in))
-                .baseColor(ObjectIO.readInt(in));
+                .label(IOStream.readString(in))
+                .baseColor(IOStream.readInt(in));
 
-        context.<ILogic>getRef(ObjectIO.readUUID(in))
-                .get(x -> context.getRef(uuid).set(builder.logic(x).build()));
+        final var inputs = new String[IOStream.readInt(in)];
+        for (int i = 0; i < inputs.length; ++i) inputs[i] = IOStream.readString(in);
+        builder.inputs(inputs);
+
+        final var outputs = new String[IOStream.readInt(in)];
+        for (int i = 0; i < outputs.length; ++i) outputs[i] = IOStream.readString(in);
+        builder.outputs(outputs);
+
+        context.registry().get(IOStream.readUUID(in)).ifPresent(builder::function);
+
+        context.add(builder.build());
     }
 
-    public void write(final Context context, final OutputStream out) throws IOException {
-        ObjectIO.write(out, uuid);
-        ObjectIO.write(out, label.get());
-        ObjectIO.write(out, baseColor.get());
-        ObjectIO.write(out, logic.uuid());
-
-        context.next(logic);
+    public void write(final OutputStream out) throws IOException {
+        IOStream.write(out, uuid);
+        IOStream.write(out, label.get());
+        IOStream.write(out, baseColor.get());
+        IOStream.write(out, inputs.length);
+        for (final var input : inputs) IOStream.write(out, input);
+        IOStream.write(out, outputs.length);
+        for (final var output : outputs) IOStream.write(out, output);
+        IOStream.write(out, function.uuid());
     }
 
     @Override
@@ -83,15 +113,7 @@ public record Blueprint(
         return label.get();
     }
 
-    public boolean hasInput() {
-        return logic.inputs() > 0;
-    }
-
-    public boolean hasOutput() {
-        return logic.outputs() > 0;
-    }
-
-    public void show(final Graph graph, final Node node) {
+    public void show(final Node node) {
         pushColorStyle();
         ImNodes.beginNode(node.id());
 
@@ -100,13 +122,13 @@ public record Blueprint(
         ImNodes.endNodeTitleBar();
 
         int i = 0;
-        for (; i < Math.min(logic.inputs(), logic.outputs()); i++) {
-            showInput(graph, node.input(i));
+        for (; i < Math.min(inputs.length, outputs.length); i++) {
+            showInput(node.input(i));
             ImGui.sameLine();
             showOutput(node.output(i));
         }
-        for (; i < logic.inputs(); i++) showInput(graph, node.input(i));
-        for (; i < logic.outputs(); i++) showOutput(node.output(i));
+        for (; i < inputs.length; i++) showInput(node.input(i));
+        for (; i < outputs.length; i++) showOutput(node.output(i));
 
         ImNodes.endNode();
         popColorStyle();
@@ -135,20 +157,15 @@ public record Blueprint(
         ImNodes.popColorStyle();
     }
 
-    private void showInput(final Graph graph, final Pin pin) {
-        final var powered = pin.predecessor(graph).map(Pin::powered).orElse(false);
-        if (powered) ImNodes.pushColorStyle(ImNodesCol.Pin, 0x770000ff);
+    private void showInput(final Pin pin) {
         ImNodes.beginInputAttribute(pin.id());
-        ImGui.textUnformatted(logic.input(pin.index()));
+        ImGui.textUnformatted(inputs[pin.index()]);
         ImNodes.endInputAttribute();
-        if (powered) ImNodes.popColorStyle();
     }
 
     private void showOutput(final Pin pin) {
-        if (pin.powered()) ImNodes.pushColorStyle(ImNodesCol.Pin, 0x770000ff);
         ImNodes.beginOutputAttribute(pin.id());
-        ImGui.textUnformatted(logic.output(pin.index()));
+        ImGui.textUnformatted(outputs[pin.index()]);
         ImNodes.endOutputAttribute();
-        if (pin.powered()) ImNodes.popColorStyle();
     }
 }

@@ -11,14 +11,29 @@ public class Task {
     }
 
     @FunctionalInterface
+    public interface ITaskBoolean {
+
+        boolean run() throws Exception;
+    }
+
+    @FunctionalInterface
     public interface ITask<T> {
 
         T run() throws Exception;
     }
 
-    public static void handle(final ITaskVoid task) {
+    public static void handleVoid(final ITaskVoid task) {
         try {
             task.run();
+        } catch (final Exception e) {
+            getLogger().warning(e::toString);
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static boolean handleBoolean(final ITaskBoolean task) {
+        try {
+            return task.run();
         } catch (final Exception e) {
             getLogger().warning(e::toString);
             throw new RuntimeException(e);
