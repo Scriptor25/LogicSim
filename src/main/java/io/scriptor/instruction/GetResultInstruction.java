@@ -23,7 +23,8 @@ public record GetResultInstruction(UUID uuid, CallInstruction call, int index) i
     }
 
     @Override
-    public void writeData(final OutputStream out) throws IOException {
+    public void write(final OutputStream out) throws IOException {
+        Instruction.super.write(out);
         IOStream.write(out, call.uuid());
         IOStream.write(out, index);
     }

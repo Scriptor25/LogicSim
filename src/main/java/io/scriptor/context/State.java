@@ -13,10 +13,15 @@ public class State {
     private final Map<UUID, Boolean> attribs = new HashMap<>();
     private final Map<UUID, Map<Integer, Boolean>> regs = new HashMap<>();
 
+    private final Map<Integer, State> children = new HashMap<>();
     private final Map<UUID, boolean[]> results = new HashMap<>();
 
     public State(final Registry registry) {
         this.registry = registry;
+    }
+
+    public State child(final int hash) {
+        return children.computeIfAbsent(hash, key -> new State(registry));
     }
 
     public void setAttrib(final UUID attrib, final boolean value) {
@@ -35,11 +40,11 @@ public class State {
         return regs.computeIfAbsent(reg, key -> new HashMap<>()).computeIfAbsent(index, key -> false);
     }
 
-    public boolean call(final UUID uuid, final UUID callee, final boolean[] args) {
+    public boolean call(final UUID uuid, int hash, final UUID callee, final boolean[] args) {
         final var result = new ImBoolean();
         registry.get(callee).ifPresentOrElse(fn -> {
             results.put(uuid, new boolean[fn.numOutputs()]);
-            fn.exec(new State(registry), args, results.get(uuid));
+            fn.exec(child(hash), hash, args, results.get(uuid));
             result.set(true);
         }, () -> result.set(false));
         return result.get();

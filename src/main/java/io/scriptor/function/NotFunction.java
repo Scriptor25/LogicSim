@@ -38,7 +38,7 @@ public record NotFunction(Registry registry, UUID uuid) implements IFunction {
     }
 
     @Override
-    public void exec(final State parent, final boolean[] in, final boolean[] out) {
+    public void exec(final State state, final int hash, final boolean[] in, final boolean[] out) {
         out[0] = !in[0];
     }
 }

@@ -22,7 +22,8 @@ public record GetAttribInstruction(UUID uuid, UUID attrib) implements Instructio
     }
 
     @Override
-    public void writeData(final OutputStream out) throws IOException {
+    public void write(final OutputStream out) throws IOException {
+        Instruction.super.write(out);
         IOStream.write(out, attrib);
     }
 

@@ -87,21 +87,21 @@ public class Function implements IFunction, Collection<Instruction> {
     }
 
     @Override
-    public void exec(final State state, final boolean[] in, final boolean[] out) {
+    public void exec(final State state, final int hash, final boolean[] in, final boolean[] out) {
         for (int i = 0; i < inputs.length; ++i) state.setAttrib(inputs[i], in[i]);
-        for (final var i : this) i.exec(state);
+        for (final var i : this) i.exec(state, hash + hashCode());
         for (int i = 0; i < outputs.length; ++i) out[i] = state.getAttrib(outputs[i]);
     }
 
     @Override
-    public void writeData(final OutputStream out) throws IOException {
+    public void write(final OutputStream out) throws IOException {
+        IFunction.super.write(out);
         IOStream.write(out, numInputs());
         for (final var input : inputs) IOStream.write(out, input);
         IOStream.write(out, numOutputs());
         for (final var output : outputs) IOStream.write(out, output);
         IOStream.write(out, size);
-        for (int j = 0; j < size; ++j) {
-            final var i = data[j];
+        for (final var i : this) {
             IOStream.write(out, TypeID.fromClass(i.getClass()));
             i.write(out);
         }

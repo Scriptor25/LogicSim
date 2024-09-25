@@ -24,14 +24,15 @@ public record SetRegInstruction(UUID uuid, UUID reg, int index, Instruction valu
     }
 
     @Override
-    public void writeData(final OutputStream out) throws IOException {
+    public void write(final OutputStream out) throws IOException {
+        Instruction.super.write(out);
         IOStream.write(out, reg);
         IOStream.write(out, index);
         IOStream.write(out, value.uuid());
     }
 
     @Override
-    public void exec(final State state) {
+    public void exec(final State state, final int hash) {
         state.setReg(reg, index, value.get(state));
     }
 }

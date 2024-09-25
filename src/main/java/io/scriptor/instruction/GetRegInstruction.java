@@ -23,7 +23,8 @@ public record GetRegInstruction(UUID uuid, UUID reg, int index) implements Instr
     }
 
     @Override
-    public void writeData(final OutputStream out) throws IOException {
+    public void write(final OutputStream out) throws IOException {
+        Instruction.super.write(out);
         IOStream.write(out, reg);
         IOStream.write(out, index);
     }

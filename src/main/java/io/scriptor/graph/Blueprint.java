@@ -92,9 +92,9 @@ public record Blueprint(
         for (int i = 0; i < outputs.length; ++i) outputs[i] = IOStream.readString(in);
         builder.outputs(outputs);
 
-        context.registry().get(IOStream.readUUID(in)).ifPresent(builder::function);
-
-        context.add(builder.build());
+        context.registry()
+                .get(IOStream.readUUID(in))
+                .ifPresent(fn -> context.add(builder.function(fn).build()));
     }
 
     public void write(final OutputStream out) throws IOException {

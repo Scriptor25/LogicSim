@@ -11,17 +11,14 @@ public interface Instruction {
 
     UUID uuid();
 
-    void writeData(final OutputStream out) throws IOException;
-
     default void write(final OutputStream out) throws IOException {
         IOStream.write(out, uuid());
-        writeData(out);
     }
 
     default boolean get(final State state) {
         throw new IllegalStateException();
     }
 
-    default void exec(final State state) {
+    default void exec(final State state, final int hash) {
     }
 }

@@ -219,7 +219,7 @@ public class Graph implements IUnique {
         for (int i = 0; i < inputs.length; i++) in[i] = inputs[i].powered().get();
 
         final var out = new boolean[outputs.length];
-        function.exec(state, in, out);
+        function.exec(state, 0, in, out);
 
         for (int i = 0; i < outputs.length; i++) outputs[i].powered().set(out[i]);
     }

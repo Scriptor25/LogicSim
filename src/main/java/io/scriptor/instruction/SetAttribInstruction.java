@@ -23,13 +23,14 @@ public record SetAttribInstruction(UUID uuid, UUID attrib, Instruction value) im
     }
 
     @Override
-    public void writeData(final OutputStream out) throws IOException {
+    public void write(final OutputStream out) throws IOException {
+        Instruction.super.write(out);
         IOStream.write(out, attrib);
         IOStream.write(out, value.uuid());
     }
 
     @Override
-    public void exec(final State state) {
+    public void exec(final State state, final int hash) {
         state.setAttrib(attrib, value.get(state));
     }
 }

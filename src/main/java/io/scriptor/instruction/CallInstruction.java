@@ -45,14 +45,15 @@ public class CallInstruction implements Instruction {
     }
 
     @Override
-    public void writeData(final OutputStream out) throws IOException {
+    public void write(final OutputStream out) throws IOException {
+        Instruction.super.write(out);
         IOStream.write(out, callee);
         IOStream.write(out, args.length);
         for (final var arg : args) IOStream.write(out, arg.uuid());
     }
 
     @Override
-    public void exec(final State state) {
+    public void exec(final State state, final int hash) {
         if (error) return;
 
         final var values = new boolean[args.length];
@@ -60,7 +61,7 @@ public class CallInstruction implements Instruction {
             if (args[i] != null)
                 values[i] = args[i].get(state);
 
-        if (!state.call(uuid, callee, values))
+        if (!state.call(uuid, hash + hashCode(), callee, values))
             error = true;
     }
 }

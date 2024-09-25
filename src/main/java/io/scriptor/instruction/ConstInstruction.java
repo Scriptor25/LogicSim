@@ -27,7 +27,8 @@ public record ConstInstruction(UUID uuid, boolean value) implements Instruction 
     }
 
     @Override
-    public void writeData(final OutputStream out) throws IOException {
+    public void write(final OutputStream out) throws IOException {
+        Instruction.super.write(out);
         IOStream.write(out, value);
     }
 }
