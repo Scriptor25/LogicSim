@@ -31,6 +31,8 @@ public class Graph implements IUnique {
         this.attributes = attributes;
         this.nodes = nodes;
         this.links = links;
+
+        this.state = new State(registry);
     }
 
     public UUID uuid() {
@@ -49,9 +51,13 @@ public class Graph implements IUnique {
         return attributes.stream().filter(Attribute::output);
     }
 
+    public State state() {
+        return state;
+    }
+
     public void show() {
         nodes.forEach(node -> node.show(this));
-        links.forEach(Link::show);
+        links.forEach(link -> link.show(this));
     }
 
     public void clear() {
@@ -206,7 +212,7 @@ public class Graph implements IUnique {
         return fn;
     }
 
-    public void cycle() {
+    public void execJIT() {
         if (function == null) {
             function = compile(false);
             state = new State(registry);
@@ -222,5 +228,9 @@ public class Graph implements IUnique {
         function.exec(state, 0, in, out);
 
         for (int i = 0; i < outputs.length; i++) outputs[i].powered().set(out[i]);
+    }
+
+    public void exec() {
+        findExitPoints().forEach(node -> node.exec(this, new HashSet<>()));
     }
 }

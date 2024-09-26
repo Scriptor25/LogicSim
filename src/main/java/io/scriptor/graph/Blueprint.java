@@ -6,6 +6,7 @@ import imgui.extension.imnodes.ImNodes;
 import imgui.extension.imnodes.flag.ImNodesCol;
 import imgui.type.ImInt;
 import imgui.type.ImString;
+import io.scriptor.Constants;
 import io.scriptor.context.Context;
 import io.scriptor.function.IFunction;
 import io.scriptor.util.IOStream;
@@ -113,7 +114,7 @@ public record Blueprint(
         return label.get();
     }
 
-    public void show(final Node node) {
+    public void show(final Graph graph, final Node node) {
         pushColorStyle();
         ImNodes.beginNode(node.id());
 
@@ -123,12 +124,12 @@ public record Blueprint(
 
         int i = 0;
         for (; i < Math.min(inputs.length, outputs.length); i++) {
-            showInput(node.input(i));
+            showInput(graph, node.input(i));
             ImGui.sameLine();
-            showOutput(node.output(i));
+            showOutput(graph, node.output(i));
         }
-        for (; i < inputs.length; i++) showInput(node.input(i));
-        for (; i < outputs.length; i++) showOutput(node.output(i));
+        for (; i < inputs.length; i++) showInput(graph, node.input(i));
+        for (; i < outputs.length; i++) showOutput(graph, node.output(i));
 
         ImNodes.endNode();
         popColorStyle();
@@ -157,15 +158,21 @@ public record Blueprint(
         ImNodes.popColorStyle();
     }
 
-    private void showInput(final Pin pin) {
+    private void showInput(final Graph graph, final Pin pin) {
+        final var powered = pin.powered(graph);
+        if (powered) ImNodes.pushColorStyle(ImNodesCol.Pin, Constants.COLOR_POWERED);
         ImNodes.beginInputAttribute(pin.id());
         ImGui.textUnformatted(inputs[pin.index()]);
         ImNodes.endInputAttribute();
+        if (powered) ImNodes.popColorStyle();
     }
 
-    private void showOutput(final Pin pin) {
+    private void showOutput(final Graph graph, final Pin pin) {
+        final var powered = pin.powered(graph);
+        if (powered) ImNodes.pushColorStyle(ImNodesCol.Pin, Constants.COLOR_POWERED);
         ImNodes.beginOutputAttribute(pin.id());
         ImGui.textUnformatted(outputs[pin.index()]);
         ImNodes.endOutputAttribute();
+        if (powered) ImNodes.popColorStyle();
     }
 }

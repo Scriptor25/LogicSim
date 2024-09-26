@@ -3,6 +3,7 @@ package io.scriptor;
 import imgui.ImColor;
 import imgui.ImGui;
 import imgui.app.Application;
+import imgui.app.Configuration;
 import imgui.extension.imnodes.ImNodes;
 import imgui.flag.ImGuiConfigFlags;
 import imgui.type.ImString;
@@ -189,6 +190,11 @@ public class MainApp extends Application {
     }
 
     @Override
+    protected void configure(final Configuration config) {
+        config.setTitle("Logic Sim");
+    }
+
+    @Override
     protected void preRun() {
         keyCallback = glfwSetKeyCallback(getHandle(), this::onKey);
 
@@ -206,6 +212,7 @@ public class MainApp extends Application {
         attributeArray.setRange(attributeRange);
 
         final var blueprintRange = new Range<>(context.blueprints(), Blueprint.class);
+        blueprintRange.sorted(Comparator.comparing(Blueprint::label));
         final Array blueprintArray = layout.findElement("blueprints.container.array");
         blueprintArray.setRange(blueprintRange);
 

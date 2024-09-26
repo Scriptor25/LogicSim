@@ -2,6 +2,8 @@ package io.scriptor.graph;
 
 import imgui.ImGui;
 import imgui.extension.imnodes.ImNodes;
+import imgui.extension.imnodes.flag.ImNodesCol;
+import io.scriptor.Constants;
 import io.scriptor.instruction.ConstInstruction;
 import io.scriptor.instruction.GetRegInstruction;
 import io.scriptor.instruction.Instruction;
@@ -20,6 +22,10 @@ public class Output implements INode {
         this.attribute = attribute;
     }
 
+    public boolean powered() {
+        return attribute.powered().get();
+    }
+
     @Override
     public UUID uuid() {
         return uuid;
@@ -33,6 +39,12 @@ public class Output implements INode {
 
     @Override
     public Pin output(final int i) {
+        throw new IllegalStateException();
+    }
+
+    @Override
+    public boolean powered(final Graph graph, final boolean output, final int index) {
+        if (!output && index == 0) return powered();
         throw new IllegalStateException();
     }
 
@@ -60,11 +72,16 @@ public class Output implements INode {
     @Override
     public void show(final Graph graph) {
         ImNodes.beginNode(id());
+
+        final var powered = powered();
+        if (powered) ImNodes.pushColorStyle(ImNodesCol.Pin, Constants.COLOR_POWERED);
         ImNodes.beginInputAttribute(pin.id());
         ImGui.textUnformatted(attribute.label().get());
         ImGui.sameLine();
-        ImGui.checkbox("##powered", attribute.powered().get());
+        ImGui.checkbox("##powered", powered);
         ImNodes.endInputAttribute();
+        if (powered) ImNodes.popColorStyle();
+
         ImNodes.endNode();
     }
 
@@ -84,5 +101,15 @@ public class Output implements INode {
         final var set = new SetAttribInstruction(attribute.uuid(), get);
         instructions.add(get);
         instructions.add(set);
+    }
+
+    @Override
+    public boolean[] exec(final Graph graph, final Set<INode> executing) {
+        final var pre = pin.predecessor(graph);
+        if (pre.isPresent()) {
+            final var out = pre.get().node().exec(graph, executing);
+            attribute.powered().set(out[pre.get().index()]);
+        } else attribute.powered().set(false);
+        return new boolean[0];
     }
 }

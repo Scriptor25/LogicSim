@@ -32,7 +32,10 @@ public class NodeEditor extends Element {
     public NodeEditor(final Layout root, final String id) {
         super(root, id);
 
+        attributes.sorted(Comparator.comparing(Attribute::label));
         attributes.sorted(Comparator.comparing(Attribute::output));
+
+        blueprints.sorted(Comparator.comparing(Blueprint::label));
 
         getEvents().register(getParentId() + ".node-context.copy.click", this::onNodeContextCopyClick);
         getEvents().register(getParentId() + ".node-context.cut.click", this::onNodeContextCutClick);
@@ -166,7 +169,7 @@ public class NodeEditor extends Element {
     protected void onShow() {
         ImNodes.beginNodeEditor();
 
-        graph.cycle();
+        graph.exec();
         graph.show();
 
         final var isEditorHovered = ImNodes.isEditorHovered();

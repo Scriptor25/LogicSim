@@ -13,14 +13,19 @@ public class Node implements INode {
     private final Pin[] inputs;
     private final Pin[] outputs;
 
+    private final boolean[] pinOut;
+
     public Node(final UUID uuid, final Blueprint blueprint) {
         this.uuid = uuid;
         this.blueprint = blueprint;
 
         this.inputs = new Pin[blueprint.function().numInputs()];
-        this.outputs = new Pin[blueprint.function().numOutputs()];
         for (int i = 0; i < inputs.length; ++i) this.inputs[i] = new Pin(this, i, false);
+
+        this.outputs = new Pin[blueprint.function().numOutputs()];
         for (int i = 0; i < outputs.length; ++i) this.outputs[i] = new Pin(this, i, true);
+
+        this.pinOut = new boolean[blueprint.function().numOutputs()];
     }
 
     @Override
@@ -36,6 +41,16 @@ public class Node implements INode {
     @Override
     public Pin output(final int i) {
         return outputs[i];
+    }
+
+    @Override
+    public boolean powered(final Graph graph, final boolean output, final int index) {
+        if (output && index < pinOut.length) return pinOut[index];
+        if (!output && index < inputs.length) {
+            final var pre = inputs[index].predecessor(graph);
+            return pre.map(pin -> pin.powered(graph)).orElse(false);
+        }
+        throw new IllegalStateException();
     }
 
     @Override
@@ -69,7 +84,7 @@ public class Node implements INode {
 
     @Override
     public void show(final Graph graph) {
-        blueprint.show(this);
+        blueprint.show(graph, this);
     }
 
     @Override
@@ -103,5 +118,25 @@ public class Node implements INode {
         }
 
         compiling.remove(this);
+    }
+
+    @Override
+    public boolean[] exec(final Graph graph, final Set<INode> executing) {
+        if (executing.contains(this)) return pinOut;
+        executing.add(this);
+
+        final var args = new boolean[inputs.length];
+        for (int i = 0; i < args.length; ++i) {
+            final var pre = inputs[i].predecessor(graph);
+            if (pre.isPresent()) {
+                final var out = pre.get().node().exec(graph, executing);
+                args[i] = out[pre.get().index()];
+            }
+        }
+
+        blueprint.function().exec(graph.state(), hashCode(), args, pinOut);
+
+        executing.remove(this);
+        return pinOut;
     }
 }

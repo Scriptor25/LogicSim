@@ -9,6 +9,10 @@ public record Pin(INode node, int index, boolean output) {
         return hashCode();
     }
 
+    public boolean powered(final Graph graph) {
+        return node.powered(graph, output, index);
+    }
+
     public boolean uses(final INode node) {
         return node == this.node;
     }

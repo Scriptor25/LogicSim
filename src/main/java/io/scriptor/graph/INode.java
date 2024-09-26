@@ -18,6 +18,8 @@ public interface INode extends IUnique {
 
     Pin output(final int i);
 
+    boolean powered(Graph graph, final boolean output, final int index);
+
     Optional<Pin> pin(final int id);
 
     boolean noPredecessor(final Graph graph);
@@ -30,5 +32,7 @@ public interface INode extends IUnique {
 
     INode copy();
 
-    void compile(Graph graph, final Collection<Instruction> instructions, Set<INode> compiled);
+    void compile(final Graph graph, final Collection<Instruction> instructions, final Set<INode> compiled);
+
+    boolean[] exec(final Graph graph, final Set<INode> executing);
 }
