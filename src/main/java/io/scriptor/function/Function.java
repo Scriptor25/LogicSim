@@ -16,19 +16,22 @@ import static io.scriptor.util.Task.handleVoid;
 
 public class Function implements IFunction, Collection<Instruction> {
 
-    public static void read(final InputStream in, final Registry registry) throws IOException {
-        final var uuid = IOStream.readUUID(in);
-        final var inputs = new UUID[IOStream.readInt(in)];
-        for (int j = 0; j < inputs.length; ++j) inputs[j] = IOStream.readUUID(in);
-        final var outputs = new UUID[IOStream.readInt(in)];
-        for (int j = 0; j < outputs.length; ++j) outputs[j] = IOStream.readUUID(in);
+    public static void read(final InputStream inputStream, final Registry registry) throws IOException {
+        final var uuid = IOStream.readUUID(inputStream);
+        final var inputs = new UUID[IOStream.readInt(inputStream)];
+        for (int i = 0; i < inputs.length; ++i)
+            inputs[i] = IOStream.readUUID(inputStream);
+        final var outputs = new UUID[IOStream.readInt(inputStream)];
+        for (int i = 0; i < outputs.length; ++i)
+            outputs[i] = IOStream.readUUID(inputStream);
         final var fn = new Function(registry, uuid, inputs, outputs);
-        final var instructions = IOStream.readInt(in);
-        for (int j = 0; j < instructions; ++j) {
-            final var typeId = IOStream.readInt(in);
-            handleVoid(() -> TypeID.toClass(typeId)
+        final var instructions = IOStream.readInt(inputStream);
+        for (int i = 0; i < instructions; ++i) {
+            final var typeId = IOStream.readInt(inputStream);
+            handleVoid(() -> TypeID
+                    .toClass(typeId)
                     .getMethod("read", InputStream.class, Function.class)
-                    .invoke(null, in, fn));
+                    .invoke(null, inputStream, fn));
         }
     }
 
@@ -52,17 +55,25 @@ public class Function implements IFunction, Collection<Instruction> {
         this.inputs = inputs;
         this.outputs = outputs;
 
-        if (registry != null) registry.add(this);
+        if (registry != null)
+            registry.add(this);
     }
 
     public Registry registry() {
         return registry;
     }
 
-    public <T extends Instruction> T find(final UUID uuid) {
-        for (final var i : data)
-            if (Objects.equals(i.uuid(), uuid))
-                return (T) i;
+    public <T extends Instruction> T find(final UUID uuid, final Class<T> type) {
+        for (final var instruction : data)
+            if (Objects.equals(instruction.uuid(), uuid))
+                return type.cast(instruction);
+        return null;
+    }
+
+    public Instruction find(final UUID uuid) {
+        for (final var instruction : data)
+            if (Objects.equals(instruction.uuid(), uuid))
+                return instruction;
         return null;
     }
 
@@ -87,23 +98,28 @@ public class Function implements IFunction, Collection<Instruction> {
     }
 
     @Override
-    public void exec(final State state, final int hash, final boolean[] in, final boolean[] out) {
-        for (int i = 0; i < inputs.length; ++i) state.setAttrib(inputs[i], in[i]);
-        for (final var i : this) i.exec(state, hash + hashCode());
-        for (int i = 0; i < outputs.length; ++i) out[i] = state.getAttrib(outputs[i]);
+    public void exec(final State state, final int hash, final boolean[] inputs, final boolean[] outputs) {
+        for (int i = 0; i < this.inputs.length; ++i)
+            state.setAttrib(this.inputs[i], inputs[i]);
+        for (final var instruction : this)
+            instruction.exec(state, hash + hashCode());
+        for (int i = 0; i < this.outputs.length; ++i)
+            outputs[i] = state.getAttrib(this.outputs[i]);
     }
 
     @Override
-    public void write(final OutputStream out) throws IOException {
-        IFunction.super.write(out);
-        IOStream.write(out, numInputs());
-        for (final var input : inputs) IOStream.write(out, input);
-        IOStream.write(out, numOutputs());
-        for (final var output : outputs) IOStream.write(out, output);
-        IOStream.write(out, size);
-        for (final var i : this) {
-            IOStream.write(out, TypeID.fromClass(i.getClass()));
-            i.write(out);
+    public void write(final OutputStream outputStream) throws IOException {
+        IFunction.super.write(outputStream);
+        IOStream.write(outputStream, numInputs());
+        for (final var input : inputs)
+            IOStream.write(outputStream, input);
+        IOStream.write(outputStream, numOutputs());
+        for (final var output : outputs)
+            IOStream.write(outputStream, output);
+        IOStream.write(outputStream, size);
+        for (final var instruction : this) {
+            IOStream.write(outputStream, TypeID.fromClass(instruction.getClass()));
+            instruction.write(outputStream);
         }
     }
 
@@ -118,8 +134,11 @@ public class Function implements IFunction, Collection<Instruction> {
     }
 
     @Override
-    public boolean contains(final Object o) {
-        return Arrays.stream(data).limit(size).anyMatch(i -> Objects.equals(i, o));
+    public boolean contains(final Object object) {
+        return Arrays
+                .stream(data)
+                .limit(size)
+                .anyMatch(instruction -> Objects.equals(instruction, object));
     }
 
     @Override
@@ -148,26 +167,28 @@ public class Function implements IFunction, Collection<Instruction> {
 
     @Override
     public <T> T[] toArray(T[] a) {
-        if (a.length < size) a = Arrays.copyOf(a, size);
+        if (a.length < size)
+            a = Arrays.copyOf(a, size);
         for (int i = 0; i < data.length; ++i)
             Array.set(a, i, data[i]);
-        if (a.length > size) a[size] = null;
+        if (a.length > size)
+            a[size] = null;
         return a;
     }
 
     @Override
-    public boolean add(final Instruction i) {
+    public boolean add(final Instruction instruction) {
         if (size == data.length)
             data = Arrays.copyOf(data, size * 2);
-        data[size++] = i;
+        data[size++] = instruction;
         return true;
     }
 
     @Override
-    public boolean remove(final Object o) {
+    public boolean remove(final Object object) {
         int pos = -1;
         for (int i = 0; i < size; ++i)
-            if (Objects.equals(data[i], o)) {
+            if (Objects.equals(data[i], object)) {
                 pos = i;
                 break;
             }
@@ -182,29 +203,29 @@ public class Function implements IFunction, Collection<Instruction> {
     }
 
     @Override
-    public boolean containsAll(final Collection<?> c) {
-        return c.stream().allMatch(this::contains);
+    public boolean containsAll(final Collection<?> collection) {
+        return collection.stream().allMatch(this::contains);
     }
 
     @Override
-    public boolean addAll(final Collection<? extends Instruction> c) {
-        while (size + c.size() >= data.length)
+    public boolean addAll(final Collection<? extends Instruction> collection) {
+        while (size + collection.size() >= data.length)
             data = Arrays.copyOf(data, size * 2);
-        for (final var i : c)
+        for (final var i : collection)
             data[size++] = i;
-        return !c.isEmpty();
+        return !collection.isEmpty();
     }
 
     @Override
-    public boolean removeAll(final Collection<?> c) {
+    public boolean removeAll(final Collection<?> collection) {
         boolean changed = false;
-        for (final var i : c)
-            changed |= remove(i);
+        for (final var instruction : collection)
+            changed |= remove(instruction);
         return changed;
     }
 
     @Override
-    public boolean retainAll(final Collection<?> c) {
+    public boolean retainAll(final Collection<?> collection) {
         throw new UnsupportedOperationException();
     }
 

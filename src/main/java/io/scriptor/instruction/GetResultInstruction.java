@@ -15,7 +15,7 @@ public record GetResultInstruction(UUID uuid, CallInstruction call, int index) i
         final var uuid = IOStream.readUUID(in);
         final var call = IOStream.readUUID(in);
         final var index = IOStream.readInt(in);
-        fn.add(new GetResultInstruction(uuid, fn.find(call), index));
+        fn.add(new GetResultInstruction(uuid, fn.find(call, CallInstruction.class), index));
     }
 
     public GetResultInstruction(final CallInstruction call, final int index) {

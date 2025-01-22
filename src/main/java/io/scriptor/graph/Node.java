@@ -94,7 +94,8 @@ public class Node implements INode {
 
     @Override
     public void compile(final Graph graph, final Collection<Instruction> instructions, final Set<INode> compiling) {
-        if (compiling.contains(this)) return;
+        if (compiling.contains(this))
+            return;
         compiling.add(this);
 
         final var args = new Instruction[inputs.length];
@@ -103,7 +104,8 @@ public class Node implements INode {
             if (pre.isPresent()) {
                 pre.get().node().compile(graph, instructions, compiling);
                 args[i] = new GetRegInstruction(pre.get().node().uuid(), pre.get().index());
-            } else args[i] = new ConstInstruction(false);
+            } else
+                args[i] = new ConstInstruction(false);
             instructions.add(args[i]);
         }
 
@@ -122,7 +124,8 @@ public class Node implements INode {
 
     @Override
     public boolean[] exec(final Graph graph, final Set<INode> executing) {
-        if (executing.contains(this)) return pinOut;
+        if (executing.contains(this))
+            return pinOut;
         executing.add(this);
 
         final var args = new boolean[inputs.length];

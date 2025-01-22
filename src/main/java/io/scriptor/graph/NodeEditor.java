@@ -73,7 +73,8 @@ public class NodeEditor extends Element {
         for (final var nodeId : nodeIds)
             graph.findNode(nodeId).ifPresent(nodes::add);
 
-        if (clipboard != null) clipboard.clear();
+        if (clipboard != null)
+            clipboard.clear();
         clipboard = graph.copy(nodes.toArray(INode[]::new));
     }
 
@@ -120,8 +121,10 @@ public class NodeEditor extends Element {
         final var attribute = (Attribute) args[1];
 
         final INode node;
-        if (attribute.output()) node = new Output(UUID.randomUUID(), attribute);
-        else node = new Input(UUID.randomUUID(), attribute);
+        if (attribute.output())
+            node = new Output(UUID.randomUUID(), attribute);
+        else
+            node = new Input(UUID.randomUUID(), attribute);
 
         onAddNode(node);
     }
@@ -140,12 +143,16 @@ public class NodeEditor extends Element {
         if (source != null) {
             target = source.output() ? node.input(0) : node.output(0);
 
-            if (target.output()) graph.findLinks(source).forEach(graph::remove);
-            else graph.findLinks(target).forEach(graph::remove);
+            if (target.output())
+                graph.findLinks(source).forEach(graph::remove);
+            else
+                graph.findLinks(target).forEach(graph::remove);
 
             final Link link;
-            if (source.output()) link = new Link(UUID.randomUUID(), source, target);
-            else link = new Link(UUID.randomUUID(), target, source);
+            if (source.output())
+                link = new Link(UUID.randomUUID(), source, target);
+            else
+                link = new Link(UUID.randomUUID(), target, source);
             graph.add(link);
 
             source = null;
@@ -274,12 +281,16 @@ public class NodeEditor extends Element {
             graph.findPin(sourceId.get()).ifPresent(pin -> source = pin);
             graph.findPin(targetId.get()).ifPresent(pin -> target = pin);
 
-            if (target.output()) graph.findLinks(source).forEach(graph::remove);
-            else graph.findLinks(target).forEach(graph::remove);
+            if (target.output())
+                graph.findLinks(source).forEach(graph::remove);
+            else
+                graph.findLinks(target).forEach(graph::remove);
 
             final Link link;
-            if (source.output()) link = new Link(UUID.randomUUID(), source, target);
-            else link = new Link(UUID.randomUUID(), target, source);
+            if (source.output())
+                link = new Link(UUID.randomUUID(), source, target);
+            else
+                link = new Link(UUID.randomUUID(), target, source);
             graph.add(link);
 
             source = null;

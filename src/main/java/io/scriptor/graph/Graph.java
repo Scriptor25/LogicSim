@@ -222,12 +222,14 @@ public class Graph implements IUnique {
         final var outputs = attributes.stream().filter(Attribute::output).toArray(Attribute[]::new);
 
         final var in = new boolean[inputs.length];
-        for (int i = 0; i < inputs.length; i++) in[i] = inputs[i].powered().get();
+        for (int i = 0; i < inputs.length; i++)
+            in[i] = inputs[i].powered().get();
 
         final var out = new boolean[outputs.length];
         function.exec(state, 0, in, out);
 
-        for (int i = 0; i < outputs.length; i++) outputs[i].powered().set(out[i]);
+        for (int i = 0; i < outputs.length; i++)
+            outputs[i].powered().set(out[i]);
     }
 
     public void exec() {

@@ -1,7 +1,5 @@
 package io.scriptor.context;
 
-import imgui.type.ImBoolean;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -41,13 +39,11 @@ public class State {
     }
 
     public boolean call(final UUID uuid, int hash, final UUID callee, final boolean[] args) {
-        final var result = new ImBoolean();
-        registry.get(callee).ifPresentOrElse(fn -> {
+        return registry.get(callee).map(fn -> {
             results.put(uuid, new boolean[fn.numOutputs()]);
             fn.exec(child(hash), hash, args, results.get(uuid));
-            result.set(true);
-        }, () -> result.set(false));
-        return result.get();
+            return true;
+        }).orElse(false);
     }
 
     public boolean getResult(final UUID uuid, final int index) {

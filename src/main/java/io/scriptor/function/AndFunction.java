@@ -10,8 +10,8 @@ import java.util.UUID;
 
 public record AndFunction(Registry registry, UUID uuid) implements IFunction {
 
-    public static void read(final InputStream in, final Registry registry) throws IOException {
-        final var uuid = IOStream.readUUID(in);
+    public static void read(final InputStream inputStream, final Registry registry) throws IOException {
+        final var uuid = IOStream.readUUID(inputStream);
         registry.add(new AndFunction(registry, uuid));
     }
 
@@ -38,7 +38,7 @@ public record AndFunction(Registry registry, UUID uuid) implements IFunction {
     }
 
     @Override
-    public void exec(final State state, final int hash, final boolean[] in, final boolean[] out) {
-        out[0] = in[0] && in[1];
+    public void exec(final State state, final int hash, final boolean[] inputs, final boolean[] outputs) {
+        outputs[0] = inputs[0] && inputs[1];
     }
 }

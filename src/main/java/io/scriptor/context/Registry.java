@@ -21,21 +21,21 @@ public class Registry {
     public Registry() {
     }
 
-    public Registry(final InputStream in) throws IOException {
-        final var functionCount = IOStream.readInt(in);
+    public Registry(final InputStream inputStream) throws IOException {
+        final var functionCount = IOStream.readInt(inputStream);
         for (int i = 0; i < functionCount; ++i) {
-            switch (IOStream.readInt(in)) {
-                case 0 -> NotFunction.read(in, this);
-                case 1 -> AndFunction.read(in, this);
-                case 2 -> Function.read(in, this);
+            switch (IOStream.readInt(inputStream)) {
+                case 0 -> NotFunction.read(inputStream, this);
+                case 1 -> AndFunction.read(inputStream, this);
+                case 2 -> Function.read(inputStream, this);
                 default -> throw new IllegalStateException();
             }
         }
     }
 
-    public void write(final OutputStream out) throws IOException {
-        IOStream.write(out, functions.size());
-        for (final var fn : functions.values()) fn.write(out);
+    public void write(final OutputStream outputStream) throws IOException {
+        IOStream.write(outputStream, functions.size());
+        for (final var fn : functions.values()) fn.write(outputStream);
     }
 
     public Optional<IFunction> get(final UUID uuid) {

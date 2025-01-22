@@ -51,16 +51,18 @@ public class Context {
     }
 
     public Context(final File file) throws IOException {
-        this(Files.newInputStream(file.toPath()));
+        this(Files.newInputStream(file.toPath()), true);
     }
 
-    public Context(final InputStream in) throws IOException {
-        try (in) {
-            registry = new Registry(in);
+    public Context(final InputStream inputStream, final boolean closeStream) throws IOException {
+        registry = new Registry(inputStream);
 
-            final var count = IOStream.readInt(in);
-            for (int i = 0; i < count; ++i) Blueprint.read(in, this);
-        }
+        final var count = IOStream.readInt(inputStream);
+        for (int i = 0; i < count; ++i)
+            Blueprint.read(inputStream, this);
+
+        if (closeStream)
+            inputStream.close();
     }
 
     public void write(final String filename) throws IOException {
@@ -71,12 +73,12 @@ public class Context {
         write(Files.newOutputStream(file.toPath()));
     }
 
-    public void write(final OutputStream out) throws IOException {
-        try (out) {
-            registry.write(out);
+    public void write(final OutputStream outputStream) throws IOException {
+        try (outputStream) {
+            registry.write(outputStream);
 
-            IOStream.write(out, blueprints.size());
-            blueprints.forEach(blueprint -> Task.handleVoid(() -> blueprint.write(out)));
+            IOStream.write(outputStream, blueprints.size());
+            blueprints.forEach(blueprint -> Task.handleVoid(() -> blueprint.write(outputStream)));
         }
     }
 

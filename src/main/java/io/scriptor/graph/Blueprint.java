@@ -15,9 +15,7 @@ import io.scriptor.util.IUnique;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 public record Blueprint(
         UUID uuid,
@@ -86,11 +84,13 @@ public record Blueprint(
                 .baseColor(IOStream.readInt(in));
 
         final var inputs = new String[IOStream.readInt(in)];
-        for (int i = 0; i < inputs.length; ++i) inputs[i] = IOStream.readString(in);
+        for (int i = 0; i < inputs.length; ++i)
+            inputs[i] = IOStream.readString(in);
         builder.inputs(inputs);
 
         final var outputs = new String[IOStream.readInt(in)];
-        for (int i = 0; i < outputs.length; ++i) outputs[i] = IOStream.readString(in);
+        for (int i = 0; i < outputs.length; ++i)
+            outputs[i] = IOStream.readString(in);
         builder.outputs(outputs);
 
         context.registry()
@@ -98,15 +98,35 @@ public record Blueprint(
                 .ifPresent(fn -> context.add(builder.function(fn).build()));
     }
 
-    public void write(final OutputStream out) throws IOException {
-        IOStream.write(out, uuid);
-        IOStream.write(out, label.get());
-        IOStream.write(out, baseColor.get());
-        IOStream.write(out, inputs.length);
-        for (final var input : inputs) IOStream.write(out, input);
-        IOStream.write(out, outputs.length);
-        for (final var output : outputs) IOStream.write(out, output);
-        IOStream.write(out, function.uuid());
+    public void write(final OutputStream outputStream) throws IOException {
+        IOStream.write(outputStream, uuid);
+        IOStream.write(outputStream, label.get());
+        IOStream.write(outputStream, baseColor.get());
+        IOStream.write(outputStream, inputs.length);
+        for (final var input : inputs)
+            IOStream.write(outputStream, input);
+        IOStream.write(outputStream, outputs.length);
+        for (final var output : outputs)
+            IOStream.write(outputStream, output);
+        IOStream.write(outputStream, function.uuid());
+    }
+
+    @Override
+    public boolean equals(Object object) {
+        if (this == object) return true;
+        if (null == object) return false;
+        if (!(object instanceof Blueprint blueprint)) return false;
+        return Objects.equals(uuid, blueprint.uuid)
+                && Objects.equals(label, blueprint.label)
+                && Objects.equals(baseColor, blueprint.baseColor)
+                && Objects.deepEquals(inputs, blueprint.inputs)
+                && Objects.deepEquals(outputs, blueprint.outputs)
+                && Objects.equals(function, blueprint.function);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(uuid, label, baseColor, Arrays.hashCode(inputs), Arrays.hashCode(outputs), function);
     }
 
     @Override
@@ -123,13 +143,15 @@ public record Blueprint(
         ImNodes.endNodeTitleBar();
 
         int i = 0;
-        for (; i < Math.min(inputs.length, outputs.length); i++) {
+        for (; i < Math.min(inputs.length, outputs.length); ++i) {
             showInput(graph, node.input(i));
             ImGui.sameLine();
             showOutput(graph, node.output(i));
         }
-        for (; i < inputs.length; i++) showInput(graph, node.input(i));
-        for (; i < outputs.length; i++) showOutput(graph, node.output(i));
+        for (; i < inputs.length; ++i)
+            showInput(graph, node.input(i));
+        for (; i < outputs.length; ++i)
+            showOutput(graph, node.output(i));
 
         ImNodes.endNode();
         popColorStyle();
@@ -160,19 +182,23 @@ public record Blueprint(
 
     private void showInput(final Graph graph, final Pin pin) {
         final var powered = pin.powered(graph);
-        if (powered) ImNodes.pushColorStyle(ImNodesCol.Pin, Constants.COLOR_POWERED);
+        if (powered)
+            ImNodes.pushColorStyle(ImNodesCol.Pin, Constants.COLOR_POWERED);
         ImNodes.beginInputAttribute(pin.id());
         ImGui.textUnformatted(inputs[pin.index()]);
         ImNodes.endInputAttribute();
-        if (powered) ImNodes.popColorStyle();
+        if (powered)
+            ImNodes.popColorStyle();
     }
 
     private void showOutput(final Graph graph, final Pin pin) {
         final var powered = pin.powered(graph);
-        if (powered) ImNodes.pushColorStyle(ImNodesCol.Pin, Constants.COLOR_POWERED);
+        if (powered)
+            ImNodes.pushColorStyle(ImNodesCol.Pin, Constants.COLOR_POWERED);
         ImNodes.beginOutputAttribute(pin.id());
         ImGui.textUnformatted(outputs[pin.index()]);
         ImNodes.endOutputAttribute();
-        if (powered) ImNodes.popColorStyle();
+        if (powered)
+            ImNodes.popColorStyle();
     }
 }

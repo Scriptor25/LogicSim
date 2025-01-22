@@ -4,7 +4,7 @@ import io.scriptor.imgui.Component;
 import io.scriptor.imgui.Element;
 import io.scriptor.imgui.Enumeration;
 import io.scriptor.imgui.Layout;
-import io.scriptor.util.YamlNode;
+import io.scriptor.util.IYamlNode;
 import org.yaml.snakeyaml.Yaml;
 
 import java.io.BufferedReader;
@@ -22,7 +22,7 @@ public class ResourceManager {
 
     private final Map<String, Component> components = new HashMap<>();
     private final Map<String, Enumeration> enumerations = new HashMap<>();
-    private final Map<String, YamlNode> templates = new HashMap<>();
+    private final Map<String, IYamlNode> templates = new HashMap<>();
 
     public Component getComponent(final String id) {
         if (components.containsKey(id))
@@ -58,7 +58,7 @@ public class ResourceManager {
         enumerations.put(id, enumeration);
     }
 
-    public YamlNode getTemplate(final String id) {
+    public IYamlNode getTemplate(final String id) {
         if (templates.containsKey(id))
             return templates.get(id);
 
@@ -69,16 +69,16 @@ public class ResourceManager {
         throw new IllegalStateException("no such template: " + id);
     }
 
-    public void putTemplate(final String id, final YamlNode template) {
+    public void putTemplate(final String id, final IYamlNode template) {
         if (templates.containsKey(id))
             throw new IllegalStateException("overriding template: " + id);
         templates.put(id, template);
     }
 
-    public YamlNode getYaml(final String name) {
+    public IYamlNode getYaml(final String name) {
         try (final var stream = ClassLoader.getSystemResourceAsStream(name)) {
             if (stream != null)
-                return YamlNode.fromMap(new Yaml().loadAs(stream, Map.class));
+                return IYamlNode.from(new Yaml().loadAs(stream, Map.class));
         } catch (final IOException e) {
             getLogger().warning(e::getMessage);
         }
@@ -111,7 +111,7 @@ public class ResourceManager {
         }
     }
 
-    public void parseUses(final YamlNode yaml) {
+    public void parseUses(final IYamlNode yaml) {
         final var usesYaml = yaml.get("uses");
         if (usesYaml.notEmpty())
             for (final var useYaml : usesYaml) {
@@ -120,7 +120,7 @@ public class ResourceManager {
             }
     }
 
-    public void parseComponent(final YamlNode yaml) {
+    public void parseComponent(final IYamlNode yaml) {
         final var id = yaml.get("id").as(String.class);
 
         Class<?> clazz = null;
@@ -132,7 +132,7 @@ public class ResourceManager {
         }
 
         final var fieldsYaml = yaml.get("fields");
-        final var fields = new Component.Field[fieldsYaml.count()];
+        final var fields = new Component.Field[fieldsYaml.size()];
         int i = 0;
         for (final var fieldYaml : fieldsYaml) {
             final var fieldName = fieldYaml.get("name").as(String.class);
@@ -147,11 +147,11 @@ public class ResourceManager {
         putComponent(id, new Component(id, clazz, fields, elementsYaml));
     }
 
-    public void parseEnumeration(final YamlNode yaml) {
+    public void parseEnumeration(final IYamlNode yaml) {
         final var id = yaml.get("id").as(String.class);
 
         final var entriesYaml = yaml.get("entries");
-        final var entries = new Enumeration.Entry[entriesYaml.count()];
+        final var entries = new Enumeration.Entry[entriesYaml.size()];
         int i = 0;
         for (final var entryYaml : entriesYaml) {
             final var entryName = entryYaml.get("name").as(String.class);
@@ -162,7 +162,7 @@ public class ResourceManager {
         putEnumeration("enum:" + id, new Enumeration(id, entries));
     }
 
-    public void parseTemplate(final YamlNode yaml) {
+    public void parseTemplate(final IYamlNode yaml) {
         final var id = yaml.get("id").as(String.class);
         final var contentYaml = yaml.get("content");
 
@@ -182,7 +182,7 @@ public class ResourceManager {
         return layout;
     }
 
-    public Element[] parseElement(final YamlNode yaml, final Layout root, final String parentId) {
+    public Element[] parseElement(final IYamlNode yaml, final Layout root, final String parentId) {
         if (yaml.get("use").notEmpty()) {
             final var id = yaml.get("use").as(String.class);
             return parseElement(getTemplate(id), root, parentId);
@@ -220,7 +220,7 @@ public class ResourceManager {
         }
     }
 
-    public Object parseField(final YamlNode yaml, final Layout root, final String parentId, final Component.Field field) {
+    public Object parseField(final IYamlNode yaml, final Layout root, final String parentId, final Component.Field field) {
         if (field.array()) {
             final List<Object> values = new ArrayList<>();
             int i = 0;
@@ -264,7 +264,7 @@ public class ResourceManager {
         }
     }
 
-    public Element[] parseElement(final YamlNode yaml, final Layout root, final String parentId, final String id, final Component component) {
+    public Element[] parseElement(final IYamlNode yaml, final Layout root, final String parentId, final String id, final Component component) {
 
         final var elementId = parentId == null ? id : parentId + '.' + id;
         final var args = Stream.concat(

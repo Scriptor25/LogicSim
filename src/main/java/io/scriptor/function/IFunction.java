@@ -15,10 +15,10 @@ public interface IFunction extends IUnique {
 
     int numOutputs();
 
-    void exec(final State parent, final int hash, final boolean[] in, final boolean[] out);
+    void exec(final State parent, final int hash, final boolean[] inputs, final boolean[] outputs);
 
-    default void write(final OutputStream out) throws IOException {
-        IOStream.write(out, typeId());
-        IOStream.write(out, uuid());
+    default void write(final OutputStream outputStream) throws IOException {
+        IOStream.write(outputStream, typeId());
+        IOStream.write(outputStream, uuid());
     }
 }
