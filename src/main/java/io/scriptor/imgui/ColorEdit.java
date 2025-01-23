@@ -36,6 +36,6 @@ public class ColorEdit extends Element {
     @Override
     protected void onShow() {
         if (ImGui.colorEdit3(label, col))
-            getEvents().invoke(event, this, color());
+            getEvents().invokeEvent(event, this, color());
     }
 }

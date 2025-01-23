@@ -37,7 +37,7 @@ public class InputText extends Element {
     protected void onShow() {
         ImGui.setKeyboardFocusHere();
         if (ImGui.inputText(label, buffer, flags))
-            getEvents().invoke(event, this, buffer.get());
+            getEvents().invokeEvent(event, this, buffer.get());
         ImGui.setItemDefaultFocus();
     }
 }

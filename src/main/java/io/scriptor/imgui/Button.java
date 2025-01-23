@@ -17,6 +17,6 @@ public class Button extends Element {
     @Override
     protected void onShow() {
         if (ImGui.button(label))
-            getEvents().invoke(event, this);
+            getEvents().invokeEvent(event, this);
     }
 }

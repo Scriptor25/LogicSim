@@ -39,20 +39,20 @@ public class NodeEditor extends Element {
 
         blueprints.sorted(Comparator.comparing(Blueprint::label));
 
-        getEvents().register(getParentId() + ".node-context.copy.click", this::onNodeContextCopyClick);
-        getEvents().register(getParentId() + ".node-context.cut.click", this::onNodeContextCutClick);
-        getEvents().register(getParentId() + ".node-context.duplicate.click", this::onNodeContextDuplicateClick);
-        getEvents().register(getParentId() + ".node-context.delete.click", this::onNodeContextDeleteClick);
-        getEvents().register(getParentId() + ".link-context.delete.click", this::onLinkContextDeleteClick);
-        getEvents().register(getParentId() + ".editor-context.paste.click", this::onEditorContextPasteClick);
-        getEvents().register(getParentId() + ".editor-context.add.click", this::onEditorContextAddClick);
-        getEvents().register(getParentId() + ".editor-context.clear.click", args -> graph.clear());
-        getEvents().register(getParentId() + ".add-context.attributes.select", this::onAddContextAttributesSelect);
-        getEvents().register(getParentId() + ".add-context.blueprints.select", this::onAddContextBlueprintsSelect);
-        getEvents().register(getParentId() + ".delete-context.nodes.click", args -> deleteSelectedNodes());
-        getEvents().register(getParentId() + ".delete-context.links.click", args -> deleteSelectedLinks());
+        getEvents().registerEvent(getParentId() + ".node-context.copy.click", this::onNodeContextCopyClick);
+        getEvents().registerEvent(getParentId() + ".node-context.cut.click", this::onNodeContextCutClick);
+        getEvents().registerEvent(getParentId() + ".node-context.duplicate.click", this::onNodeContextDuplicateClick);
+        getEvents().registerEvent(getParentId() + ".node-context.delete.click", this::onNodeContextDeleteClick);
+        getEvents().registerEvent(getParentId() + ".link-context.delete.click", this::onLinkContextDeleteClick);
+        getEvents().registerEvent(getParentId() + ".editor-context.paste.click", this::onEditorContextPasteClick);
+        getEvents().registerEvent(getParentId() + ".editor-context.add.click", this::onEditorContextAddClick);
+        getEvents().registerEvent(getParentId() + ".editor-context.clear.click", args -> graph.clear());
+        getEvents().registerEvent(getParentId() + ".add-context.attributes.select", this::onAddContextAttributesSelect);
+        getEvents().registerEvent(getParentId() + ".add-context.blueprints.select", this::onAddContextBlueprintsSelect);
+        getEvents().registerEvent(getParentId() + ".delete-context.nodes.click", args -> deleteSelectedNodes());
+        getEvents().registerEvent(getParentId() + ".delete-context.links.click", args -> deleteSelectedLinks());
 
-        getEvents().register("key.a.press", args -> {
+        getEvents().registerEvent("key.a.press", args -> {
             final var mods = (KeyMods) args[0];
             if (mods.control()) {
                 graph

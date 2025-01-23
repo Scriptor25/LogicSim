@@ -20,6 +20,6 @@ public class Selectable extends Element {
     @Override
     protected void onShow() {
         if (ImGui.selectable(label))
-            getEvents().invoke(event, this);
+            getEvents().invokeEvent(event, this);
     }
 }

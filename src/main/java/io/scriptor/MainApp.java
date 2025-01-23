@@ -179,7 +179,7 @@ public class MainApp extends Application {
             case GLFW_REPEAT -> ".repeat";
             default -> ".none";
         };
-        events.invoke(id, getMods(mods));
+        events.invokeEvent(id, getMods(mods));
     }
 
     private void save() {
@@ -221,25 +221,25 @@ public class MainApp extends Application {
                 .<Array>findElement("blueprints.container.array")
                 .ifPresent(array -> array.setRange(blueprintRange));
 
-        events.register("attributes.add-input.click", args -> graph.add(new Attribute("New In", false)));
-        events.register("attributes.add-output.click", args -> graph.add(new Attribute("New Out", true)));
-        events.register("attributes.container.array.select", args -> {
+        events.registerEvent("attributes.add-input.click", args -> graph.add(new Attribute("New In", false)));
+        events.registerEvent("attributes.add-output.click", args -> graph.add(new Attribute("New Out", true)));
+        events.registerEvent("attributes.container.array.select", args -> {
             events.schedule(() -> ImGui.openPopup("attributes.attribute-context"));
             selectedAttribute = (Attribute) args[1];
         });
-        events.register("attributes.attribute-context.rename.click", args -> {
+        events.registerEvent("attributes.attribute-context.rename.click", args -> {
             events.schedule(() -> ImGui.openPopup("attributes.rename-context"));
             layout
                     .<InputText>findElement("attributes.rename-context.text")
                     .ifPresent(text -> text.set(selectedAttribute.label().get()));
         });
-        events.register("attributes.attribute-context.delete.click", args -> graph.remove(selectedAttribute));
-        events.register("attributes.rename-context.text.enter", args -> {
+        events.registerEvent("attributes.attribute-context.delete.click", args -> graph.remove(selectedAttribute));
+        events.registerEvent("attributes.rename-context.text.enter", args -> {
             selectedAttribute.label().set((String) args[1], true);
             ImGui.closeCurrentPopup();
         });
 
-        events.register("blueprints.create.click", args -> {
+        events.registerEvent("blueprints.create.click", args -> {
             final var copy = graph.copy();
             final var blueprint = new Blueprint.Builder()
                     .label("New")
@@ -249,36 +249,41 @@ public class MainApp extends Application {
                     .function(copy.compile(true))
                     .build();
             context.add(blueprint);
-
             graph.clear();
+
+            events.schedule(() -> ImGui.openPopup("blueprints.rename-context"));
+            selectedBlueprint = blueprint;
+            layout
+                    .<InputText>findElement("blueprints.rename-context.text")
+                    .ifPresent(text -> text.set(selectedBlueprint.label().get()));
         });
-        events.register("blueprints.container.array.select", args -> {
+        events.registerEvent("blueprints.container.array.select", args -> {
             events.schedule(() -> ImGui.openPopup("blueprints.blueprint-context"));
             selectedBlueprint = (Blueprint) args[1];
         });
-        events.register("blueprints.blueprint-context.rename.click", args -> {
+        events.registerEvent("blueprints.blueprint-context.rename.click", args -> {
             events.schedule(() -> ImGui.openPopup("blueprints.rename-context"));
             layout
                     .<InputText>findElement("blueprints.rename-context.text")
                     .ifPresent(text -> text.set(selectedBlueprint.label().get()));
         });
-        events.register("blueprints.blueprint-context.color.click", args -> {
+        events.registerEvent("blueprints.blueprint-context.color.click", args -> {
             events.schedule(() -> ImGui.openPopup("blueprints.color-context"));
             layout
                     .<ColorEdit>findElement("blueprints.color-context.color")
                     .ifPresent(color -> color.color(selectedBlueprint.baseColor().get()));
         });
-        events.register("blueprints.blueprint-context.delete.click", args -> {
+        events.registerEvent("blueprints.blueprint-context.delete.click", args -> {
             context.remove(selectedBlueprint);
             context.registry().remove(selectedBlueprint.function());
         });
-        events.register("blueprints.rename-context.text.enter", args -> {
+        events.registerEvent("blueprints.rename-context.text.enter", args -> {
             selectedBlueprint.label().set((String) args[1], true);
             ImGui.closeCurrentPopup();
         });
-        events.register("blueprints.color-context.color.select", args -> selectedBlueprint.baseColor().set((Integer) args[1]));
+        events.registerEvent("blueprints.color-context.color.select", args -> selectedBlueprint.baseColor().set((Integer) args[1]));
 
-        events.register("key.s.press", args -> {
+        events.registerEvent("key.s.press", args -> {
             final var mods = (KeyMods) args[0];
             if (mods.control())
                 save();

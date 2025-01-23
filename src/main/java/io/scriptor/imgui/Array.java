@@ -27,7 +27,7 @@ public class Array extends Element {
                 ImGui.pushID(i.get());
                 i.set(i.get() + 1);
                 if (ImGui.selectable(value.toString()))
-                    getEvents().invoke(event, this, value);
+                    getEvents().invokeEvent(event, this, value);
                 ImGui.popID();
             });
         }
