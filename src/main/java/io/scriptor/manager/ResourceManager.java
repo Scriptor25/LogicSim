@@ -5,6 +5,9 @@ import io.scriptor.imgui.Element;
 import io.scriptor.imgui.Enumeration;
 import io.scriptor.imgui.Layout;
 import io.scriptor.util.IYamlNode;
+import io.scriptor.util.RTException;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.yaml.snakeyaml.Yaml;
 
 import java.io.BufferedReader;
@@ -20,11 +23,14 @@ import static io.scriptor.MainApp.getLogger;
 
 public class ResourceManager {
 
+    private static final String STRING_ENUM = "enum:";
+    private static final String STRING_ELEMENT = "element";
+
     private final Map<String, Component> components = new HashMap<>();
     private final Map<String, Enumeration> enumerations = new HashMap<>();
     private final Map<String, IYamlNode> templates = new HashMap<>();
 
-    public Component getComponent(final String id) {
+    public @NotNull Component getComponent(final @NotNull String id) {
         if (components.containsKey(id))
             return components.get(id);
 
@@ -32,33 +38,33 @@ public class ResourceManager {
         if (components.containsKey(id))
             return components.get(id);
 
-        throw new IllegalStateException("no such component: " + id);
+        throw new RTException("no component registered for id '%s'", id);
     }
 
-    public void putComponent(final String id, final Component component) {
+    public void putComponent(final @NotNull String id, final @NotNull Component component) {
         if (components.containsKey(id))
-            throw new IllegalStateException("overriding component: " + id);
+            throw new RTException("overriding already registered component with id '%s'", id);
         components.put(id, component);
     }
 
-    public Enumeration getEnumeration(final String id) {
+    public @NotNull Enumeration getEnumeration(final @NotNull String id) {
         if (enumerations.containsKey(id))
             return enumerations.get(id);
 
-        parse("enum/" + id.replace("enum:", "") + ".yml");
+        parse("enum/" + id.replace(STRING_ENUM, "") + ".yml");
         if (enumerations.containsKey(id))
             return enumerations.get(id);
 
-        throw new IllegalStateException("no such enumeration: " + id);
+        throw new RTException("no enumeration registered for id '%s'", id);
     }
 
-    public void putEnumeration(final String id, final Enumeration enumeration) {
+    public void putEnumeration(final @NotNull String id, final @NotNull Enumeration enumeration) {
         if (enumerations.containsKey(id))
-            throw new IllegalStateException("overriding enumeration: " + id);
+            throw new RTException("overriding already registered enumeration with id '%s'", id);
         enumerations.put(id, enumeration);
     }
 
-    public IYamlNode getTemplate(final String id) {
+    public @NotNull IYamlNode getTemplate(final @NotNull String id) {
         if (templates.containsKey(id))
             return templates.get(id);
 
@@ -66,26 +72,26 @@ public class ResourceManager {
         if (templates.containsKey(id))
             return templates.get(id);
 
-        throw new IllegalStateException("no such template: " + id);
+        throw new RTException("no template registered for id '%s'", id);
     }
 
-    public void putTemplate(final String id, final IYamlNode template) {
+    public void putTemplate(final @NotNull String id, final @NotNull IYamlNode template) {
         if (templates.containsKey(id))
-            throw new IllegalStateException("overriding template: " + id);
+            throw new RTException("overriding already registered template with id '%s'", id);
         templates.put(id, template);
     }
 
-    public IYamlNode getYaml(final String name) {
+    public @NotNull IYamlNode getYaml(final @NotNull String name) {
         try (final var stream = ClassLoader.getSystemResourceAsStream(name)) {
             if (stream != null)
                 return IYamlNode.from(new Yaml().loadAs(stream, Map.class));
         } catch (final IOException e) {
             getLogger().warning(e::getMessage);
         }
-        throw new IllegalStateException("no resource with name '" + name + "'");
+        throw new RTException("no resource registered with name '%s'", name);
     }
 
-    public void parseDirectory(final String name) {
+    public void parseDirectory(final @NotNull String name) {
         try (final var stream = ClassLoader.getSystemResourceAsStream(name)) {
             if (stream != null) {
                 final var reader = new BufferedReader(new InputStreamReader(stream));
@@ -96,22 +102,23 @@ public class ResourceManager {
             getLogger().warning(e::getMessage);
             return;
         }
-        throw new IllegalStateException("no resource with name '" + name + "'");
+        throw new RTException("no resource registered with name '%s'", name);
     }
 
-    public void parse(final String name) {
+    public void parse(final @NotNull String name) {
         final var yaml = getYaml(name);
         parseUses(yaml);
 
-        switch (yaml.get("type").as(String.class)) {
+        final var type = yaml.get("type").as(String.class);
+        switch (type) {
             case "component" -> parseComponent(yaml);
             case "enum" -> parseEnumeration(yaml);
-            case "element" -> parseTemplate(yaml);
-            default -> throw new IllegalStateException();
+            case STRING_ELEMENT -> parseTemplate(yaml);
+            default -> throw new RTException("no parser registered for type '%s'", type);
         }
     }
 
-    public void parseUses(final IYamlNode yaml) {
+    public void parseUses(final @NotNull IYamlNode yaml) {
         final var usesYaml = yaml.get("uses");
         if (usesYaml.notEmpty())
             for (final var useYaml : usesYaml) {
@@ -120,15 +127,15 @@ public class ResourceManager {
             }
     }
 
-    public void parseComponent(final IYamlNode yaml) {
+    public void parseComponent(final @NotNull IYamlNode yaml) {
         final var id = yaml.get("id").as(String.class);
 
-        Class<?> clazz = null;
+        Class<?> clazz;
         try {
             final var className = yaml.get("class").as(String.class);
             clazz = ClassLoader.getSystemClassLoader().loadClass(className);
         } catch (final ClassNotFoundException e) {
-            getLogger().warning(e::getMessage);
+            throw new RTException(e);
         }
 
         final var fieldsYaml = yaml.get("fields");
@@ -138,8 +145,9 @@ public class ResourceManager {
             final var fieldName = fieldYaml.get("name").as(String.class);
             final var fieldType = fieldYaml.get("type").as(String.class);
             final var fieldArray = fieldYaml.get("array").as(Boolean.class, false);
-            final var fieldDefault = fieldYaml.get("default").as(Object.class, null);
-            fields[i++] = new Component.Field(fieldName, fieldType, fieldArray, fieldDefault);
+            final var fieldHasDefault = fieldYaml.get("default").notEmpty();
+            final var fieldDefault = fieldYaml.get("default").as(Object.class, new Object());
+            fields[i++] = new Component.Field(fieldName, fieldType, fieldArray, fieldHasDefault, fieldDefault);
         }
 
         final var elementsYaml = yaml.get("elements");
@@ -147,7 +155,7 @@ public class ResourceManager {
         putComponent(id, new Component(id, clazz, fields, elementsYaml));
     }
 
-    public void parseEnumeration(final IYamlNode yaml) {
+    public void parseEnumeration(final @NotNull IYamlNode yaml) {
         final var id = yaml.get("id").as(String.class);
 
         final var entriesYaml = yaml.get("entries");
@@ -159,17 +167,17 @@ public class ResourceManager {
             entries[i++] = new Enumeration.Entry(entryName, entryValue);
         }
 
-        putEnumeration("enum:" + id, new Enumeration(id, entries));
+        putEnumeration(STRING_ENUM + id, new Enumeration(id, entries));
     }
 
-    public void parseTemplate(final IYamlNode yaml) {
+    public void parseTemplate(final @NotNull IYamlNode yaml) {
         final var id = yaml.get("id").as(String.class);
         final var contentYaml = yaml.get("content");
 
         putTemplate(id, contentYaml);
     }
 
-    public Layout parseLayout(final EventManager events, final String name) {
+    public @NotNull Layout parseLayout(final @NotNull EventManager events, final @NotNull String name) {
         final var yaml = getYaml(name);
         parseUses(yaml);
 
@@ -182,7 +190,9 @@ public class ResourceManager {
         return layout;
     }
 
-    public Element[] parseElement(final IYamlNode yaml, final Layout root, final String parentId) {
+    public @NotNull Element @NotNull [] parseElement(final @NotNull IYamlNode yaml,
+                                                     final @NotNull Layout root,
+                                                     final @Nullable String parentId) {
         if (yaml.get("use").notEmpty()) {
             final var id = yaml.get("use").as(String.class);
             return parseElement(getTemplate(id), root, parentId);
@@ -194,9 +204,9 @@ public class ResourceManager {
         return parseElement(yaml, root, parentId, id, getComponent(type));
     }
 
-    public Class<?> getClassForType(final String type) {
+    public Class<?> getClassForType(final @NotNull String type) {
         switch (type) {
-            case "element" -> {
+            case STRING_ELEMENT -> {
                 return Element.class;
             }
             case "int" -> {
@@ -212,7 +222,7 @@ public class ResourceManager {
                 return String.class;
             }
             default -> {
-                if (type.startsWith("enum:"))
+                if (type.startsWith(STRING_ENUM))
                     return Integer.class;
 
                 return getComponent(type).clazz();
@@ -220,7 +230,10 @@ public class ResourceManager {
         }
     }
 
-    public Object parseField(final IYamlNode yaml, final Layout root, final String parentId, final Component.Field field) {
+    public @NotNull Object parseField(final @NotNull IYamlNode yaml,
+                                      final @NotNull Layout root,
+                                      final @NotNull String parentId,
+                                      final @NotNull Component.Field field) {
         if (field.array()) {
             final List<Object> values = new ArrayList<>();
             int i = 0;
@@ -233,38 +246,32 @@ public class ResourceManager {
             return values.toArray(size -> (Object[]) Array.newInstance(getClassForType(field.type()), size));
         }
 
-        switch (field.type()) {
-            case "element" -> {
-                return parseElement(yaml, root, parentId);
-            }
-            case "int" -> {
-                return yaml.as(Number.class, (Number) field.def()).intValue();
-            }
-            case "float" -> {
-                return yaml.as(Number.class, (Number) field.def()).floatValue();
-            }
-            case "boolean" -> {
-                return yaml.as(Boolean.class, (Boolean) field.def());
-            }
-            case "string" -> {
-                return yaml.as(String.class, (String) field.def());
-            }
+        return switch (field.type()) {
+            case STRING_ELEMENT -> parseElement(yaml, root, parentId);
+            case "int" -> yaml.as(Number.class, field.hasDefault() ? (Number) field.defaultValue() : 0).intValue();
+            case "float" -> yaml.as(Number.class, field.hasDefault() ? (Number) field.defaultValue() : 0).floatValue();
+            case "boolean" -> yaml.as(Boolean.class, field.hasDefault() && (Boolean) field.defaultValue());
+            case "string" -> yaml.as(String.class, field.hasDefault() ? (String) field.defaultValue() : "");
             default -> {
-                if (field.type().startsWith("enum:")) {
-                    final var name = yaml.as(String.class, (String) field.def());
-                    return Arrays.stream(getEnumeration(field.type()).entries())
+                if (field.type().startsWith(STRING_ENUM)) {
+                    final var name = yaml.as(String.class, field.hasDefault() ? (String) field.defaultValue() : "");
+                    yield Arrays.stream(getEnumeration(field.type()).entries())
                             .filter(entry -> entry.name().equals(name))
                             .map(Enumeration.Entry::value)
                             .findFirst()
                             .orElse(Integer.MAX_VALUE);
                 }
 
-                return parseElement(yaml, root, parentId, field.name(), getComponent(field.type()));
+                yield parseElement(yaml, root, parentId, field.name(), getComponent(field.type()));
             }
-        }
+        };
     }
 
-    public Element[] parseElement(final IYamlNode yaml, final Layout root, final String parentId, final String id, final Component component) {
+    public @NotNull Element @NotNull [] parseElement(final @NotNull IYamlNode yaml,
+                                                     final @NotNull Layout root,
+                                                     final @Nullable String parentId,
+                                                     final @NotNull String id,
+                                                     final @NotNull Component component) {
 
         final var elementId = parentId == null ? id : parentId + '.' + id;
         final var args = Stream.concat(
@@ -286,7 +293,7 @@ public class ResourceManager {
                        IllegalAccessException |
                        InvocationTargetException e) {
             getLogger().warning(e::getMessage);
-            throw new IllegalStateException("failed to create instance of component: " + component.id());
+            throw new RTException("failed to create instance of component with id '%s'", component.id());
         }
 
         if (component.elementsYaml().notEmpty()) {

@@ -1,10 +1,11 @@
 package io.scriptor.imgui;
 
 import imgui.ImGui;
+import org.jetbrains.annotations.NotNull;
 
 public class Separator extends Element {
 
-    public Separator(final Layout root, final String id) {
+    public Separator(final @NotNull Layout root, final @NotNull String id) {
         super(root, id);
     }
 

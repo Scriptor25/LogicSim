@@ -1,5 +1,7 @@
 package io.scriptor.util;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -7,99 +9,97 @@ import java.util.UUID;
 
 public class IOStream {
 
-    public static void write(final OutputStream out, final UUID uuid) throws IOException {
-        write(out, uuid.getMostSignificantBits());
-        write(out, uuid.getLeastSignificantBits());
+    public static void write(final @NotNull OutputStream outputStream, final @NotNull UUID uuid) throws IOException {
+        write(outputStream, uuid.getMostSignificantBits());
+        write(outputStream, uuid.getLeastSignificantBits());
     }
 
-    public static void write(final OutputStream out, final String string) throws IOException {
+    public static void write(final @NotNull OutputStream outputStream, final @NotNull String string) throws IOException {
         final var bytes = string.getBytes();
-        write(out, bytes.length);
-        out.write(bytes);
-        out.write(0);
+        write(outputStream, bytes.length);
+        outputStream.write(bytes);
     }
 
-    public static void write(final OutputStream out, final boolean b) throws IOException {
-        out.write(b ? 1 : 0);
+    public static void write(final @NotNull OutputStream outputStream, final boolean value) throws IOException {
+        outputStream.write(value ? 1 : 0);
     }
 
-    public static void write(final OutputStream out, final byte b) throws IOException {
-        out.write(b);
+    public static void write(final @NotNull OutputStream outputStream, final byte value) throws IOException {
+        outputStream.write(value);
     }
 
-    public static void write(final OutputStream out, final short s) throws IOException {
-        out.write((byte) (s >> 8));
-        out.write((byte) s);
+    public static void write(final @NotNull OutputStream outputStream, final short value) throws IOException {
+        outputStream.write((byte) (value >> 8));
+        outputStream.write((byte) value);
     }
 
-    public static void write(final OutputStream out, final int i) throws IOException {
-        out.write((byte) (i >> 24));
-        out.write((byte) (i >> 16));
-        out.write((byte) (i >> 8));
-        out.write((byte) i);
+    public static void write(final @NotNull OutputStream outputStream, final int value) throws IOException {
+        outputStream.write((byte) (value >> 24));
+        outputStream.write((byte) (value >> 16));
+        outputStream.write((byte) (value >> 8));
+        outputStream.write((byte) value);
     }
 
-    public static void write(final OutputStream out, final long l) throws IOException {
-        out.write((byte) (l >> 56));
-        out.write((byte) (l >> 48));
-        out.write((byte) (l >> 40));
-        out.write((byte) (l >> 32));
-        out.write((byte) (l >> 24));
-        out.write((byte) (l >> 16));
-        out.write((byte) (l >> 8));
-        out.write((byte) l);
+    public static void write(final @NotNull OutputStream outputStream, final long value) throws IOException {
+        outputStream.write((byte) (value >> 56));
+        outputStream.write((byte) (value >> 48));
+        outputStream.write((byte) (value >> 40));
+        outputStream.write((byte) (value >> 32));
+        outputStream.write((byte) (value >> 24));
+        outputStream.write((byte) (value >> 16));
+        outputStream.write((byte) (value >> 8));
+        outputStream.write((byte) value);
     }
 
-    public static UUID readUUID(final InputStream in) throws IOException {
-        final var msb = readLong(in);
-        final var lsb = readLong(in);
+    public static UUID readUUID(final @NotNull InputStream inputStream) throws IOException {
+        final var msb = readLong(inputStream);
+        final var lsb = readLong(inputStream);
         return new UUID(msb, lsb);
     }
 
-    public static String readString(final InputStream in) throws IOException {
-        final var length = readInt(in);
-        if (length < 0) return null;
+    public static @NotNull String readString(final @NotNull InputStream inputStream) throws IOException {
+        final var length = readInt(inputStream);
+        if (length <= 0) return "";
         final var bytes = new byte[length];
-        in.readNBytes(bytes, 0, length);
-        in.read();
+        inputStream.readNBytes(bytes, 0, length);
         return new String(bytes);
     }
 
-    public static boolean readBoolean(final InputStream in) throws IOException {
-        return in.read() != 0;
+    public static boolean readBoolean(final @NotNull InputStream inputStream) throws IOException {
+        return inputStream.read() != 0;
     }
 
-    public static byte readByte(final InputStream in) throws IOException {
-        return (byte) in.read();
+    public static byte readByte(final @NotNull InputStream inputStream) throws IOException {
+        return (byte) inputStream.read();
     }
 
-    public static short readShort(final InputStream in) throws IOException {
-        short s = 0;
-        s |= (short) (in.read() << 8);
-        s |= (short) (in.read());
-        return s;
+    public static short readShort(final @NotNull InputStream inputStream) throws IOException {
+        short value = 0;
+        value |= (short) (inputStream.read() << 8);
+        value |= (short) (inputStream.read());
+        return value;
     }
 
-    public static int readInt(final InputStream in) throws IOException {
-        int i = 0;
-        i |= in.read() << 24;
-        i |= in.read() << 16;
-        i |= in.read() << 8;
-        i |= in.read();
-        return i;
+    public static int readInt(final @NotNull InputStream inputStream) throws IOException {
+        int value = 0;
+        value |= inputStream.read() << 24;
+        value |= inputStream.read() << 16;
+        value |= inputStream.read() << 8;
+        value |= inputStream.read();
+        return value;
     }
 
-    public static long readLong(final InputStream in) throws IOException {
-        long l = 0;
-        l |= (long) in.read() << 56;
-        l |= (long) in.read() << 48;
-        l |= (long) in.read() << 40;
-        l |= (long) in.read() << 32;
-        l |= (long) in.read() << 24;
-        l |= (long) in.read() << 16;
-        l |= (long) in.read() << 8;
-        l |= in.read();
-        return l;
+    public static long readLong(final @NotNull InputStream inputStream) throws IOException {
+        long value = 0;
+        value |= (long) inputStream.read() << 56;
+        value |= (long) inputStream.read() << 48;
+        value |= (long) inputStream.read() << 40;
+        value |= (long) inputStream.read() << 32;
+        value |= (long) inputStream.read() << 24;
+        value |= (long) inputStream.read() << 16;
+        value |= (long) inputStream.read() << 8;
+        value |= inputStream.read();
+        return value;
     }
 
     private IOStream() {

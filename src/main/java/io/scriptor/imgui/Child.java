@@ -1,15 +1,16 @@
 package io.scriptor.imgui;
 
 import imgui.ImGui;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
-import java.util.Objects;
+import java.util.Optional;
 
 public class Child extends Element {
 
     private final Element[] elements;
 
-    public Child(final Layout root, final String id, final Element[] elements) {
+    public Child(final @NotNull Layout root, final @NotNull String id, final @NotNull Element @NotNull [] elements) {
         super(root, id);
         this.elements = elements;
     }
@@ -27,12 +28,12 @@ public class Child extends Element {
     }
 
     @Override
-    public <T extends Element> T findElement(final String id) {
+    public @NotNull <T extends Element> Optional<T> findElement(final @NotNull String id) {
         return Arrays.stream(elements)
                 .filter(e -> id.startsWith(e.getId()))
                 .map(e -> e.<T>findElement(id))
-                .filter(Objects::nonNull)
-                .findAny()
-                .orElse(null);
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .findAny();
     }
 }

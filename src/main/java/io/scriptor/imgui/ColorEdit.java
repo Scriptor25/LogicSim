@@ -2,6 +2,7 @@ package io.scriptor.imgui;
 
 import imgui.ImColor;
 import imgui.ImGui;
+import org.jetbrains.annotations.NotNull;
 
 public class ColorEdit extends Element {
 
@@ -9,7 +10,7 @@ public class ColorEdit extends Element {
     private final String event;
     private final float[] col = new float[3];
 
-    public ColorEdit(final Layout root, final String id, final String label, final String event) {
+    public ColorEdit(final @NotNull Layout root, final @NotNull String id, final @NotNull String label, final @NotNull String event) {
         super(root, id);
         this.label = label;
         this.event = id + '.' + event;

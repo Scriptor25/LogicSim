@@ -1,16 +1,17 @@
 package io.scriptor.imgui;
 
 import io.scriptor.manager.EventManager;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
-import java.util.Objects;
+import java.util.Optional;
 
 public class Layout {
 
     private final EventManager events;
     private final List<Element> elements;
 
-    public Layout(final EventManager events, final List<Element> elements) {
+    public Layout(final @NotNull EventManager events, final @NotNull List<Element> elements) {
         this.events = events;
         this.elements = elements;
     }
@@ -23,16 +24,16 @@ public class Layout {
         elements.forEach(Element::show);
     }
 
-    public EventManager getEvents() {
+    public @NotNull EventManager getEvents() {
         return events;
     }
 
-    public <T extends Element> T findElement(final String id) {
+    public @NotNull <T extends Element> Optional<T> findElement(final @NotNull String id) {
         return elements.stream()
                 .filter(e -> id.startsWith(e.getId()))
                 .map(e -> e.<T>findElement(id))
-                .filter(Objects::nonNull)
-                .findAny()
-                .orElse(null);
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .findAny();
     }
 }

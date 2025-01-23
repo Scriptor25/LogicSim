@@ -99,10 +99,14 @@ public class MainApp extends Application {
         graph = new Graph(context.registry());
 
         layout = resources.parseLayout(events, "layout/main.yml");
-        final NodeEditor editor = layout.findElement("editor.editor");
-        editor.graph(graph);
-        graph.attributes(editor.attributes());
-        editor.blueprints(context.blueprints());
+
+        layout
+                .<NodeEditor>findElement("editor.editor")
+                .ifPresent(editor -> {
+                    editor.graph(graph);
+                    graph.attributes(editor.attributes());
+                    editor.blueprints(context.blueprints());
+                });
 
         graph.add(new Attribute("In A", false));
         graph.add(new Attribute("In B", false));
@@ -207,13 +211,15 @@ public class MainApp extends Application {
         final var attributeRange = new Range<>(Attribute.class);
         graph.attributes(attributeRange);
         attributeRange.sorted(Comparator.comparing(Attribute::output));
-        final Array attributeArray = layout.findElement("attributes.container.array");
-        attributeArray.setRange(attributeRange);
+        layout
+                .<Array>findElement("attributes.container.array")
+                .ifPresent(array -> array.setRange(attributeRange));
 
         final var blueprintRange = new Range<>(context.blueprints(), Blueprint.class);
         blueprintRange.sorted(Comparator.comparing(Blueprint::label));
-        final Array blueprintArray = layout.findElement("blueprints.container.array");
-        blueprintArray.setRange(blueprintRange);
+        layout
+                .<Array>findElement("blueprints.container.array")
+                .ifPresent(array -> array.setRange(blueprintRange));
 
         events.register("attributes.add-input.click", args -> graph.add(new Attribute("New In", false)));
         events.register("attributes.add-output.click", args -> graph.add(new Attribute("New Out", true)));
@@ -223,8 +229,9 @@ public class MainApp extends Application {
         });
         events.register("attributes.attribute-context.rename.click", args -> {
             events.schedule(() -> ImGui.openPopup("attributes.rename-context"));
-            final InputText text = layout.findElement("attributes.rename-context.text");
-            text.set(selectedAttribute.label().get());
+            layout
+                    .<InputText>findElement("attributes.rename-context.text")
+                    .ifPresent(text -> text.set(selectedAttribute.label().get()));
         });
         events.register("attributes.attribute-context.delete.click", args -> graph.remove(selectedAttribute));
         events.register("attributes.rename-context.text.enter", args -> {
@@ -251,13 +258,15 @@ public class MainApp extends Application {
         });
         events.register("blueprints.blueprint-context.rename.click", args -> {
             events.schedule(() -> ImGui.openPopup("blueprints.rename-context"));
-            final InputText text = layout.findElement("blueprints.rename-context.text");
-            text.set(selectedBlueprint.label().get());
+            layout
+                    .<InputText>findElement("blueprints.rename-context.text")
+                    .ifPresent(text -> text.set(selectedBlueprint.label().get()));
         });
         events.register("blueprints.blueprint-context.color.click", args -> {
             events.schedule(() -> ImGui.openPopup("blueprints.color-context"));
-            final ColorEdit color = layout.findElement("blueprints.color-context.color");
-            color.color(selectedBlueprint.baseColor().get());
+            layout
+                    .<ColorEdit>findElement("blueprints.color-context.color")
+                    .ifPresent(color -> color.color(selectedBlueprint.baseColor().get()));
         });
         events.register("blueprints.blueprint-context.delete.click", args -> {
             context.remove(selectedBlueprint);

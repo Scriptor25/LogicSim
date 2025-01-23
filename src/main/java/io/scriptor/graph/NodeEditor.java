@@ -10,6 +10,7 @@ import io.scriptor.imgui.Array;
 import io.scriptor.imgui.Element;
 import io.scriptor.imgui.Layout;
 import io.scriptor.util.Range;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 
@@ -29,7 +30,7 @@ public class NodeEditor extends Element {
 
     private Graph clipboard;
 
-    public NodeEditor(final Layout root, final String id) {
+    public NodeEditor(final @NotNull Layout root, final @NotNull String id) {
         super(root, id);
 
         attributes.sorted(Comparator.comparing(Attribute::label));
@@ -51,19 +52,19 @@ public class NodeEditor extends Element {
         getEvents().register(getParentId() + ".delete-context.links.click", args -> deleteSelectedLinks());
     }
 
-    public void graph(final Graph graph) {
+    public void graph(final @NotNull Graph graph) {
         this.graph = graph;
     }
 
-    public Range<Attribute> attributes() {
+    public @NotNull Range<Attribute> attributes() {
         return attributes;
     }
 
-    public void blueprints(final Collection<?> blueprints) {
+    public void blueprints(final @NotNull Collection<?> blueprints) {
         this.blueprints.collection(blueprints);
     }
 
-    private void onNodeContextCopyClick(final Object... args) {
+    private void onNodeContextCopyClick(final @NotNull Object @NotNull ... args) {
         final var nodeIds = new int[ImNodes.numSelectedNodes()];
         ImNodes.getSelectedNodes(nodeIds);
 
@@ -78,7 +79,7 @@ public class NodeEditor extends Element {
         clipboard = graph.copy(nodes.toArray(INode[]::new));
     }
 
-    private void onNodeContextCutClick(final Object... args) {
+    private void onNodeContextCutClick(final @NotNull Object @NotNull ... args) {
         onNodeContextCopyClick(args);
 
         if (!ImNodes.isNodeSelected(hoveredNode.id()))
@@ -86,38 +87,38 @@ public class NodeEditor extends Element {
         deleteSelectedNodes();
     }
 
-    private void onNodeContextDuplicateClick(final Object... args) {
+    private void onNodeContextDuplicateClick(final @NotNull Object @NotNull ... args) {
         onNodeContextCopyClick(args);
         graph.paste(clipboard);
     }
 
-    private void onNodeContextDeleteClick(final Object... args) {
+    private void onNodeContextDeleteClick(final @NotNull Object @NotNull ... args) {
         deleteSelectedNodes();
 
         if (!ImNodes.isNodeSelected(hoveredNode.id()))
             graph.remove(hoveredNode);
     }
 
-    private void onLinkContextDeleteClick(final Object... args) {
+    private void onLinkContextDeleteClick(final @NotNull Object @NotNull ... args) {
         deleteSelectedLinks();
 
         if (!ImNodes.isLinkSelected(hoveredLink.id()))
             graph.remove(hoveredLink);
     }
 
-    private void onEditorContextPasteClick(final Object... args) {
+    private void onEditorContextPasteClick(final @NotNull Object @NotNull ... args) {
         if (clipboard != null)
             graph.paste(clipboard);
     }
 
-    private void onEditorContextAddClick(final Object... args) {
+    private void onEditorContextAddClick(final @NotNull Object @NotNull ... args) {
         getEvents().schedule(() -> ImGui.openPopup(getParentId() + ".add-context"));
 
         attributes.clearTempFilters();
         blueprints.clearTempFilters();
     }
 
-    private void onAddContextAttributesSelect(final Object... args) {
+    private void onAddContextAttributesSelect(final @NotNull Object @NotNull ... args) {
         final var attribute = (Attribute) args[1];
 
         final INode node;
@@ -129,14 +130,14 @@ public class NodeEditor extends Element {
         onAddNode(node);
     }
 
-    private void onAddContextBlueprintsSelect(final Object... args) {
+    private void onAddContextBlueprintsSelect(final @NotNull Object @NotNull ... args) {
         final var blueprint = (Blueprint) args[1];
         final var node = new Node(UUID.randomUUID(), blueprint);
 
         onAddNode(node);
     }
 
-    private void onAddNode(final INode node) {
+    private void onAddNode(final @NotNull INode node) {
         graph.add(node);
         ImNodes.setNodeScreenSpacePos(node.id(), mouseX, mouseY);
 
@@ -165,11 +166,13 @@ public class NodeEditor extends Element {
 
     @Override
     protected void onStart() {
-        final Array attributeArray = getRoot().findElement(getParentId() + ".add-context.attributes");
-        attributeArray.setRange(attributes);
+        getRoot()
+                .<Array>findElement(getParentId() + ".add-context.attributes")
+                .ifPresent(array -> array.setRange(attributes));
 
-        final Array blueprintArray = getRoot().findElement(getParentId() + ".add-context.blueprints");
-        blueprintArray.setRange(blueprints);
+        getRoot()
+                .<Array>findElement(getParentId() + ".add-context.blueprints")
+                .ifPresent(array -> array.setRange(blueprints));
     }
 
     @Override

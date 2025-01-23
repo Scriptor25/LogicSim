@@ -11,6 +11,8 @@ import io.scriptor.context.Context;
 import io.scriptor.function.IFunction;
 import io.scriptor.util.IOStream;
 import io.scriptor.util.IUnique;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -18,12 +20,13 @@ import java.io.OutputStream;
 import java.util.*;
 
 public record Blueprint(
-        UUID uuid,
-        ImString label,
-        ImInt baseColor,
-        String[] inputs,
-        String[] outputs,
-        IFunction function) implements IUnique {
+        @NotNull UUID uuid,
+        @NotNull ImString label,
+        @NotNull ImInt baseColor,
+        @NotNull String @NotNull [] inputs,
+        @NotNull String @NotNull [] outputs,
+        @NotNull IFunction function
+) implements IUnique {
 
     public static class Builder {
 
@@ -34,37 +37,37 @@ public record Blueprint(
         private final List<String> outputs = new ArrayList<>();
         private IFunction function;
 
-        public Builder uuid(final UUID uuid) {
+        public @NotNull Builder uuid(final @NotNull UUID uuid) {
             this.uuid = uuid;
             return this;
         }
 
-        public Builder label(final String label) {
+        public @NotNull Builder label(final @NotNull String label) {
             this.label = label;
             return this;
         }
 
-        public Builder baseColor(final int baseColor) {
+        public @NotNull Builder baseColor(final int baseColor) {
             this.baseColor = baseColor;
             return this;
         }
 
-        public Builder inputs(final String... inputs) {
+        public @NotNull Builder inputs(final @NotNull String @NotNull ... inputs) {
             this.inputs.addAll(List.of(inputs));
             return this;
         }
 
-        public Builder outputs(final String... outputs) {
+        public @NotNull Builder outputs(final @NotNull String @NotNull ... outputs) {
             this.outputs.addAll(List.of(outputs));
             return this;
         }
 
-        public Builder function(final IFunction function) {
+        public @NotNull Builder function(final @NotNull IFunction function) {
             this.function = function;
             return this;
         }
 
-        public Blueprint build() {
+        public @NotNull Blueprint build() {
             return new Blueprint(
                     uuid,
                     new ImString(label),
@@ -75,7 +78,7 @@ public record Blueprint(
         }
     }
 
-    public static void read(final InputStream in, final Context context) throws IOException {
+    public static void read(final @NotNull InputStream in, final @NotNull Context context) throws IOException {
         final var uuid = IOStream.readUUID(in);
 
         final var builder = new Builder()
@@ -98,7 +101,7 @@ public record Blueprint(
                 .ifPresent(fn -> context.add(builder.function(fn).build()));
     }
 
-    public void write(final OutputStream outputStream) throws IOException {
+    public void write(final @NotNull OutputStream outputStream) throws IOException {
         IOStream.write(outputStream, uuid);
         IOStream.write(outputStream, label.get());
         IOStream.write(outputStream, baseColor.get());
@@ -112,7 +115,7 @@ public record Blueprint(
     }
 
     @Override
-    public boolean equals(Object object) {
+    public boolean equals(final @Nullable Object object) {
         if (this == object) return true;
         if (null == object) return false;
         if (!(object instanceof Blueprint blueprint)) return false;
@@ -134,7 +137,7 @@ public record Blueprint(
         return label.get();
     }
 
-    public void show(final Graph graph, final Node node) {
+    public void show(final @NotNull Graph graph, final @NotNull Node node) {
         pushColorStyle();
         ImNodes.beginNode(node.id());
 
@@ -180,7 +183,7 @@ public record Blueprint(
         ImNodes.popColorStyle();
     }
 
-    private void showInput(final Graph graph, final Pin pin) {
+    private void showInput(final @NotNull Graph graph, final @NotNull Pin pin) {
         final var powered = pin.powered(graph);
         if (powered)
             ImNodes.pushColorStyle(ImNodesCol.Pin, Constants.COLOR_POWERED);
@@ -191,7 +194,7 @@ public record Blueprint(
             ImNodes.popColorStyle();
     }
 
-    private void showOutput(final Graph graph, final Pin pin) {
+    private void showOutput(final @NotNull Graph graph, final @NotNull Pin pin) {
         final var powered = pin.powered(graph);
         if (powered)
             ImNodes.pushColorStyle(ImNodesCol.Pin, Constants.COLOR_POWERED);

@@ -1,24 +1,27 @@
 package io.scriptor.util;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 import java.util.*;
 
 public interface IYamlNode extends Iterable<IYamlNode> {
 
-    static IYamlNode from(final Object value) {
+    static @NotNull IYamlNode from(final @Nullable Object value) {
         return from(null, value);
     }
 
-    static IYamlNode from(final String key, final Map<?, ?> map) {
+    static IYamlNode from(final @Nullable String key, final @NotNull Map<?, ?> map) {
         final Map<String, IYamlNode> value = new HashMap<>();
         map.forEach((k, v) -> value.put((String) k, from((String) k, v)));
         return new MapNode(key, value);
     }
 
-    static IYamlNode from(final String key, final List<?> list) {
+    static IYamlNode from(final @Nullable String key, final @NotNull List<?> list) {
         return new ListNode(key, list.stream().map(IYamlNode::from).toList());
     }
 
-    static IYamlNode from(final String key, final Object value) {
+    static IYamlNode from(final @Nullable String key, final @Nullable Object value) {
         if (value == null)
             return new EmptyNode(key);
         if (value instanceof Map<?, ?> map)
@@ -28,7 +31,7 @@ public interface IYamlNode extends Iterable<IYamlNode> {
         return new DataNode(key, value);
     }
 
-    record MapNode(String key, Map<String, IYamlNode> value) implements IYamlNode {
+    record MapNode(@Nullable String key, Map<String, IYamlNode> value) implements IYamlNode {
 
         @Override
         public boolean notEmpty() {
@@ -36,17 +39,17 @@ public interface IYamlNode extends Iterable<IYamlNode> {
         }
 
         @Override
-        public void put(final String key, final IYamlNode node) {
+        public void put(final String key, final @NotNull IYamlNode node) {
             value.put(key, node);
         }
 
         @Override
-        public void append(final IYamlNode node) {
+        public void append(final @NotNull IYamlNode node) {
             value.put(node.key(), node);
         }
 
         @Override
-        public IYamlNode get(final String key) {
+        public @NotNull IYamlNode get(final String key) {
             if (!value.containsKey(key))
                 return new EmptyNode(key);
             return value.get(key);
@@ -58,12 +61,12 @@ public interface IYamlNode extends Iterable<IYamlNode> {
         }
 
         @Override
-        public Iterator<IYamlNode> iterator() {
+        public @NotNull Iterator<IYamlNode> iterator() {
             return value.values().iterator();
         }
     }
 
-    record ListNode(String key, List<IYamlNode> value) implements IYamlNode {
+    record ListNode(@Nullable String key, @NotNull List<IYamlNode> value) implements IYamlNode {
 
         @Override
         public boolean notEmpty() {
@@ -71,12 +74,12 @@ public interface IYamlNode extends Iterable<IYamlNode> {
         }
 
         @Override
-        public void append(final IYamlNode node) {
+        public void append(final @NotNull IYamlNode node) {
             value.add(node);
         }
 
         @Override
-        public IYamlNode get(final int index) {
+        public @NotNull IYamlNode get(final int index) {
             if (index < 0 || index >= value.size())
                 return new EmptyNode(null);
             return value.get(index);
@@ -88,12 +91,12 @@ public interface IYamlNode extends Iterable<IYamlNode> {
         }
 
         @Override
-        public Iterator<IYamlNode> iterator() {
+        public @NotNull Iterator<IYamlNode> iterator() {
             return value.iterator();
         }
     }
 
-    record DataNode(String key, Object value) implements IYamlNode {
+    record DataNode(@Nullable String key, @NotNull Object value) implements IYamlNode {
 
         @Override
         public boolean notEmpty() {
@@ -101,48 +104,48 @@ public interface IYamlNode extends Iterable<IYamlNode> {
         }
 
         @Override
-        public <T> T as(Class<T> clazz) {
+        public <T> @NotNull T as(final @NotNull Class<T> clazz) {
             if (clazz.isInstance(value))
                 return clazz.cast(value);
-            return null;
+            throw new RTException("cannot cast value of type '%s' to type '%s'", value.getClass(), clazz);
         }
 
         @Override
-        public <T> T as(Class<T> clazz, T defaultValue) {
+        public @NotNull <T> T as(final @NotNull Class<T> clazz, final @NotNull T defaultValue) {
             if (clazz.isInstance(value))
                 return clazz.cast(value);
             return defaultValue;
         }
     }
 
-    record EmptyNode(String key) implements IYamlNode {
+    record EmptyNode(@Nullable String key) implements IYamlNode {
     }
 
-    String key();
+    @Nullable String key();
 
     default boolean notEmpty() {
         return false;
     }
 
-    default void put(final String key, final IYamlNode node) {
+    default void put(final @Nullable String key, final @NotNull IYamlNode node) {
     }
 
-    default void append(final IYamlNode node) {
+    default void append(final @NotNull IYamlNode node) {
     }
 
-    default IYamlNode get(final String key) {
+    default @NotNull IYamlNode get(final @Nullable String key) {
         return new EmptyNode(key);
     }
 
-    default IYamlNode get(final int index) {
+    default @NotNull IYamlNode get(final int index) {
         return new EmptyNode(null);
     }
 
-    default <T> T as(final Class<T> clazz) {
-        return null;
+    default @NotNull <T> T as(final @NotNull Class<T> clazz) {
+        throw new RTException("cannot cast emptiness to type '%s'", clazz);
     }
 
-    default <T> T as(final Class<T> clazz, final T defaultValue) {
+    default @NotNull <T> T as(final @NotNull Class<T> clazz, final @NotNull T defaultValue) {
         return defaultValue;
     }
 
@@ -151,7 +154,7 @@ public interface IYamlNode extends Iterable<IYamlNode> {
     }
 
     @Override
-    default Iterator<IYamlNode> iterator() {
+    default @NotNull Iterator<IYamlNode> iterator() {
         return Collections.emptyIterator();
     }
 }

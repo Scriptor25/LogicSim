@@ -5,6 +5,8 @@ import io.scriptor.function.Function;
 import io.scriptor.function.IFunction;
 import io.scriptor.function.NotFunction;
 import io.scriptor.util.IOStream;
+import io.scriptor.util.RTException;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -21,32 +23,33 @@ public class Registry {
     public Registry() {
     }
 
-    public Registry(final InputStream inputStream) throws IOException {
+    public Registry(final @NotNull InputStream inputStream) throws IOException {
         final var functionCount = IOStream.readInt(inputStream);
         for (int i = 0; i < functionCount; ++i) {
-            switch (IOStream.readInt(inputStream)) {
+            final var functionType = IOStream.readInt(inputStream);
+            switch (functionType) {
                 case 0 -> NotFunction.read(inputStream, this);
                 case 1 -> AndFunction.read(inputStream, this);
                 case 2 -> Function.read(inputStream, this);
-                default -> throw new IllegalStateException();
+                default -> throw new RTException("invalid function type '%d'", functionType);
             }
         }
     }
 
-    public void write(final OutputStream outputStream) throws IOException {
+    public void write(final @NotNull OutputStream outputStream) throws IOException {
         IOStream.write(outputStream, functions.size());
         for (final var fn : functions.values()) fn.write(outputStream);
     }
 
-    public Optional<IFunction> get(final UUID uuid) {
+    public @NotNull Optional<IFunction> get(final @NotNull UUID uuid) {
         return Optional.ofNullable(functions.get(uuid));
     }
 
-    public void add(final IFunction function) {
+    public void add(final @NotNull IFunction function) {
         functions.put(function.uuid(), function);
     }
 
-    public void remove(final IFunction function) {
+    public void remove(final @NotNull IFunction function) {
         functions.remove(function.uuid());
     }
 }

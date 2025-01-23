@@ -2,6 +2,7 @@ package io.scriptor.imgui;
 
 import imgui.ImGui;
 import imgui.type.ImString;
+import org.jetbrains.annotations.NotNull;
 
 public class InputText extends Element {
 
@@ -11,7 +12,11 @@ public class InputText extends Element {
 
     private final ImString buffer = new ImString();
 
-    public InputText(final Layout root, final String id, final String label, final Integer[] flags, final String event) {
+    public InputText(final @NotNull Layout root,
+                     final @NotNull String id,
+                     final @NotNull String label,
+                     final @NotNull Integer @NotNull [] flags,
+                     final @NotNull String event) {
         super(root, id);
         this.label = label;
         int f = 0;
@@ -20,11 +25,11 @@ public class InputText extends Element {
         this.event = id + '.' + event;
     }
 
-    public String get() {
+    public @NotNull String get() {
         return buffer.get();
     }
 
-    public void set(final String string) {
+    public void set(final @NotNull String string) {
         buffer.set(string, true);
     }
 

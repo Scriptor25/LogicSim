@@ -1,6 +1,8 @@
 package io.scriptor.graph;
 
 import io.scriptor.instruction.*;
+import io.scriptor.util.RTException;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 import java.util.stream.Stream;
@@ -15,7 +17,7 @@ public class Node implements INode {
 
     private final boolean[] pinOut;
 
-    public Node(final UUID uuid, final Blueprint blueprint) {
+    public Node(final @NotNull UUID uuid, final @NotNull Blueprint blueprint) {
         this.uuid = uuid;
         this.blueprint = blueprint;
 
@@ -29,32 +31,32 @@ public class Node implements INode {
     }
 
     @Override
-    public UUID uuid() {
+    public @NotNull UUID uuid() {
         return uuid;
     }
 
     @Override
-    public Pin input(final int i) {
+    public @NotNull Pin input(final int i) {
         return inputs[i];
     }
 
     @Override
-    public Pin output(final int i) {
+    public @NotNull Pin output(final int i) {
         return outputs[i];
     }
 
     @Override
-    public boolean powered(final Graph graph, final boolean output, final int index) {
+    public boolean powered(final @NotNull Graph graph, final boolean output, final int index) {
         if (output && index < pinOut.length) return pinOut[index];
         if (!output && index < inputs.length) {
             final var pre = inputs[index].predecessor(graph);
             return pre.map(pin -> pin.powered(graph)).orElse(false);
         }
-        throw new IllegalStateException();
+        throw new RTException("cannot get powered state of %s pin at index '%d'", output ? "output" : "input", index);
     }
 
     @Override
-    public Optional<Pin> pin(final int id) {
+    public @NotNull Optional<Pin> pin(final int id) {
         return Stream.concat(
                         Arrays.stream(inputs),
                         Arrays.stream(outputs)
@@ -64,17 +66,17 @@ public class Node implements INode {
     }
 
     @Override
-    public boolean noPredecessor(final Graph graph) {
+    public boolean noPredecessor(final @NotNull Graph graph) {
         return Arrays.stream(inputs).allMatch(x -> x.predecessor(graph).isEmpty());
     }
 
     @Override
-    public boolean noSuccessors(final Graph graph) {
+    public boolean noSuccessors(final @NotNull Graph graph) {
         return Arrays.stream(outputs).allMatch(x -> x.successors(graph).isEmpty());
     }
 
     @Override
-    public List<INode> successors(final Graph graph) {
+    public @NotNull List<INode> successors(final @NotNull Graph graph) {
         return Arrays.stream(outputs)
                 .<INode>mapMulti((pin, consumer) -> graph.findLinks(pin).stream()
                         .map(link -> link.target().node())
@@ -83,17 +85,17 @@ public class Node implements INode {
     }
 
     @Override
-    public void show(final Graph graph) {
+    public void show(final @NotNull Graph graph) {
         blueprint.show(graph, this);
     }
 
     @Override
-    public Node copy() {
+    public @NotNull INode copy() {
         return new Node(UUID.randomUUID(), blueprint);
     }
 
     @Override
-    public void compile(final Graph graph, final Collection<Instruction> instructions, final Set<INode> compiling) {
+    public void compile(final @NotNull Graph graph, final @NotNull Collection<Instruction> instructions, final @NotNull Set<INode> compiling) {
         if (compiling.contains(this))
             return;
         compiling.add(this);
@@ -123,7 +125,7 @@ public class Node implements INode {
     }
 
     @Override
-    public boolean[] exec(final Graph graph, final Set<INode> executing) {
+    public boolean @NotNull [] exec(final @NotNull Graph graph, final @NotNull Set<INode> executing) {
         if (executing.contains(this))
             return pinOut;
         executing.add(this);

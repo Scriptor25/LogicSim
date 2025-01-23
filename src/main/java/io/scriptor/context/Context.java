@@ -5,6 +5,7 @@ import io.scriptor.function.NotFunction;
 import io.scriptor.graph.Blueprint;
 import io.scriptor.util.IOStream;
 import io.scriptor.util.Task;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.io.IOException;
@@ -46,15 +47,15 @@ public class Context {
         add(and);
     }
 
-    public Context(final String filename) throws IOException {
+    public Context(final @NotNull String filename) throws IOException {
         this(new File(filename));
     }
 
-    public Context(final File file) throws IOException {
+    public Context(final @NotNull File file) throws IOException {
         this(Files.newInputStream(file.toPath()), true);
     }
 
-    public Context(final InputStream inputStream, final boolean closeStream) throws IOException {
+    public Context(final @NotNull InputStream inputStream, final boolean closeStream) throws IOException {
         registry = new Registry(inputStream);
 
         final var count = IOStream.readInt(inputStream);
@@ -65,36 +66,37 @@ public class Context {
             inputStream.close();
     }
 
-    public void write(final String filename) throws IOException {
+    public void write(final @NotNull String filename) throws IOException {
         write(new File(filename));
     }
 
-    public void write(final File file) throws IOException {
-        write(Files.newOutputStream(file.toPath()));
+    public void write(final @NotNull File file) throws IOException {
+        write(Files.newOutputStream(file.toPath()), true);
     }
 
-    public void write(final OutputStream outputStream) throws IOException {
-        try (outputStream) {
-            registry.write(outputStream);
+    public void write(final @NotNull OutputStream outputStream, final boolean closeStream) throws IOException {
+        registry.write(outputStream);
 
-            IOStream.write(outputStream, blueprints.size());
-            blueprints.forEach(blueprint -> Task.handleVoid(() -> blueprint.write(outputStream)));
-        }
+        IOStream.write(outputStream, blueprints.size());
+        blueprints.forEach(blueprint -> Task.handleVoid(() -> blueprint.write(outputStream)));
+
+        if (closeStream)
+            outputStream.close();
     }
 
-    public Registry registry() {
+    public @NotNull Registry registry() {
         return registry;
     }
 
-    public Collection<Blueprint> blueprints() {
+    public @NotNull Collection<Blueprint> blueprints() {
         return blueprints;
     }
 
-    public void add(final Blueprint blueprint) {
+    public void add(final @NotNull Blueprint blueprint) {
         blueprints.add(blueprint);
     }
 
-    public void remove(final Blueprint blueprint) {
+    public void remove(final @NotNull Blueprint blueprint) {
         blueprints.remove(blueprint);
     }
 }

@@ -4,6 +4,7 @@ import imgui.extension.imnodes.ImNodes;
 import imgui.extension.imnodes.flag.ImNodesCol;
 import io.scriptor.Constants;
 import io.scriptor.util.IUnique;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.UUID;
 
@@ -13,18 +14,18 @@ public record Link(UUID uuid, Pin source, Pin target) implements IUnique {
         return uuid.hashCode();
     }
 
-    public void show(final Graph graph) {
+    public void show(final @NotNull Graph graph) {
         final var powered = source.powered(graph);
         if (powered) ImNodes.pushColorStyle(ImNodesCol.Link, Constants.COLOR_POWERED);
         ImNodes.link(id(), source.id(), target.id());
         if (powered) ImNodes.popColorStyle();
     }
 
-    public boolean uses(final INode node) {
+    public boolean uses(final @NotNull INode node) {
         return source.uses(node) || target.uses(node);
     }
 
-    public boolean uses(final INode[] nodes) {
+    public boolean uses(final @NotNull INode @NotNull [] nodes) {
         for (final var a : nodes) {
             for (final var b : nodes) {
                 if (a == b) continue;
@@ -35,7 +36,7 @@ public record Link(UUID uuid, Pin source, Pin target) implements IUnique {
         return false;
     }
 
-    public boolean uses(final Pin pin) {
+    public boolean uses(final @NotNull Pin pin) {
         return source == pin || target == pin;
     }
 }

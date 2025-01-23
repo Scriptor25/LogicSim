@@ -3,6 +3,7 @@ package io.scriptor.instruction;
 import io.scriptor.context.State;
 import io.scriptor.function.Function;
 import io.scriptor.util.IOStream;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -11,12 +12,12 @@ import java.util.UUID;
 
 public class CallInstruction implements Instruction {
 
-    public static void read(final InputStream in, final Function fn) throws IOException {
-        final var uuid = IOStream.readUUID(in);
-        final var callee = IOStream.readUUID(in);
-        final var args = new Instruction[IOStream.readInt(in)];
-        for (int i = 0; i < args.length; i++) args[i] = fn.find(IOStream.readUUID(in));
-        fn.add(new CallInstruction(uuid, callee, args));
+    public static void read(final @NotNull InputStream inputStream, final @NotNull Function function) throws IOException {
+        final var uuid = IOStream.readUUID(inputStream);
+        final var callee = IOStream.readUUID(inputStream);
+        final var args = new Instruction[IOStream.readInt(inputStream)];
+        for (int i = 0; i < args.length; i++) args[i] = function.find(IOStream.readUUID(inputStream));
+        function.add(new CallInstruction(uuid, callee, args));
     }
 
     private final UUID uuid;
@@ -25,35 +26,37 @@ public class CallInstruction implements Instruction {
 
     private boolean error = false;
 
-    public CallInstruction(final UUID uuid, final UUID callee, final Instruction... args) {
+    public CallInstruction(final @NotNull UUID uuid,
+                           final @NotNull UUID callee,
+                           final @NotNull Instruction @NotNull ... args) {
         this.uuid = uuid;
         this.callee = callee;
         this.args = args;
     }
 
-    public CallInstruction(final UUID callee, final Instruction... args) {
+    public CallInstruction(final @NotNull UUID callee, final @NotNull Instruction @NotNull ... args) {
         this(UUID.randomUUID(), callee, args);
     }
 
-    public boolean get(final State state, final int index) {
+    public boolean get(final @NotNull State state, final int index) {
         return !error && state.getResult(uuid, index);
     }
 
     @Override
-    public UUID uuid() {
+    public @NotNull UUID uuid() {
         return uuid;
     }
 
     @Override
-    public void write(final OutputStream out) throws IOException {
-        Instruction.super.write(out);
-        IOStream.write(out, callee);
-        IOStream.write(out, args.length);
-        for (final var arg : args) IOStream.write(out, arg.uuid());
+    public void write(final @NotNull OutputStream outputStream) throws IOException {
+        Instruction.super.write(outputStream);
+        IOStream.write(outputStream, callee);
+        IOStream.write(outputStream, args.length);
+        for (final var arg : args) IOStream.write(outputStream, arg.uuid());
     }
 
     @Override
-    public void exec(final State state, final int hash) {
+    public void exec(final @NotNull State state, final int hash) {
         if (error) return;
 
         final var values = new boolean[args.length];

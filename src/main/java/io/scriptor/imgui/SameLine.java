@@ -1,10 +1,11 @@
 package io.scriptor.imgui;
 
 import imgui.ImGui;
+import org.jetbrains.annotations.NotNull;
 
 public class SameLine extends Element {
 
-    public SameLine(final Layout root, final String id) {
+    public SameLine(final @NotNull Layout root, final @NotNull String id) {
         super(root, id);
     }
 

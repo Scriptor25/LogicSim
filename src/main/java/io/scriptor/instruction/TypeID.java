@@ -1,5 +1,8 @@
 package io.scriptor.instruction;
 
+import io.scriptor.util.RTException;
+import org.jetbrains.annotations.NotNull;
+
 public class TypeID {
 
     public static final int GET_ATTRIB_INSTRUCTION = 1;
@@ -10,7 +13,7 @@ public class TypeID {
     public static final int GET_RESULT_INSTRUCTION = 6;
     public static final int CONST_INSTRUCTION = 7;
 
-    public static Class<? extends Instruction> toClass(final int typeId) {
+    public static @NotNull Class<? extends Instruction> toClass(final int typeId) {
         return switch (typeId) {
             case GET_ATTRIB_INSTRUCTION -> GetAttribInstruction.class;
             case SET_ATTRIB_INSTRUCTION -> SetAttribInstruction.class;
@@ -19,11 +22,11 @@ public class TypeID {
             case CALL_INSTRUCTION -> CallInstruction.class;
             case GET_RESULT_INSTRUCTION -> GetResultInstruction.class;
             case CONST_INSTRUCTION -> ConstInstruction.class;
-            default -> throw new IllegalStateException();
+            default -> throw new RTException("no class registered for type id '%d'", typeId);
         };
     }
 
-    public static int fromClass(final Class<? extends Instruction> type) {
+    public static int fromClass(final @NotNull Class<? extends Instruction> type) {
         if (type == GetAttribInstruction.class) return GET_ATTRIB_INSTRUCTION;
         if (type == SetAttribInstruction.class) return SET_ATTRIB_INSTRUCTION;
         if (type == GetRegInstruction.class) return GET_REG_INSTRUCTION;
@@ -31,7 +34,7 @@ public class TypeID {
         if (type == CallInstruction.class) return CALL_INSTRUCTION;
         if (type == GetResultInstruction.class) return GET_RESULT_INSTRUCTION;
         if (type == ConstInstruction.class) return CONST_INSTRUCTION;
-        throw new IllegalStateException();
+        throw new RTException("no type id registered for class '%s'", type);
     }
 
     private TypeID() {

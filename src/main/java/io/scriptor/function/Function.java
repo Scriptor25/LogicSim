@@ -5,6 +5,8 @@ import io.scriptor.context.State;
 import io.scriptor.instruction.Instruction;
 import io.scriptor.instruction.TypeID;
 import io.scriptor.util.IOStream;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -16,7 +18,7 @@ import static io.scriptor.util.Task.handleVoid;
 
 public class Function implements IFunction, Collection<Instruction> {
 
-    public static void read(final InputStream inputStream, final Registry registry) throws IOException {
+    public static void read(final @NotNull InputStream inputStream, final @Nullable Registry registry) throws IOException {
         final var uuid = IOStream.readUUID(inputStream);
         final var inputs = new UUID[IOStream.readInt(inputStream)];
         for (int i = 0; i < inputs.length; ++i)
@@ -43,11 +45,16 @@ public class Function implements IFunction, Collection<Instruction> {
     private Instruction[] data = new Instruction[10];
     private int size = 0;
 
-    public Function(final Registry registry, final UUID[] inputs, final UUID[] outputs) {
+    public Function(final @Nullable Registry registry,
+                    final @NotNull UUID @NotNull [] inputs,
+                    final @NotNull UUID @NotNull [] outputs) {
         this(registry, UUID.randomUUID(), inputs, outputs);
     }
 
-    public Function(final Registry registry, final UUID uuid, final UUID[] inputs, final UUID[] outputs) {
+    public Function(final @Nullable Registry registry,
+                    final @NotNull UUID uuid,
+                    final @NotNull UUID @NotNull [] inputs,
+                    final @NotNull UUID @NotNull [] outputs) {
         super();
 
         this.registry = registry;
@@ -78,7 +85,7 @@ public class Function implements IFunction, Collection<Instruction> {
     }
 
     @Override
-    public UUID uuid() {
+    public @NotNull UUID uuid() {
         return uuid;
     }
 
@@ -98,7 +105,7 @@ public class Function implements IFunction, Collection<Instruction> {
     }
 
     @Override
-    public void exec(final State state, final int hash, final boolean[] inputs, final boolean[] outputs) {
+    public void exec(final @NotNull State state, final int hash, final boolean @NotNull [] inputs, final boolean @NotNull [] outputs) {
         for (int i = 0; i < this.inputs.length; ++i)
             state.setAttrib(this.inputs[i], inputs[i]);
         for (final var instruction : this)
@@ -108,7 +115,7 @@ public class Function implements IFunction, Collection<Instruction> {
     }
 
     @Override
-    public void write(final OutputStream outputStream) throws IOException {
+    public void write(final @NotNull OutputStream outputStream) throws IOException {
         IFunction.super.write(outputStream);
         IOStream.write(outputStream, numInputs());
         for (final var input : inputs)
@@ -134,7 +141,7 @@ public class Function implements IFunction, Collection<Instruction> {
     }
 
     @Override
-    public boolean contains(final Object object) {
+    public boolean contains(final @NotNull Object object) {
         return Arrays
                 .stream(data)
                 .limit(size)
@@ -142,7 +149,7 @@ public class Function implements IFunction, Collection<Instruction> {
     }
 
     @Override
-    public Iterator<Instruction> iterator() {
+    public @NotNull Iterator<Instruction> iterator() {
         return new Iterator<>() {
 
             int i = 0;
@@ -161,12 +168,12 @@ public class Function implements IFunction, Collection<Instruction> {
     }
 
     @Override
-    public Object[] toArray() {
+    public @NotNull Object @NotNull [] toArray() {
         return Arrays.copyOf(data, size);
     }
 
     @Override
-    public <T> T[] toArray(T[] a) {
+    public <T> @NotNull T @NotNull [] toArray(T @NotNull [] a) {
         if (a.length < size)
             a = Arrays.copyOf(a, size);
         for (int i = 0; i < data.length; ++i)
@@ -177,7 +184,7 @@ public class Function implements IFunction, Collection<Instruction> {
     }
 
     @Override
-    public boolean add(final Instruction instruction) {
+    public boolean add(final @NotNull Instruction instruction) {
         if (size == data.length)
             data = Arrays.copyOf(data, size * 2);
         data[size++] = instruction;
@@ -185,7 +192,7 @@ public class Function implements IFunction, Collection<Instruction> {
     }
 
     @Override
-    public boolean remove(final Object object) {
+    public boolean remove(final @NotNull Object object) {
         int pos = -1;
         for (int i = 0; i < size; ++i)
             if (Objects.equals(data[i], object)) {
@@ -203,12 +210,12 @@ public class Function implements IFunction, Collection<Instruction> {
     }
 
     @Override
-    public boolean containsAll(final Collection<?> collection) {
+    public boolean containsAll(final @NotNull Collection<?> collection) {
         return collection.stream().allMatch(this::contains);
     }
 
     @Override
-    public boolean addAll(final Collection<? extends Instruction> collection) {
+    public boolean addAll(final @NotNull Collection<? extends Instruction> collection) {
         while (size + collection.size() >= data.length)
             data = Arrays.copyOf(data, size * 2);
         for (final var i : collection)
@@ -217,7 +224,7 @@ public class Function implements IFunction, Collection<Instruction> {
     }
 
     @Override
-    public boolean removeAll(final Collection<?> collection) {
+    public boolean removeAll(final @NotNull Collection<?> collection) {
         boolean changed = false;
         for (final var instruction : collection)
             changed |= remove(instruction);
@@ -225,7 +232,7 @@ public class Function implements IFunction, Collection<Instruction> {
     }
 
     @Override
-    public boolean retainAll(final Collection<?> collection) {
+    public boolean retainAll(final @NotNull Collection<?> collection) {
         throw new UnsupportedOperationException();
     }
 

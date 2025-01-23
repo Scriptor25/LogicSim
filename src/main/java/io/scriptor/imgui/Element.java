@@ -1,30 +1,33 @@
 package io.scriptor.imgui;
 
 import io.scriptor.manager.EventManager;
+import org.jetbrains.annotations.NotNull;
+
+import java.util.Optional;
 
 public abstract class Element {
 
     private final Layout root;
     private final String id;
 
-    protected Element(final Layout root, final String id) {
+    protected Element(final @NotNull Layout root, final @NotNull String id) {
         this.root = root;
         this.id = id;
     }
 
-    public Layout getRoot() {
+    public @NotNull Layout getRoot() {
         return root;
     }
 
-    public String getId() {
+    public @NotNull String getId() {
         return id;
     }
 
-    public String getParentId() {
+    public @NotNull String getParentId() {
         return id.substring(0, id.lastIndexOf('.'));
     }
 
-    public EventManager getEvents() {
+    public @NotNull EventManager getEvents() {
         return root.getEvents();
     }
 
@@ -41,9 +44,9 @@ public abstract class Element {
 
     protected abstract void onShow();
 
-    public <T extends Element> T findElement(final String id) {
+    public @NotNull <T extends Element> Optional<T> findElement(final @NotNull String id) {
         if (id.equals(this.id))
-            return (T) this;
-        return null;
+            return Optional.of((T) this);
+        return Optional.empty();
     }
 }

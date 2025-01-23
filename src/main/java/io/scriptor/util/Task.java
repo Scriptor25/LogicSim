@@ -1,7 +1,5 @@
 package io.scriptor.util;
 
-import static io.scriptor.MainApp.getLogger;
-
 public class Task {
 
     @FunctionalInterface
@@ -26,8 +24,7 @@ public class Task {
         try {
             task.run();
         } catch (final Exception e) {
-            getLogger().warning(e::toString);
-            throw new RuntimeException(e);
+            throw new RTException(e);
         }
     }
 
@@ -35,8 +32,7 @@ public class Task {
         try {
             return task.run();
         } catch (final Exception e) {
-            getLogger().warning(e::toString);
-            throw new RuntimeException(e);
+            throw new RTException(e);
         }
     }
 
@@ -44,8 +40,7 @@ public class Task {
         try {
             return task.run();
         } catch (final Exception e) {
-            getLogger().warning(e::toString);
-            throw new RuntimeException(e);
+            throw new RTException(e);
         }
     }
 

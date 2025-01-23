@@ -2,6 +2,7 @@ package io.scriptor.graph;
 
 import io.scriptor.instruction.Instruction;
 import io.scriptor.util.IUnique;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.Collection;
 import java.util.List;
@@ -14,25 +15,25 @@ public interface INode extends IUnique {
         return uuid().hashCode();
     }
 
-    Pin input(final int i);
+    @NotNull Pin input(final int i);
 
-    Pin output(final int i);
+    @NotNull Pin output(final int i);
 
-    boolean powered(Graph graph, final boolean output, final int index);
+    boolean powered(final @NotNull Graph graph, final boolean output, final int index);
 
-    Optional<Pin> pin(final int id);
+    @NotNull Optional<Pin> pin(final int id);
 
-    boolean noPredecessor(final Graph graph);
+    boolean noPredecessor(final @NotNull Graph graph);
 
-    boolean noSuccessors(final Graph graph);
+    boolean noSuccessors(final @NotNull Graph graph);
 
-    List<INode> successors(final Graph graph);
+    @NotNull List<INode> successors(final @NotNull Graph graph);
 
-    void show(final Graph graph);
+    void show(final @NotNull Graph graph);
 
-    INode copy();
+    @NotNull INode copy();
 
-    void compile(final Graph graph, final Collection<Instruction> instructions, final Set<INode> compiled);
+    void compile(final @NotNull Graph graph, final @NotNull Collection<Instruction> instructions, final @NotNull Set<INode> compiled);
 
-    boolean[] exec(final Graph graph, final Set<INode> executing);
+    boolean @NotNull [] exec(final @NotNull Graph graph, final @NotNull Set<INode> executing);
 }

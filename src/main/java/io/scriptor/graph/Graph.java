@@ -5,6 +5,7 @@ import io.scriptor.context.State;
 import io.scriptor.function.Function;
 import io.scriptor.util.IUnique;
 import io.scriptor.util.Range;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 import java.util.stream.Stream;
@@ -21,11 +22,15 @@ public class Graph implements IUnique {
     private Function function;
     private State state;
 
-    public Graph(final Registry registry) {
+    public Graph(final @NotNull Registry registry) {
         this(registry, UUID.randomUUID(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>());
     }
 
-    public Graph(final Registry registry, final UUID uuid, final List<Attribute> attributes, final List<INode> nodes, final List<Link> links) {
+    public Graph(final @NotNull Registry registry,
+                 final @NotNull UUID uuid,
+                 final @NotNull List<Attribute> attributes,
+                 final @NotNull List<INode> nodes,
+                 final @NotNull List<Link> links) {
         this.registry = registry;
         this.uuid = uuid;
         this.attributes = attributes;
@@ -35,23 +40,23 @@ public class Graph implements IUnique {
         this.state = new State(registry);
     }
 
-    public UUID uuid() {
+    public @NotNull UUID uuid() {
         return uuid;
     }
 
-    public void attributes(final Range<Attribute> range) {
+    public void attributes(final @NotNull Range<Attribute> range) {
         range.collection(attributes);
     }
 
-    public Stream<Attribute> inputs() {
+    public @NotNull Stream<Attribute> inputs() {
         return attributes.stream().filter(Attribute::input);
     }
 
-    public Stream<Attribute> outputs() {
+    public @NotNull Stream<Attribute> outputs() {
         return attributes.stream().filter(Attribute::output);
     }
 
-    public State state() {
+    public @NotNull State state() {
         return state;
     }
 
@@ -67,68 +72,68 @@ public class Graph implements IUnique {
         function = null;
     }
 
-    public void add(final INode node) {
+    public void add(final @NotNull INode node) {
         if (!nodes.contains(node)) {
             nodes.add(node);
             function = null;
         }
     }
 
-    public void add(final Link link) {
+    public void add(final @NotNull Link link) {
         if (!links.contains(link)) {
             links.add(link);
             function = null;
         }
     }
 
-    public void add(final Attribute attribute) {
+    public void add(final @NotNull Attribute attribute) {
         if (!attributes.contains(attribute)) {
             attributes.add(attribute);
             function = null;
         }
     }
 
-    public void remove(final INode node) {
+    public void remove(final @NotNull INode node) {
         if (!nodes.remove(node)) return;
         links.removeIf(link -> link.uses(node));
         function = null;
     }
 
-    public void remove(final Link link) {
+    public void remove(final @NotNull Link link) {
         if (!links.remove(link)) return;
         function = null;
     }
 
-    public void remove(final Attribute attribute) {
+    public void remove(final @NotNull Attribute attribute) {
         if (!attributes.remove(attribute)) return;
         function = null;
     }
 
-    public Optional<INode> findNode(final int id) {
+    public @NotNull Optional<INode> findNode(final int id) {
         return nodes.stream()
                 .filter(node -> node.id() == id)
                 .findFirst();
     }
 
-    public Optional<Link> findLink(final int id) {
+    public @NotNull Optional<Link> findLink(final int id) {
         return links.stream()
                 .filter(link -> link.id() == id)
                 .findFirst();
     }
 
-    public Optional<Link> findLink(final Pin pin) {
+    public @NotNull Optional<Link> findLink(final @NotNull Pin pin) {
         return links.stream()
                 .filter(link -> link.uses(pin))
                 .findFirst();
     }
 
-    public List<Link> findLinks(final Pin pin) {
+    public @NotNull List<Link> findLinks(final @NotNull Pin pin) {
         return links.stream()
                 .filter(link -> link.uses(pin))
                 .toList();
     }
 
-    public Optional<Pin> findPin(final int id) {
+    public @NotNull Optional<Pin> findPin(final int id) {
         return nodes.stream()
                 .map(node -> node.pin(id))
                 .filter(Optional::isPresent)
@@ -136,21 +141,21 @@ public class Graph implements IUnique {
                 .findFirst();
     }
 
-    public Stream<INode> findEntryPoints() {
+    public @NotNull Stream<INode> findEntryPoints() {
         return nodes.stream().filter(node -> node.noPredecessor(this));
     }
 
-    public Stream<INode> findExitPoints() {
+    public @NotNull Stream<INode> findExitPoints() {
         return nodes.stream().filter(node -> node.noSuccessors(this));
     }
 
-    public Graph copy() {
+    public @NotNull Graph copy() {
         final var graph = copy(nodes.toArray(INode[]::new));
         attributes.forEach(graph::add);
         return graph;
     }
 
-    public Graph copy(final INode[] nodes) {
+    public @NotNull Graph copy(final @NotNull INode @NotNull [] nodes) {
         final var graph = new Graph(registry);
 
         final Map<INode, INode> copies = new HashMap<>();
@@ -174,7 +179,7 @@ public class Graph implements IUnique {
         return graph;
     }
 
-    public void paste(final Graph graph) {
+    public void paste(final @NotNull Graph graph) {
 
         final Map<INode, INode> copies = new HashMap<>();
         for (final var node : graph.nodes)
@@ -196,7 +201,7 @@ public class Graph implements IUnique {
         copies.values().forEach(this::add);
     }
 
-    public Function compile(final boolean store) {
+    public @NotNull Function compile(final boolean store) {
         final var fn = new Function(
                 store ? registry : null,
                 uuid,
