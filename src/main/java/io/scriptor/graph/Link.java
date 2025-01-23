@@ -14,6 +14,14 @@ public record Link(UUID uuid, Pin source, Pin target) implements IUnique {
         return uuid.hashCode();
     }
 
+    public boolean notSelected() {
+        return !ImNodes.isLinkSelected(id());
+    }
+
+    public void select() {
+        ImNodes.selectLink(id());
+    }
+
     public void show(final @NotNull Graph graph) {
         final var powered = source.powered(graph);
         if (powered) ImNodes.pushColorStyle(ImNodesCol.Link, Constants.COLOR_POWERED);

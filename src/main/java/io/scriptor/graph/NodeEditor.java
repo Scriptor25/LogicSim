@@ -9,6 +9,7 @@ import imgui.type.ImInt;
 import io.scriptor.imgui.Array;
 import io.scriptor.imgui.Element;
 import io.scriptor.imgui.Layout;
+import io.scriptor.util.KeyMods;
 import io.scriptor.util.Range;
 import org.jetbrains.annotations.NotNull;
 
@@ -50,6 +51,20 @@ public class NodeEditor extends Element {
         getEvents().register(getParentId() + ".add-context.blueprints.select", this::onAddContextBlueprintsSelect);
         getEvents().register(getParentId() + ".delete-context.nodes.click", args -> deleteSelectedNodes());
         getEvents().register(getParentId() + ".delete-context.links.click", args -> deleteSelectedLinks());
+
+        getEvents().register("key.a.press", args -> {
+            final var mods = (KeyMods) args[0];
+            if (mods.control()) {
+                graph
+                        .nodes()
+                        .filter(INode::notSelected)
+                        .forEach(INode::select);
+                graph
+                        .links()
+                        .filter(Link::notSelected)
+                        .forEach(Link::select);
+            }
+        });
     }
 
     public void graph(final @NotNull Graph graph) {
@@ -69,10 +84,12 @@ public class NodeEditor extends Element {
         ImNodes.getSelectedNodes(nodeIds);
 
         final List<INode> nodes = new ArrayList<>();
-        if (!ImNodes.isNodeSelected(hoveredNode.id()))
+        if (hoveredNode.notSelected())
             nodes.add(hoveredNode);
         for (final var nodeId : nodeIds)
-            graph.findNode(nodeId).ifPresent(nodes::add);
+            graph
+                    .findNode(nodeId)
+                    .ifPresent(nodes::add);
 
         if (clipboard != null)
             clipboard.clear();
@@ -82,7 +99,7 @@ public class NodeEditor extends Element {
     private void onNodeContextCutClick(final @NotNull Object @NotNull ... args) {
         onNodeContextCopyClick(args);
 
-        if (!ImNodes.isNodeSelected(hoveredNode.id()))
+        if (hoveredNode.notSelected())
             graph.remove(hoveredNode);
         deleteSelectedNodes();
     }
@@ -95,14 +112,14 @@ public class NodeEditor extends Element {
     private void onNodeContextDeleteClick(final @NotNull Object @NotNull ... args) {
         deleteSelectedNodes();
 
-        if (!ImNodes.isNodeSelected(hoveredNode.id()))
+        if (hoveredNode.notSelected())
             graph.remove(hoveredNode);
     }
 
     private void onLinkContextDeleteClick(final @NotNull Object @NotNull ... args) {
         deleteSelectedLinks();
 
-        if (!ImNodes.isLinkSelected(hoveredLink.id()))
+        if (hoveredLink.notSelected())
             graph.remove(hoveredLink);
     }
 
@@ -142,12 +159,18 @@ public class NodeEditor extends Element {
         ImNodes.setNodeScreenSpacePos(node.id(), mouseX, mouseY);
 
         if (source != null) {
-            target = source.output() ? node.input(0) : node.output(0);
+            target = source.output()
+                    ? node.input(0)
+                    : node.output(0);
 
             if (target.output())
-                graph.findLinks(source).forEach(graph::remove);
+                graph
+                        .findLinks(source)
+                        .forEach(graph::remove);
             else
-                graph.findLinks(target).forEach(graph::remove);
+                graph
+                        .findLinks(target)
+                        .forEach(graph::remove);
 
             final Link link;
             if (source.output())
@@ -199,7 +222,9 @@ public class NodeEditor extends Element {
         ImNodes.getSelectedNodes(nodeIds);
 
         for (final var nodeId : nodeIds)
-            graph.findNode(nodeId).ifPresent(graph::remove);
+            graph
+                    .findNode(nodeId)
+                    .ifPresent(graph::remove);
 
         ImNodes.clearNodeSelection();
     }
@@ -209,7 +234,9 @@ public class NodeEditor extends Element {
         ImNodes.getSelectedLinks(linkIds);
 
         for (final var linkId : linkIds)
-            graph.findLink(linkId).ifPresent(graph::remove);
+            graph
+                    .findLink(linkId)
+                    .ifPresent(graph::remove);
 
         ImNodes.clearLinkSelection();
     }
@@ -226,10 +253,14 @@ public class NodeEditor extends Element {
 
             if (hoveredNodeId != -1) {
                 getEvents().schedule(() -> ImGui.openPopup(getParentId() + ".node-context"));
-                graph.findNode(hoveredNodeId).ifPresent(node -> hoveredNode = node);
+                graph
+                        .findNode(hoveredNodeId)
+                        .ifPresent(node -> hoveredNode = node);
             } else if (hoveredLinkId != -1) {
                 getEvents().schedule(() -> ImGui.openPopup(getParentId() + ".link-context"));
-                graph.findLink(hoveredLinkId).ifPresent(link -> hoveredLink = link);
+                graph
+                        .findLink(hoveredLinkId)
+                        .ifPresent(link -> hoveredLink = link);
             } else if (isEditorHovered) {
                 getEvents().schedule(() -> ImGui.openPopup(getParentId() + ".editor-context"));
             }
@@ -281,13 +312,21 @@ public class NodeEditor extends Element {
         final var targetId = new ImInt();
 
         if (ImNodes.isLinkCreated(sourceId, targetId)) {
-            graph.findPin(sourceId.get()).ifPresent(pin -> source = pin);
-            graph.findPin(targetId.get()).ifPresent(pin -> target = pin);
+            graph
+                    .findPin(sourceId.get())
+                    .ifPresent(pin -> source = pin);
+            graph
+                    .findPin(targetId.get())
+                    .ifPresent(pin -> target = pin);
 
             if (target.output())
-                graph.findLinks(source).forEach(graph::remove);
+                graph
+                        .findLinks(source)
+                        .forEach(graph::remove);
             else
-                graph.findLinks(target).forEach(graph::remove);
+                graph
+                        .findLinks(target)
+                        .forEach(graph::remove);
 
             final Link link;
             if (source.output())

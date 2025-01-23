@@ -1,28 +1,18 @@
 package io.scriptor.function;
 
-import io.scriptor.context.Registry;
 import io.scriptor.context.State;
 import io.scriptor.util.IOStream;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.UUID;
 
-public record NotFunction(@Nullable Registry registry, @NotNull UUID uuid) implements IFunction {
+public record NotFunction(@NotNull UUID uuid) implements IFunction {
 
-    public static void read(final @NotNull InputStream inputStream, final @Nullable Registry registry) throws IOException {
+    public static IFunction read(final @NotNull InputStream inputStream) throws IOException {
         final var uuid = IOStream.readUUID(inputStream);
-        new NotFunction(registry, uuid);
-    }
-
-    public NotFunction(final Registry registry, final UUID uuid) {
-        this.registry = registry;
-        this.uuid = uuid;
-
-        if (registry != null)
-            registry.add(this);
+        return new NotFunction(uuid);
     }
 
     @Override

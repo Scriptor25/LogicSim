@@ -27,22 +27,26 @@ public class Registry {
         final var functionCount = IOStream.readInt(inputStream);
         for (int i = 0; i < functionCount; ++i) {
             final var functionType = IOStream.readInt(inputStream);
-            switch (functionType) {
-                case 0 -> NotFunction.read(inputStream, this);
-                case 1 -> AndFunction.read(inputStream, this);
-                case 2 -> Function.read(inputStream, this);
+            final var function = switch (functionType) {
+                case 0 -> NotFunction.read(inputStream);
+                case 1 -> AndFunction.read(inputStream);
+                case 2 -> Function.read(inputStream);
                 default -> throw new RTException("invalid function type '%d'", functionType);
-            }
+            };
+            add(function);
         }
     }
 
     public void write(final @NotNull OutputStream outputStream) throws IOException {
         IOStream.write(outputStream, functions.size());
-        for (final var fn : functions.values()) fn.write(outputStream);
+        for (final var function : functions.values())
+            function.write(outputStream);
     }
 
     public @NotNull Optional<IFunction> get(final @NotNull UUID uuid) {
-        return Optional.ofNullable(functions.get(uuid));
+        if (functions.containsKey(uuid))
+            return Optional.of(functions.get(uuid));
+        return Optional.empty();
     }
 
     public void add(final @NotNull IFunction function) {

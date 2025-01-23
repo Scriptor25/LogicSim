@@ -1,5 +1,6 @@
 package io.scriptor.graph;
 
+import imgui.extension.imnodes.ImNodes;
 import io.scriptor.instruction.Instruction;
 import io.scriptor.util.IUnique;
 import org.jetbrains.annotations.NotNull;
@@ -13,6 +14,14 @@ public interface INode extends IUnique {
 
     default int id() {
         return uuid().hashCode();
+    }
+
+    default boolean notSelected() {
+        return !ImNodes.isNodeSelected(id());
+    }
+
+    default void select() {
+        ImNodes.selectNode(id());
     }
 
     @NotNull Pin input(final int i);

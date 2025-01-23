@@ -145,16 +145,32 @@ public record Blueprint(
         ImGui.textUnformatted(label.get());
         ImNodes.endNodeTitleBar();
 
+        int maxInputWidth = 0;
+        for (final var input : inputs)
+            maxInputWidth = Math.max(maxInputWidth, input.length());
+
+        int maxOutputWidth = 0;
+        for (final var output : outputs)
+            maxOutputWidth = Math.max(maxOutputWidth, output.length());
+
+        final var inputFormat = "%-" + maxInputWidth + "s";
+        final var outputFormat = "%" + maxOutputWidth + "s";
+
         int i = 0;
         for (; i < Math.min(inputs.length, outputs.length); ++i) {
-            showInput(graph, node.input(i));
+            showInput(inputFormat, graph, node.input(i));
             ImGui.sameLine();
-            showOutput(graph, node.output(i));
+            showOutput(outputFormat, graph, node.output(i));
         }
         for (; i < inputs.length; ++i)
-            showInput(graph, node.input(i));
-        for (; i < outputs.length; ++i)
-            showOutput(graph, node.output(i));
+            showInput(inputFormat, graph, node.input(i));
+        for (; i < outputs.length; ++i) {
+            if (inputs.length > 0) {
+                showStatic(inputFormat, i);
+                ImGui.sameLine();
+            }
+            showOutput(outputFormat, graph, node.output(i));
+        }
 
         ImNodes.endNode();
         popColorStyle();
@@ -183,25 +199,31 @@ public record Blueprint(
         ImNodes.popColorStyle();
     }
 
-    private void showInput(final @NotNull Graph graph, final @NotNull Pin pin) {
+    private void showInput(final String format, final @NotNull Graph graph, final @NotNull Pin pin) {
         final var powered = pin.powered(graph);
         if (powered)
             ImNodes.pushColorStyle(ImNodesCol.Pin, Constants.COLOR_POWERED);
         ImNodes.beginInputAttribute(pin.id());
-        ImGui.textUnformatted(inputs[pin.index()]);
+        ImGui.textUnformatted(format.formatted(inputs[pin.index()]));
         ImNodes.endInputAttribute();
         if (powered)
             ImNodes.popColorStyle();
     }
 
-    private void showOutput(final @NotNull Graph graph, final @NotNull Pin pin) {
+    private void showOutput(final String format, final @NotNull Graph graph, final @NotNull Pin pin) {
         final var powered = pin.powered(graph);
         if (powered)
             ImNodes.pushColorStyle(ImNodesCol.Pin, Constants.COLOR_POWERED);
         ImNodes.beginOutputAttribute(pin.id());
-        ImGui.textUnformatted(outputs[pin.index()]);
+        ImGui.textUnformatted(format.formatted(outputs[pin.index()]));
         ImNodes.endOutputAttribute();
         if (powered)
             ImNodes.popColorStyle();
+    }
+
+    private void showStatic(final String format, final int id) {
+        ImNodes.beginStaticAttribute(id);
+        ImGui.textUnformatted(format.formatted(""));
+        ImNodes.endStaticAttribute();
     }
 }

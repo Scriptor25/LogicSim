@@ -278,7 +278,7 @@ public class MainApp extends Application {
         });
         events.register("blueprints.color-context.color.select", args -> selectedBlueprint.baseColor().set((Integer) args[1]));
 
-        events.register("key.s.release", args -> {
+        events.register("key.s.press", args -> {
             final var mods = (KeyMods) args[0];
             if (mods.control())
                 save();

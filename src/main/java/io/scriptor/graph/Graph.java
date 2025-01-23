@@ -48,6 +48,14 @@ public class Graph implements IUnique {
         range.collection(attributes);
     }
 
+    public @NotNull Stream<INode> nodes() {
+        return nodes.stream();
+    }
+
+    public @NotNull Stream<Link> links() {
+        return links.stream();
+    }
+
     public @NotNull Stream<Attribute> inputs() {
         return attributes.stream().filter(Attribute::input);
     }
@@ -169,8 +177,12 @@ public class Graph implements IUnique {
             final var target = copies.get(targetPin.node());
             graph.add(new Link(
                     UUID.randomUUID(),
-                    sourcePin.output() ? source.output(sourcePin.index()) : source.input(sourcePin.index()),
-                    targetPin.output() ? target.output(targetPin.index()) : target.input(targetPin.index())
+                    sourcePin.output()
+                            ? source.output(sourcePin.index())
+                            : source.input(sourcePin.index()),
+                    targetPin.output()
+                            ? target.output(targetPin.index())
+                            : target.input(targetPin.index())
             ));
         }
 
@@ -193,8 +205,12 @@ public class Graph implements IUnique {
             final var target = copies.get(targetPin.node());
             add(new Link(
                     UUID.randomUUID(),
-                    sourcePin.output() ? source.output(sourcePin.index()) : source.input(sourcePin.index()),
-                    targetPin.output() ? target.output(targetPin.index()) : target.input(targetPin.index())
+                    sourcePin.output()
+                            ? source.output(sourcePin.index())
+                            : source.input(sourcePin.index()),
+                    targetPin.output()
+                            ? target.output(targetPin.index())
+                            : target.input(targetPin.index())
             ));
         }
 
@@ -203,7 +219,6 @@ public class Graph implements IUnique {
 
     public @NotNull Function compile(final boolean store) {
         final var fn = new Function(
-                store ? registry : null,
                 uuid,
                 inputs()
                         .map(Attribute::uuid)
@@ -212,6 +227,9 @@ public class Graph implements IUnique {
                         .map(Attribute::uuid)
                         .toArray(UUID[]::new)
         );
+
+        if (store)
+            registry.add(fn);
 
         findExitPoints().forEach(node -> node.compile(this, fn, new HashSet<>()));
         return fn;
@@ -223,18 +241,28 @@ public class Graph implements IUnique {
             state = new State(registry);
         }
 
-        final var inputs = attributes.stream().filter(Attribute::input).toArray(Attribute[]::new);
-        final var outputs = attributes.stream().filter(Attribute::output).toArray(Attribute[]::new);
+        final var inputs = attributes
+                .stream()
+                .filter(Attribute::input)
+                .toArray(Attribute[]::new);
+        final var outputs = attributes
+                .stream()
+                .filter(Attribute::output)
+                .toArray(Attribute[]::new);
 
         final var in = new boolean[inputs.length];
         for (int i = 0; i < inputs.length; i++)
-            in[i] = inputs[i].powered().get();
+            in[i] = inputs[i]
+                    .powered()
+                    .get();
 
         final var out = new boolean[outputs.length];
         function.exec(state, 0, in, out);
 
         for (int i = 0; i < outputs.length; i++)
-            outputs[i].powered().set(out[i]);
+            outputs[i]
+                    .powered()
+                    .set(out[i]);
     }
 
     public void exec() {

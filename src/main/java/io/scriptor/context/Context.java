@@ -25,26 +25,29 @@ public class Context {
     public Context() {
         registry = new Registry();
 
-        final var notFn = new NotFunction(registry, UUID.randomUUID());
-        final var andFn = new AndFunction(registry, UUID.randomUUID());
+        final var notFunction = new NotFunction(UUID.randomUUID());
+        registry.add(notFunction);
 
-        final var not = new Blueprint.Builder()
+        final var notBlueprint = new Blueprint.Builder()
                 .label("Not")
                 .baseColor(0x3f579a)
                 .inputs("In")
                 .outputs("Out")
-                .function(notFn)
+                .function(notFunction)
                 .build();
-        add(not);
+        add(notBlueprint);
 
-        final var and = new Blueprint.Builder()
+        final var andFunction = new AndFunction(UUID.randomUUID());
+        registry.add(andFunction);
+
+        final var andBlueprint = new Blueprint.Builder()
                 .label("And")
                 .baseColor(0x3f579a)
                 .inputs("In A", "In B")
                 .outputs("Out")
-                .function(andFn)
+                .function(andFunction)
                 .build();
-        add(and);
+        add(andBlueprint);
     }
 
     public Context(final @NotNull String filename) throws IOException {
