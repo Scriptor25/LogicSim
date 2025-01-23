@@ -80,7 +80,9 @@ public class Output implements INode {
         ImNodes.beginInputAttribute(pin.id());
         ImGui.textUnformatted(attribute.label().get());
         ImGui.sameLine();
+        ImGui.beginDisabled();
         ImGui.checkbox("##powered", powered);
+        ImGui.endDisabled();
         ImNodes.endInputAttribute();
         if (powered) ImNodes.popColorStyle();
 

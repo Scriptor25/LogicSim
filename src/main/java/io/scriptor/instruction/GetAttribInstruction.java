@@ -30,6 +30,6 @@ public record GetAttribInstruction(@NotNull UUID uuid, @NotNull UUID attrib) imp
 
     @Override
     public boolean get(final @NotNull State state) {
-        return state.getAttrib(attrib);
+        return state.getAttribute(attrib);
     }
 }

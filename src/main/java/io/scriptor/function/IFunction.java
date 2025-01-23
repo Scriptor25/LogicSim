@@ -16,7 +16,7 @@ public interface IFunction extends IUnique {
 
     int numOutputs();
 
-    void exec(final @NotNull State parent, final int hash, final boolean @NotNull [] inputs, final boolean @NotNull [] outputs);
+    void exec(final @NotNull State state, final boolean @NotNull [] inputs, final boolean @NotNull [] outputs);
 
     default void write(final @NotNull OutputStream outputStream) throws IOException {
         IOStream.write(outputStream, typeId());

@@ -7,7 +7,7 @@ import java.util.stream.Stream;
 public class Range<E> {
 
     private final Class<E> type;
-    private Collection<?> collection;
+    private Collection<E> collection;
     private int start;
     private int end;
 
@@ -19,22 +19,22 @@ public class Range<E> {
         this(Collections.emptyList(), type, 0, 0);
     }
 
-    public Range(final Collection<?> collection, final Class<E> type) {
+    public Range(final Collection<E> collection, final Class<E> type) {
         this(collection, type, 0, 0);
     }
 
-    public Range(final Collection<?> collection, final Class<E> type, final int start, final int end) {
+    public Range(final Collection<E> collection, final Class<E> type, final int start, final int end) {
         this.collection = collection;
         this.type = type;
         this.start = start;
         this.end = end;
     }
 
-    public Collection<?> collection() {
+    public Collection<E> collection() {
         return collection;
     }
 
-    public void collection(final Collection<?> collection) {
+    public void collection(final Collection<E> collection) {
         this.collection = collection;
     }
 

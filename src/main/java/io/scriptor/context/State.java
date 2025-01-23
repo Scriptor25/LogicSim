@@ -10,45 +10,46 @@ public class State {
 
     private final Registry registry;
 
-    private final Map<UUID, Boolean> attribs = new HashMap<>();
-    private final Map<UUID, Map<Integer, Boolean>> regs = new HashMap<>();
+    private final Map<UUID, Boolean> attributeMap = new HashMap<>();
+    private final Map<UUID, Map<Integer, Boolean>> registerMap = new HashMap<>();
+    private final Map<UUID, boolean[]> resultMap = new HashMap<>();
+    private final Map<UUID, State> substateMap = new HashMap<>();
 
-    private final Map<Integer, State> children = new HashMap<>();
-    private final Map<UUID, boolean[]> results = new HashMap<>();
 
     public State(final @NotNull Registry registry) {
         this.registry = registry;
     }
 
-    public @NotNull State child(final int hash) {
-        return children.computeIfAbsent(hash, key -> new State(registry));
+    public State(final @NotNull State state) {
+        this.registry = state.registry;
     }
 
-    public void setAttrib(final @NotNull UUID attrib, final boolean value) {
-        attribs.put(attrib, value);
+    public void setAttribute(final @NotNull UUID attribute, final boolean value) {
+        attributeMap.put(attribute, value);
     }
 
-    public boolean getAttrib(final @NotNull UUID attrib) {
-        return attribs.computeIfAbsent(attrib, key -> false);
+    public boolean getAttribute(final @NotNull UUID attribute) {
+        return attributeMap.computeIfAbsent(attribute, key -> false);
     }
 
-    public void setReg(final @NotNull UUID reg, final int index, final boolean value) {
-        regs.computeIfAbsent(reg, key -> new HashMap<>()).put(index, value);
+    public void setRegister(final @NotNull UUID register, final int index, final boolean value) {
+        registerMap.computeIfAbsent(register, key -> new HashMap<>()).put(index, value);
     }
 
-    public boolean getReg(final @NotNull UUID reg, final int index) {
-        return regs.computeIfAbsent(reg, key -> new HashMap<>()).computeIfAbsent(index, key -> false);
+    public boolean getRegister(final @NotNull UUID register, final int index) {
+        return registerMap.computeIfAbsent(register, key -> new HashMap<>()).computeIfAbsent(index, key -> false);
     }
 
-    public boolean call(final @NotNull UUID uuid, int hash, final @NotNull UUID callee, final boolean @NotNull [] args) {
-        return registry.get(callee).map(fn -> {
-            results.put(uuid, new boolean[fn.numOutputs()]);
-            fn.exec(child(hash), hash, args, results.get(uuid));
-            return true;
-        }).orElse(false);
+    public boolean call(final @NotNull UUID caller, final @NotNull UUID callee, final boolean @NotNull [] args) {
+        return registry.get(callee).map(function -> {
+            resultMap.put(caller, new boolean[function.numOutputs()]);
+            final var substate = substateMap.computeIfAbsent(caller, key -> new State(this));
+            function.exec(substate, args, resultMap.get(caller));
+            return false;
+        }).orElse(true);
     }
 
     public boolean getResult(final @NotNull UUID uuid, final int index) {
-        return results.get(uuid)[index];
+        return resultMap.get(uuid)[index];
     }
 }

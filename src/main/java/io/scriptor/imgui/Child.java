@@ -28,10 +28,10 @@ public class Child extends Element {
     }
 
     @Override
-    public @NotNull <T extends Element> Optional<T> findElement(final @NotNull String id) {
+    public @NotNull <T extends Element> Optional<T> findElement(final @NotNull String id, final @NotNull Class<T> type) {
         return Arrays.stream(elements)
                 .filter(e -> id.startsWith(e.getId()))
-                .map(e -> e.<T>findElement(id))
+                .map(e -> e.findElement(id, type))
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .findAny();

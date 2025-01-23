@@ -19,11 +19,16 @@ import io.scriptor.imgui.Layout;
 import io.scriptor.manager.EventManager;
 import io.scriptor.manager.ResourceManager;
 import io.scriptor.util.KeyMods;
+import io.scriptor.util.RTException;
 import io.scriptor.util.Range;
 import io.scriptor.util.Task;
+import org.lwjgl.glfw.GLFWImage;
 import org.lwjgl.glfw.GLFWKeyCallback;
+import org.lwjgl.system.MemoryStack;
 
+import javax.imageio.ImageIO;
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.util.Comparator;
 import java.util.Date;
@@ -32,10 +37,14 @@ import java.util.logging.Formatter;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 
+import static io.scriptor.util.Task.handle;
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 import static org.lwjgl.glfw.GLFW.*;
 
 public class MainApp extends Application {
+
+    private static final String STRING_ATTRIBUTES_RENAME_CONTEXT = "attributes.rename-context";
+    private static final String STRING_ATTRIBUTES_RENAME_CONTEXT_TEXT = "attributes.rename-context.text";
 
     private static Logger logger;
 
@@ -91,7 +100,7 @@ public class MainApp extends Application {
     private MainApp() {
         final var file = new File("blueprints");
         if (file.exists()) {
-            context = Task.handle(() -> new Context(file));
+            context = handle(() -> new Context(file));
         } else {
             context = new Context();
         }
@@ -101,7 +110,7 @@ public class MainApp extends Application {
         layout = resources.parseLayout(events, "layout/main.yml");
 
         layout
-                .<NodeEditor>findElement("editor.editor")
+                .findElement("editor.editor", NodeEditor.class)
                 .ifPresent(editor -> {
                     editor.graph(graph);
                     graph.attributes(editor.attributes());
@@ -186,7 +195,7 @@ public class MainApp extends Application {
         final var file = new File("blueprints");
         if (file.exists()) {
             final var bkp = new File("blueprints.bkp");
-            Task.handle(() -> Files.copy(file.toPath(), bkp.toPath(), REPLACE_EXISTING));
+            handle(() -> Files.copy(file.toPath(), bkp.toPath(), REPLACE_EXISTING));
         }
 
         Task.handleVoid(() -> context.write(file));
@@ -199,6 +208,39 @@ public class MainApp extends Application {
 
     @Override
     protected void preRun() {
+        try (final var iconStream = ClassLoader.getSystemResourceAsStream("image/icon.png")) {
+            if (iconStream != null) {
+                final var icon = handle(() -> ImageIO.read(iconStream));
+
+                final var width = icon.getWidth();
+                final var height = icon.getHeight();
+                final var rgb = new int[width * height];
+                icon.getRGB(0, 0, width, height, rgb, 0, width);
+
+                for (int i = 0; i < rgb.length; ++i) {
+                    final var alpha = (rgb[i] >> 24) & 0xff;
+                    final var blue = (rgb[i] >> 16) & 0xff;
+                    final var green = (rgb[i] >> 8) & 0xff;
+                    final var red = rgb[i] & 0xff;
+                    rgb[i] = (alpha << 24) | (red << 16) | (green << 8) | blue;
+                }
+
+                try (final var stack = MemoryStack.stackPush()) {
+                    final var pixels = stack.malloc(width * height * Integer.BYTES);
+                    pixels.asIntBuffer().put(rgb);
+
+                    final var images = GLFWImage.malloc(1, stack);
+                    final var image = images.get(0);
+                    image.width(width);
+                    image.height(height);
+                    image.pixels(pixels);
+                    glfwSetWindowIcon(getHandle(), images);
+                }
+            }
+        } catch (final IOException e) {
+            throw new RTException(e);
+        }
+
         keyCallback = glfwSetKeyCallback(getHandle(), this::onKey);
 
         final var io = ImGui.getIO();
@@ -212,25 +254,39 @@ public class MainApp extends Application {
         graph.attributes(attributeRange);
         attributeRange.sorted(Comparator.comparing(Attribute::output));
         layout
-                .<Array>findElement("attributes.container.array")
+                .findElement("attributes.container.array", Array.class)
                 .ifPresent(array -> array.setRange(attributeRange));
 
         final var blueprintRange = new Range<>(context.blueprints(), Blueprint.class);
         blueprintRange.sorted(Comparator.comparing(Blueprint::label));
         layout
-                .<Array>findElement("blueprints.container.array")
+                .findElement("blueprints.container.array", Array.class)
                 .ifPresent(array -> array.setRange(blueprintRange));
 
-        events.registerEvent("attributes.add-input.click", args -> graph.add(new Attribute("New In", false)));
-        events.registerEvent("attributes.add-output.click", args -> graph.add(new Attribute("New Out", true)));
+        events.registerEvent("attributes.add-input.click", args -> {
+            selectedAttribute = new Attribute("New In", false);
+            graph.add(selectedAttribute);
+            events.schedule(() -> ImGui.openPopup(STRING_ATTRIBUTES_RENAME_CONTEXT));
+            layout
+                    .findElement(STRING_ATTRIBUTES_RENAME_CONTEXT_TEXT, InputText.class)
+                    .ifPresent(text -> text.set(selectedAttribute.label().get()));
+        });
+        events.registerEvent("attributes.add-output.click", args -> {
+            selectedAttribute = new Attribute("New Out", true);
+            graph.add(selectedAttribute);
+            events.schedule(() -> ImGui.openPopup(STRING_ATTRIBUTES_RENAME_CONTEXT));
+            layout
+                    .findElement(STRING_ATTRIBUTES_RENAME_CONTEXT_TEXT, InputText.class)
+                    .ifPresent(text -> text.set(selectedAttribute.label().get()));
+        });
         events.registerEvent("attributes.container.array.select", args -> {
             events.schedule(() -> ImGui.openPopup("attributes.attribute-context"));
             selectedAttribute = (Attribute) args[1];
         });
         events.registerEvent("attributes.attribute-context.rename.click", args -> {
-            events.schedule(() -> ImGui.openPopup("attributes.rename-context"));
+            events.schedule(() -> ImGui.openPopup(STRING_ATTRIBUTES_RENAME_CONTEXT));
             layout
-                    .<InputText>findElement("attributes.rename-context.text")
+                    .findElement(STRING_ATTRIBUTES_RENAME_CONTEXT_TEXT, InputText.class)
                     .ifPresent(text -> text.set(selectedAttribute.label().get()));
         });
         events.registerEvent("attributes.attribute-context.delete.click", args -> graph.remove(selectedAttribute));
@@ -241,20 +297,19 @@ public class MainApp extends Application {
 
         events.registerEvent("blueprints.create.click", args -> {
             final var copy = graph.copy();
-            final var blueprint = new Blueprint.Builder()
+            selectedBlueprint = new Blueprint.Builder()
                     .label("New")
                     .baseColor(ImColor.rgb((float) Math.random(), (float) Math.random(), (float) Math.random()))
                     .inputs(copy.inputs().map(Attribute::label).map(ImString::get).toArray(String[]::new))
                     .outputs(copy.outputs().map(Attribute::label).map(ImString::get).toArray(String[]::new))
                     .function(copy.compile(true))
                     .build();
-            context.add(blueprint);
+            context.add(selectedBlueprint);
             graph.clear();
 
             events.schedule(() -> ImGui.openPopup("blueprints.rename-context"));
-            selectedBlueprint = blueprint;
             layout
-                    .<InputText>findElement("blueprints.rename-context.text")
+                    .findElement("blueprints.rename-context.text", InputText.class)
                     .ifPresent(text -> text.set(selectedBlueprint.label().get()));
         });
         events.registerEvent("blueprints.container.array.select", args -> {
@@ -264,13 +319,13 @@ public class MainApp extends Application {
         events.registerEvent("blueprints.blueprint-context.rename.click", args -> {
             events.schedule(() -> ImGui.openPopup("blueprints.rename-context"));
             layout
-                    .<InputText>findElement("blueprints.rename-context.text")
+                    .findElement("blueprints.rename-context.text", InputText.class)
                     .ifPresent(text -> text.set(selectedBlueprint.label().get()));
         });
         events.registerEvent("blueprints.blueprint-context.color.click", args -> {
             events.schedule(() -> ImGui.openPopup("blueprints.color-context"));
             layout
-                    .<ColorEdit>findElement("blueprints.color-context.color")
+                    .findElement("blueprints.color-context.color", ColorEdit.class)
                     .ifPresent(color -> color.color(selectedBlueprint.baseColor().get()));
         });
         events.registerEvent("blueprints.blueprint-context.delete.click", args -> {

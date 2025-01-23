@@ -21,6 +21,6 @@ public interface Instruction {
         throw new RTException();
     }
 
-    default void exec(final @NotNull State state, final int hash) {
+    default void exec(final @NotNull State state) {
     }
 }

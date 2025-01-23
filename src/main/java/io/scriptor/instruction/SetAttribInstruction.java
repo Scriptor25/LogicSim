@@ -35,7 +35,7 @@ public record SetAttribInstruction(
     }
 
     @Override
-    public void exec(final @NotNull State state, final int hash) {
-        state.setAttrib(attrib, value.get(state));
+    public void exec(final @NotNull State state) {
+        state.setAttribute(attrib, value.get(state));
     }
 }

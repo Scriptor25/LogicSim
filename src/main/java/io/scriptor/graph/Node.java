@@ -1,5 +1,6 @@
 package io.scriptor.graph;
 
+import io.scriptor.context.State;
 import io.scriptor.instruction.*;
 import io.scriptor.util.RTException;
 import org.jetbrains.annotations.NotNull;
@@ -16,6 +17,7 @@ public class Node implements INode {
     private final Pin[] outputs;
 
     private final boolean[] pinOut;
+    private State state;
 
     public Node(final @NotNull UUID uuid, final @NotNull Blueprint blueprint) {
         this.uuid = uuid;
@@ -139,7 +141,10 @@ public class Node implements INode {
             }
         }
 
-        blueprint.function().exec(graph.state(), hashCode(), args, pinOut);
+        if (state == null)
+            state = new State(graph.state());
+
+        blueprint.function().exec(state, args, pinOut);
 
         executing.remove(this);
         return pinOut;

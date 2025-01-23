@@ -93,13 +93,13 @@ public class Function implements IFunction, Collection<Instruction> {
     }
 
     @Override
-    public void exec(final @NotNull State state, final int hash, final boolean @NotNull [] inputs, final boolean @NotNull [] outputs) {
+    public void exec(final @NotNull State state, final boolean @NotNull [] inputs, final boolean @NotNull [] outputs) {
         for (int i = 0; i < this.inputs.length; ++i)
-            state.setAttrib(this.inputs[i], inputs[i]);
+            state.setAttribute(this.inputs[i], inputs[i]);
         for (final var instruction : this)
-            instruction.exec(state, hash + hashCode());
+            instruction.exec(state);
         for (int i = 0; i < this.outputs.length; ++i)
-            outputs[i] = state.getAttrib(this.outputs[i]);
+            outputs[i] = state.getAttribute(this.outputs[i]);
     }
 
     @Override

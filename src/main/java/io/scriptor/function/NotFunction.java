@@ -31,7 +31,7 @@ public record NotFunction(@NotNull UUID uuid) implements IFunction {
     }
 
     @Override
-    public void exec(final @NotNull State state, final int hash, final boolean @NotNull [] inputs, final boolean @NotNull [] outputs) {
+    public void exec(final @NotNull State state, final boolean @NotNull [] inputs, final boolean @NotNull [] outputs) {
         outputs[0] = !inputs[0];
     }
 }

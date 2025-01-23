@@ -75,7 +75,7 @@ public class NodeEditor extends Element {
         return attributes;
     }
 
-    public void blueprints(final @NotNull Collection<?> blueprints) {
+    public void blueprints(final @NotNull Collection<Blueprint> blueprints) {
         this.blueprints.collection(blueprints);
     }
 
@@ -190,11 +190,11 @@ public class NodeEditor extends Element {
     @Override
     protected void onStart() {
         getRoot()
-                .<Array>findElement(getParentId() + ".add-context.attributes")
+                .findElement(getParentId() + ".add-context.attributes", Array.class)
                 .ifPresent(array -> array.setRange(attributes));
 
         getRoot()
-                .<Array>findElement(getParentId() + ".add-context.blueprints")
+                .findElement(getParentId() + ".add-context.blueprints", Array.class)
                 .ifPresent(array -> array.setRange(blueprints));
     }
 

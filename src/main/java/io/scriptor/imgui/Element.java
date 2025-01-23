@@ -44,9 +44,9 @@ public abstract class Element {
 
     protected abstract void onShow();
 
-    public @NotNull <T extends Element> Optional<T> findElement(final @NotNull String id) {
+    public @NotNull <T extends Element> Optional<T> findElement(final @NotNull String id, final @NotNull Class<T> type) {
         if (id.equals(this.id))
-            return Optional.of((T) this);
+            return Optional.of(type.cast(this));
         return Optional.empty();
     }
 }

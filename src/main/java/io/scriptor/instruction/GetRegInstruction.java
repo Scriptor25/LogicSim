@@ -32,6 +32,6 @@ public record GetRegInstruction(@NotNull UUID uuid, @NotNull UUID reg, int index
 
     @Override
     public boolean get(final @NotNull State state) {
-        return state.getReg(reg, index);
+        return state.getRegister(reg, index);
     }
 }

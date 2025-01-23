@@ -56,15 +56,13 @@ public class CallInstruction implements Instruction {
     }
 
     @Override
-    public void exec(final @NotNull State state, final int hash) {
+    public void exec(final @NotNull State state) {
         if (error) return;
 
         final var values = new boolean[args.length];
         for (int i = 0; i < args.length; ++i)
-            if (args[i] != null)
-                values[i] = args[i].get(state);
+            values[i] = args[i].get(state);
 
-        if (!state.call(uuid, hash + hashCode(), callee, values))
-            error = true;
+        error = state.call(uuid, callee, values);
     }
 }
