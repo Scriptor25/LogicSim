@@ -75,12 +75,12 @@ public class Output implements INode {
     }
 
     @Override
-    public boolean noPredecessor(final @NotNull Graph graph) {
+    public boolean isBegin(final @NotNull Graph graph) {
         return pin.predecessor(graph).isEmpty();
     }
 
     @Override
-    public boolean noSuccessors(final @NotNull Graph graph) {
+    public boolean isEnd(final @NotNull Graph graph) {
         return true;
     }
 

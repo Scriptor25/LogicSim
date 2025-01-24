@@ -71,9 +71,9 @@ public class NodeEditor extends Element {
 
         getEvents().<KeyPayload>registerEvent("key.a.press", payload -> {
             if (payload.control())
-                getEvents().schedule(NodeEditor.this, this::handleSelectAll);
+                getEvents().scheduleTask(NodeEditor.this, this::handleSelectAll);
         });
-        getEvents().<KeyPayload>registerEvent("key.delete.press", payload -> getEvents().schedule(NodeEditor.this, this::handleDelete));
+        getEvents().<KeyPayload>registerEvent("key.delete.press", payload -> getEvents().scheduleTask(NodeEditor.this, this::handleDelete));
     }
 
     public void graph(final @NotNull Graph graph) {
@@ -138,7 +138,7 @@ public class NodeEditor extends Element {
     }
 
     private void onEditorContextAddClick(final @NotNull IPayload payload) {
-        getEvents().schedule(() -> ImGui.openPopup(getParentId() + ".add-context"));
+        getEvents().scheduleTask(() -> ImGui.openPopup(getParentId() + ".add-context"));
 
         attributes.clearTempFilters();
         blueprints.clearTempFilters();
@@ -262,17 +262,17 @@ public class NodeEditor extends Element {
             target = null;
 
             if (hoveredNodeId != -1) {
-                getEvents().schedule(() -> ImGui.openPopup(getParentId() + ".node-context"));
+                getEvents().scheduleTask(() -> ImGui.openPopup(getParentId() + ".node-context"));
                 graph
                         .findNode(hoveredNodeId)
                         .ifPresent(node -> hoveredNode = node);
             } else if (hoveredLinkId != -1) {
-                getEvents().schedule(() -> ImGui.openPopup(getParentId() + ".link-context"));
+                getEvents().scheduleTask(() -> ImGui.openPopup(getParentId() + ".link-context"));
                 graph
                         .findLink(hoveredLinkId)
                         .ifPresent(link -> hoveredLink = link);
             } else if (isEditorHovered) {
-                getEvents().schedule(() -> ImGui.openPopup(getParentId() + ".editor-context"));
+                getEvents().scheduleTask(() -> ImGui.openPopup(getParentId() + ".editor-context"));
             }
         }
     }
@@ -281,7 +281,7 @@ public class NodeEditor extends Element {
         final var pinId = new ImInt();
 
         if (ImNodes.isLinkDropped(pinId)) {
-            getEvents().schedule(() -> ImGui.openPopup(getParentId() + ".add-context"));
+            getEvents().scheduleTask(() -> ImGui.openPopup(getParentId() + ".add-context"));
 
             mouseX = ImGui.getMousePosX();
             mouseY = ImGui.getMousePosY();
@@ -356,6 +356,6 @@ public class NodeEditor extends Element {
             return;
         }
 
-        getEvents().schedule(() -> ImGui.openPopup(getParentId() + ".delete-context"));
+        getEvents().scheduleTask(() -> ImGui.openPopup(getParentId() + ".delete-context"));
     }
 }

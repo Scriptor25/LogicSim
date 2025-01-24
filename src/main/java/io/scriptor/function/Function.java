@@ -1,18 +1,18 @@
 /*
  * This file is part of https://github.com/Scriptor25/LogicSim
- * 
+ *
  * Copyright (C) 2025  Felix Schreiber
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see https://www.gnu.org/licenses/.
  */
@@ -23,6 +23,7 @@ import io.scriptor.instruction.Instruction;
 import io.scriptor.instruction.TypeID;
 import io.scriptor.util.IOStream;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -32,9 +33,19 @@ import java.util.*;
 
 import static io.scriptor.util.Task.handleVoid;
 
+/**
+ * A function represents a linear collection of instructions executed in sequence to produce a result. It consists of inputs, outputs and said instruction list.
+ */
 public class Function implements IFunction, Collection<Instruction> {
 
-    public static IFunction read(final @NotNull InputStream inputStream) throws IOException {
+    /**
+     * Read a function from an input stream.
+     *
+     * @param inputStream the input stream
+     * @return the function
+     * @throws IOException if any
+     */
+    public static @NotNull IFunction read(final @NotNull InputStream inputStream) throws IOException {
         final var uuid = IOStream.readUUID(inputStream);
         final var inputs = new UUID[IOStream.readInt(inputStream)];
         for (int i = 0; i < inputs.length; ++i)
@@ -61,11 +72,24 @@ public class Function implements IFunction, Collection<Instruction> {
     private Instruction[] data = new Instruction[8];
     private int size = 0;
 
+    /**
+     * Create a function using a random uuid, given inputs and outputs.
+     *
+     * @param inputs  the input uuids
+     * @param outputs the output uuids
+     */
     public Function(final @NotNull UUID @NotNull [] inputs,
                     final @NotNull UUID @NotNull [] outputs) {
         this(UUID.randomUUID(), inputs, outputs);
     }
 
+    /**
+     * Create a function using the given uuid, inputs and outputs.
+     *
+     * @param uuid    the uuid
+     * @param inputs  the input uuids
+     * @param outputs the output uuids
+     */
     public Function(final @NotNull UUID uuid,
                     final @NotNull UUID @NotNull [] inputs,
                     final @NotNull UUID @NotNull [] outputs) {
@@ -76,14 +100,28 @@ public class Function implements IFunction, Collection<Instruction> {
         this.outputs = outputs;
     }
 
-    public <T extends Instruction> T find(final UUID uuid, final Class<T> type) {
+    /**
+     * Find an instruction of the given type with the given uuid.
+     *
+     * @param uuid the uuid
+     * @param type the type class
+     * @param <T>  the type
+     * @return the instruction, or null if not found
+     */
+    public <T extends Instruction> @Nullable T find(final @NotNull UUID uuid, final @NotNull Class<T> type) {
         for (final var instruction : data)
             if (Objects.equals(instruction.uuid(), uuid))
                 return type.cast(instruction);
         return null;
     }
 
-    public Instruction find(final UUID uuid) {
+    /**
+     * Find an instruction with the given uuid.
+     *
+     * @param uuid the uuid
+     * @return the instruction, or null if not found
+     */
+    public @Nullable Instruction find(final @NotNull UUID uuid) {
         for (final var instruction : data)
             if (Objects.equals(instruction.uuid(), uuid))
                 return instruction;

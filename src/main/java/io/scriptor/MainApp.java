@@ -1,18 +1,18 @@
 /*
  * This file is part of https://github.com/Scriptor25/LogicSim
- * 
+ *
  * Copyright (C) 2025  Felix Schreiber
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see https://www.gnu.org/licenses/.
  */
@@ -89,6 +89,9 @@ public class MainApp extends Application {
         return logger;
     }
 
+    /**
+     * Application entry point
+     */
     public static void main(final String[] args) {
         Application.launch(new MainApp());
     }
@@ -275,7 +278,16 @@ public class MainApp extends Application {
         attributeRange.sorted(Comparator.comparing(Attribute::output));
         layout
                 .findElement("attributes.container.array", Array.class)
-                .ifPresent(array -> array.setRange(attributeRange));
+                .ifPresent(array -> {
+                    array.setRange(attributeRange);
+                    array.<Attribute>setElement(value -> {
+                        if (value.output()) ImGui.beginDisabled();
+                        ImGui.checkbox("##powered", value.powered());
+                        if (value.output()) ImGui.endDisabled();
+                        ImGui.sameLine();
+                        return ImGui.selectable(value.label().get());
+                    });
+                });
 
         final var blueprintRange = new Range<>(context.blueprints(), Blueprint.class);
         blueprintRange.sorted(Comparator.comparing(Blueprint::label));
@@ -286,7 +298,7 @@ public class MainApp extends Application {
         events.registerEvent("attributes.add-input.click", args -> {
             selectedAttribute = new Attribute("New In", false);
             graph.add(selectedAttribute);
-            events.schedule(() -> ImGui.openPopup(STRING_ATTRIBUTES_RENAME_CONTEXT));
+            events.scheduleTask(() -> ImGui.openPopup(STRING_ATTRIBUTES_RENAME_CONTEXT));
             layout
                     .findElement(STRING_ATTRIBUTES_RENAME_CONTEXT_TEXT, InputText.class)
                     .ifPresent(text -> text.set(selectedAttribute.label().get()));
@@ -294,17 +306,17 @@ public class MainApp extends Application {
         events.registerEvent("attributes.add-output.click", args -> {
             selectedAttribute = new Attribute("New Out", true);
             graph.add(selectedAttribute);
-            events.schedule(() -> ImGui.openPopup(STRING_ATTRIBUTES_RENAME_CONTEXT));
+            events.scheduleTask(() -> ImGui.openPopup(STRING_ATTRIBUTES_RENAME_CONTEXT));
             layout
                     .findElement(STRING_ATTRIBUTES_RENAME_CONTEXT_TEXT, InputText.class)
                     .ifPresent(text -> text.set(selectedAttribute.label().get()));
         });
         events.<Array.Payload<Attribute>>registerEvent("attributes.container.array.select", payload -> {
-            events.schedule(() -> ImGui.openPopup("attributes.attribute-context"));
+            events.scheduleTask(() -> ImGui.openPopup("attributes.attribute-context"));
             selectedAttribute = payload.value();
         });
         events.registerEvent("attributes.attribute-context.rename.click", args -> {
-            events.schedule(() -> ImGui.openPopup(STRING_ATTRIBUTES_RENAME_CONTEXT));
+            events.scheduleTask(() -> ImGui.openPopup(STRING_ATTRIBUTES_RENAME_CONTEXT));
             layout
                     .findElement(STRING_ATTRIBUTES_RENAME_CONTEXT_TEXT, InputText.class)
                     .ifPresent(text -> text.set(selectedAttribute.label().get()));
@@ -327,23 +339,23 @@ public class MainApp extends Application {
             context.add(selectedBlueprint);
             graph.clear();
 
-            events.schedule(() -> ImGui.openPopup("blueprints.rename-context"));
+            events.scheduleTask(() -> ImGui.openPopup("blueprints.rename-context"));
             layout
                     .findElement("blueprints.rename-context.text", InputText.class)
                     .ifPresent(text -> text.set(selectedBlueprint.label().get()));
         });
         events.<Array.Payload<Blueprint>>registerEvent("blueprints.container.array.select", payload -> {
-            events.schedule(() -> ImGui.openPopup("blueprints.blueprint-context"));
+            events.scheduleTask(() -> ImGui.openPopup("blueprints.blueprint-context"));
             selectedBlueprint = payload.value();
         });
         events.registerEvent("blueprints.blueprint-context.rename.click", args -> {
-            events.schedule(() -> ImGui.openPopup("blueprints.rename-context"));
+            events.scheduleTask(() -> ImGui.openPopup("blueprints.rename-context"));
             layout
                     .findElement("blueprints.rename-context.text", InputText.class)
                     .ifPresent(text -> text.set(selectedBlueprint.label().get()));
         });
         events.registerEvent("blueprints.blueprint-context.color.click", args -> {
-            events.schedule(() -> ImGui.openPopup("blueprints.color-context"));
+            events.scheduleTask(() -> ImGui.openPopup("blueprints.color-context"));
             layout
                     .findElement("blueprints.color-context.color", ColorEdit.class)
                     .ifPresent(color -> color.color(selectedBlueprint.baseColor().get()));

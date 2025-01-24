@@ -50,9 +50,9 @@ public interface INode extends IUnique {
 
     @NotNull Optional<Pin> pin(final int id);
 
-    boolean noPredecessor(final @NotNull Graph graph);
+    boolean isBegin(final @NotNull Graph graph);
 
-    boolean noSuccessors(final @NotNull Graph graph);
+    boolean isEnd(final @NotNull Graph graph);
 
     @NotNull List<INode> successors(final @NotNull Graph graph);
 

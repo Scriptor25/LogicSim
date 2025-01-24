@@ -1,18 +1,18 @@
 /*
  * This file is part of https://github.com/Scriptor25/LogicSim
- * 
+ *
  * Copyright (C) 2025  Felix Schreiber
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see https://www.gnu.org/licenses/.
  */
@@ -24,6 +24,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * A state contains information about the current runtime state of a node, function, etc.
+ */
 public class State {
 
     private final Registry registry;
@@ -33,31 +36,74 @@ public class State {
     private final Map<UUID, boolean[]> resultMap = new HashMap<>();
     private final Map<UUID, State> substateMap = new HashMap<>();
 
-
+    /**
+     * Create a new state using the given registry.
+     *
+     * @param registry the registry
+     */
     public State(final @NotNull Registry registry) {
         this.registry = registry;
     }
 
+    /**
+     * Create a new state using the registry of the given state.
+     *
+     * @param state the state
+     */
     public State(final @NotNull State state) {
         this.registry = state.registry;
     }
 
+    /**
+     * Set a global attribute in this state.
+     *
+     * @param attribute the attribute uuid
+     * @param value     the value
+     */
     public void setAttribute(final @NotNull UUID attribute, final boolean value) {
         attributeMap.put(attribute, value);
     }
 
+    /**
+     * Get a global attribute in this state.
+     *
+     * @param attribute the attribute uuid
+     * @return the value
+     */
     public boolean getAttribute(final @NotNull UUID attribute) {
         return attributeMap.computeIfAbsent(attribute, key -> false);
     }
 
+    /**
+     * Set a local register value at the index.
+     *
+     * @param register the register uuid
+     * @param index    the index
+     * @param value    the value
+     */
     public void setRegister(final @NotNull UUID register, final int index, final boolean value) {
         registerMap.computeIfAbsent(register, key -> new HashMap<>()).put(index, value);
     }
 
+    /**
+     * Get a local register value at the index.
+     *
+     * @param register the register uuid
+     * @param index    the index
+     * @return the value
+     */
     public boolean getRegister(final @NotNull UUID register, final int index) {
         return registerMap.computeIfAbsent(register, key -> new HashMap<>()).computeIfAbsent(index, key -> false);
     }
 
+    /**
+     * Call a blueprint function using the given args.
+     *
+     * @param caller the caller uuid
+     * @param callee the callee uuid
+     * @param args   the args
+     * @return true if the callee does not exist
+     */
     public boolean call(final @NotNull UUID caller, final @NotNull UUID callee, final boolean @NotNull [] args) {
         return registry.get(callee).map(function -> {
             resultMap.put(caller, new boolean[function.numOutputs()]);
@@ -67,7 +113,14 @@ public class State {
         }).orElse(true);
     }
 
-    public boolean getResult(final @NotNull UUID uuid, final int index) {
-        return resultMap.get(uuid)[index];
+    /**
+     * Get the result of a function call at the index.
+     *
+     * @param caller the caller uuid
+     * @param index  the index
+     * @return the result value
+     */
+    public boolean getResult(final @NotNull UUID caller, final int index) {
+        return resultMap.get(caller)[index];
     }
 }

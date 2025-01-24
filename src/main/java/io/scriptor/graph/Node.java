@@ -86,12 +86,12 @@ public class Node implements INode {
     }
 
     @Override
-    public boolean noPredecessor(final @NotNull Graph graph) {
+    public boolean isBegin(final @NotNull Graph graph) {
         return Arrays.stream(inputs).allMatch(x -> x.predecessor(graph).isEmpty());
     }
 
     @Override
-    public boolean noSuccessors(final @NotNull Graph graph) {
+    public boolean isEnd(final @NotNull Graph graph) {
         return Arrays.stream(outputs).allMatch(x -> x.successors(graph).isEmpty());
     }
 

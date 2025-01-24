@@ -168,11 +168,11 @@ public class Graph implements IUnique {
     }
 
     public @NotNull Stream<INode> findEntryPoints() {
-        return nodes.stream().filter(node -> node.noPredecessor(this));
+        return nodes.stream().filter(node -> node.isBegin(this));
     }
 
     public @NotNull Stream<INode> findExitPoints() {
-        return nodes.stream().filter(node -> node.noSuccessors(this));
+        return nodes.stream().filter(node -> node.isEnd(this));
     }
 
     public @NotNull Graph copy() {

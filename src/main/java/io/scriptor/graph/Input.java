@@ -1,18 +1,18 @@
 /*
  * This file is part of https://github.com/Scriptor25/LogicSim
- * 
+ *
  * Copyright (C) 2025  Felix Schreiber
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see https://www.gnu.org/licenses/.
  */
@@ -78,12 +78,12 @@ public class Input implements INode {
     }
 
     @Override
-    public boolean noPredecessor(final @NotNull Graph graph) {
+    public boolean isBegin(final @NotNull Graph graph) {
         return true;
     }
 
     @Override
-    public boolean noSuccessors(final @NotNull Graph graph) {
+    public boolean isEnd(final @NotNull Graph graph) {
         return pin.successors(graph).isEmpty();
     }
 
@@ -100,13 +100,15 @@ public class Input implements INode {
         ImNodes.beginNode(id());
 
         final var powered = powered();
-        if (powered) ImNodes.pushColorStyle(ImNodesCol.Pin, Constants.COLOR_POWERED);
+        if (powered)
+            ImNodes.pushColorStyle(ImNodesCol.Pin, Constants.COLOR_POWERED);
         ImNodes.beginOutputAttribute(pin.id());
         ImGui.checkbox("##powered", attribute.powered());
         ImGui.sameLine();
         ImGui.textUnformatted(label());
         ImNodes.endOutputAttribute();
-        if (powered) ImNodes.popColorStyle();
+        if (powered)
+            ImNodes.popColorStyle();
 
         ImNodes.endNode();
     }
