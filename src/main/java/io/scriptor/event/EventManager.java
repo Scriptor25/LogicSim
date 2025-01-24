@@ -42,8 +42,8 @@ public class EventManager {
         R call(final @NotNull T arg);
     }
 
-    private final Map<Object, List<IEventCallback<?>>> eventMap = new HashMap<>();
-    private final Map<Object, IServiceCallback<?, ?>> serviceMap = new HashMap<>();
+    private final Map<Object, List<IEventCallback<? extends IPayload>>> eventMap = new HashMap<>();
+    private final Map<Object, IServiceCallback<?, ? extends IPayload>> serviceMap = new HashMap<>();
     private final List<Runnable> generalTaskList = new ArrayList<>();
     private final Map<Object, List<Runnable>> taskMap = new HashMap<>();
 
@@ -53,6 +53,7 @@ public class EventManager {
                 .add(callback);
     }
 
+    @SuppressWarnings("unchecked")
     public <T extends IPayload> void invokeEvent(final @NotNull Object id, final @NotNull T arg) {
         eventMap
                 .computeIfAbsent(id, key -> new ArrayList<>())
@@ -65,6 +66,7 @@ public class EventManager {
         serviceMap.put(id, callback);
     }
 
+    @SuppressWarnings("unchecked")
     public <R, T extends IPayload> R callService(final @NotNull Object id, final @NotNull T arg) {
         if (!serviceMap.containsKey(id))
             throw new RTException("service for id '%s' does not exist", id);
