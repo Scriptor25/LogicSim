@@ -2,6 +2,7 @@ package io.scriptor.imgui;
 
 import imgui.ImGui;
 import imgui.type.ImInt;
+import io.scriptor.event.IPayload;
 import io.scriptor.util.Range;
 import org.jetbrains.annotations.NotNull;
 
@@ -27,6 +28,9 @@ import org.jetbrains.annotations.NotNull;
  */
 public class Array extends Element {
 
+    public record Payload<T>(@NotNull Array self, @NotNull T value) implements IPayload {
+    }
+
     private final String event;
     private Range<?> range;
 
@@ -47,7 +51,7 @@ public class Array extends Element {
                 ImGui.pushID(i.get());
                 i.set(i.get() + 1);
                 if (ImGui.selectable(value.toString()))
-                    getEvents().invokeEvent(event, this, value);
+                    getEvents().invokeEvent(event, new Payload<>(this, value));
                 ImGui.popID();
             });
         }

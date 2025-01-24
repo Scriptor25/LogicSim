@@ -1,6 +1,7 @@
 package io.scriptor.imgui;
 
 import imgui.ImGui;
+import io.scriptor.event.IPayload;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -25,6 +26,9 @@ import org.jetbrains.annotations.NotNull;
  */
 public class Button extends Element {
 
+    public record Payload(@NotNull Button self) implements IPayload {
+    }
+
     private final String label;
     private final String event;
 
@@ -40,6 +44,6 @@ public class Button extends Element {
     @Override
     protected void onShow() {
         if (ImGui.button(label))
-            getEvents().invokeEvent(event, this);
+            getEvents().invokeEvent(event, new Payload(this));
     }
 }

@@ -173,6 +173,19 @@ public record Blueprint(
         for (final var output : outputs)
             maxOutputWidth = Math.max(maxOutputWidth, output.length());
 
+        final var labelWidth = label.getLength();
+        if (labelWidth > maxInputWidth + maxOutputWidth) {
+            if (maxInputWidth != 0 && maxOutputWidth != 0) {
+                final var labelWidth2 = (labelWidth - maxInputWidth - maxOutputWidth) / 2;
+                maxInputWidth += labelWidth2;
+                maxOutputWidth += labelWidth2;
+            } else if (maxInputWidth != 0) {
+                maxInputWidth = labelWidth;
+            } else if (maxOutputWidth != 0) {
+                maxOutputWidth = labelWidth;
+            }
+        }
+
         final var inputFormat = "%-" + maxInputWidth + "s";
         final var outputFormat = "%" + maxOutputWidth + "s";
 

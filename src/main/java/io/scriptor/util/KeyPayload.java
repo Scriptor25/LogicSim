@@ -1,5 +1,7 @@
 package io.scriptor.util;
 
+import io.scriptor.event.IPayload;
+
 /**
  * This class is part of the <a href="https://github.com/Scriptor25/LogicSim">Java Logic Sim</a> project.
  * <p>
@@ -20,5 +22,12 @@ package io.scriptor.util;
  *
  * @author Felix Schreiber
  */
-public record KeyMods(boolean shift, boolean control, boolean alt, boolean super_, boolean caps, boolean num) {
+public record KeyPayload(
+        boolean shift,
+        boolean control,
+        boolean alt,
+        boolean super_,
+        boolean caps,
+        boolean num
+) implements IPayload {
 }

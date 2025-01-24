@@ -2,6 +2,7 @@ package io.scriptor.imgui;
 
 import imgui.ImColor;
 import imgui.ImGui;
+import io.scriptor.event.IPayload;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -25,6 +26,9 @@ import org.jetbrains.annotations.NotNull;
  * @author Felix Schreiber
  */
 public class ColorEdit extends Element {
+
+    public record Payload(@NotNull ColorEdit self, int value) implements IPayload {
+    }
 
     private final String label;
     private final String event;
@@ -56,6 +60,6 @@ public class ColorEdit extends Element {
     @Override
     protected void onShow() {
         if (ImGui.colorEdit3(label, col))
-            getEvents().invokeEvent(event, this, color());
+            getEvents().invokeEvent(event, new Payload(this, color()));
     }
 }

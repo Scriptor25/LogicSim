@@ -3,13 +3,14 @@ package io.scriptor.graph;
 import imgui.ImGui;
 import imgui.extension.imnodes.ImNodes;
 import imgui.extension.imnodes.flag.ImNodesMiniMapLocation;
-import imgui.flag.ImGuiKey;
 import imgui.flag.ImGuiMouseButton;
 import imgui.type.ImInt;
+import io.scriptor.event.IPayload;
 import io.scriptor.imgui.Array;
 import io.scriptor.imgui.Element;
 import io.scriptor.imgui.Layout;
-import io.scriptor.util.KeyMods;
+import io.scriptor.event.EventManager;
+import io.scriptor.util.KeyPayload;
 import io.scriptor.util.Range;
 import org.jetbrains.annotations.NotNull;
 
@@ -56,7 +57,6 @@ public class NodeEditor extends Element {
 
         attributes.sorted(Comparator.comparing(Attribute::label));
         attributes.sorted(Comparator.comparing(Attribute::output));
-
         blueprints.sorted(Comparator.comparing(Blueprint::label));
 
         getEvents().registerEvent(getParentId() + ".node-context.copy.click", this::onNodeContextCopyClick);
@@ -72,19 +72,11 @@ public class NodeEditor extends Element {
         getEvents().registerEvent(getParentId() + ".delete-context.nodes.click", args -> deleteSelectedNodes());
         getEvents().registerEvent(getParentId() + ".delete-context.links.click", args -> deleteSelectedLinks());
 
-        getEvents().registerEvent("key.a.press", args -> {
-            final var mods = (KeyMods) args[0];
-            if (mods.control()) {
-                graph
-                        .nodes()
-                        .filter(INode::notSelected)
-                        .forEach(INode::select);
-                graph
-                        .links()
-                        .filter(Link::notSelected)
-                        .forEach(Link::select);
-            }
+        getEvents().<KeyPayload>registerEvent("key.a.press", payload -> {
+            if (payload.control())
+                getEvents().schedule(NodeEditor.this, this::handleSelectAll);
         });
+        getEvents().<KeyPayload>registerEvent("key.delete.press", payload -> getEvents().schedule(NodeEditor.this, this::handleDelete));
     }
 
     public void graph(final @NotNull Graph graph) {
@@ -99,7 +91,7 @@ public class NodeEditor extends Element {
         this.blueprints.collection(blueprints);
     }
 
-    private void onNodeContextCopyClick(final @NotNull Object @NotNull ... args) {
+    private void onNodeContextCopyClick(final @NotNull IPayload payload) {
         final var nodeIds = new int[ImNodes.numSelectedNodes()];
         ImNodes.getSelectedNodes(nodeIds);
 
@@ -116,47 +108,47 @@ public class NodeEditor extends Element {
         clipboard = graph.copy(nodes.toArray(INode[]::new));
     }
 
-    private void onNodeContextCutClick(final @NotNull Object @NotNull ... args) {
-        onNodeContextCopyClick(args);
+    private void onNodeContextCutClick(final @NotNull IPayload payload) {
+        onNodeContextCopyClick(payload);
 
         if (hoveredNode.notSelected())
             graph.remove(hoveredNode);
         deleteSelectedNodes();
     }
 
-    private void onNodeContextDuplicateClick(final @NotNull Object @NotNull ... args) {
-        onNodeContextCopyClick(args);
+    private void onNodeContextDuplicateClick(final @NotNull IPayload payload) {
+        onNodeContextCopyClick(payload);
         graph.paste(clipboard);
     }
 
-    private void onNodeContextDeleteClick(final @NotNull Object @NotNull ... args) {
+    private void onNodeContextDeleteClick(final @NotNull IPayload payload) {
         deleteSelectedNodes();
 
         if (hoveredNode.notSelected())
             graph.remove(hoveredNode);
     }
 
-    private void onLinkContextDeleteClick(final @NotNull Object @NotNull ... args) {
+    private void onLinkContextDeleteClick(final @NotNull IPayload payload) {
         deleteSelectedLinks();
 
         if (hoveredLink.notSelected())
             graph.remove(hoveredLink);
     }
 
-    private void onEditorContextPasteClick(final @NotNull Object @NotNull ... args) {
+    private void onEditorContextPasteClick(final @NotNull IPayload payload) {
         if (clipboard != null)
             graph.paste(clipboard);
     }
 
-    private void onEditorContextAddClick(final @NotNull Object @NotNull ... args) {
+    private void onEditorContextAddClick(final @NotNull IPayload payload) {
         getEvents().schedule(() -> ImGui.openPopup(getParentId() + ".add-context"));
 
         attributes.clearTempFilters();
         blueprints.clearTempFilters();
     }
 
-    private void onAddContextAttributesSelect(final @NotNull Object @NotNull ... args) {
-        final var attribute = (Attribute) args[1];
+    private void onAddContextAttributesSelect(final @NotNull Array.Payload<Attribute> payload) {
+        final var attribute = payload.value();
 
         final INode node;
         if (attribute.output())
@@ -167,8 +159,8 @@ public class NodeEditor extends Element {
         onAddNode(node);
     }
 
-    private void onAddContextBlueprintsSelect(final @NotNull Object @NotNull ... args) {
-        final var blueprint = (Blueprint) args[1];
+    private void onAddContextBlueprintsSelect(final @NotNull Array.Payload<Blueprint> payload) {
+        final var blueprint = payload.value();
         final var node = new Node(UUID.randomUUID(), blueprint);
 
         onAddNode(node);
@@ -231,7 +223,8 @@ public class NodeEditor extends Element {
         ImNodes.endNodeEditor();
 
         handleMouse(isEditorHovered);
-        handleKeyboard();
+
+        getEvents().runTasks(this);
 
         handleLinkDropped();
         handleLinkCreated();
@@ -287,25 +280,6 @@ public class NodeEditor extends Element {
         }
     }
 
-    private void handleKeyboard() {
-        if (ImGui.isKeyReleased(ImGuiKey.Delete)) {
-            if (ImNodes.numSelectedNodes() == 0 && ImNodes.numSelectedLinks() == 0)
-                return;
-
-            if (ImNodes.numSelectedLinks() == 0) {
-                deleteSelectedNodes();
-                return;
-            }
-
-            if (ImNodes.numSelectedNodes() == 0) {
-                deleteSelectedLinks();
-                return;
-            }
-
-            getEvents().schedule(() -> ImGui.openPopup(getParentId() + ".delete-context"));
-        }
-    }
-
     private void handleLinkDropped() {
         final var pinId = new ImInt();
 
@@ -358,5 +332,33 @@ public class NodeEditor extends Element {
             source = null;
             target = null;
         }
+    }
+
+    private void handleSelectAll() {
+        graph
+                .nodes()
+                .filter(INode::notSelected)
+                .forEach(INode::select);
+        graph
+                .links()
+                .filter(Link::notSelected)
+                .forEach(Link::select);
+    }
+
+    private void handleDelete() {
+        if (ImNodes.numSelectedNodes() == 0 && ImNodes.numSelectedLinks() == 0)
+            return;
+
+        if (ImNodes.numSelectedLinks() == 0) {
+            deleteSelectedNodes();
+            return;
+        }
+
+        if (ImNodes.numSelectedNodes() == 0) {
+            deleteSelectedLinks();
+            return;
+        }
+
+        getEvents().schedule(() -> ImGui.openPopup(getParentId() + ".delete-context"));
     }
 }

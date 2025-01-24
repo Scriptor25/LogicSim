@@ -8,6 +8,7 @@ import imgui.extension.imnodes.ImNodes;
 import imgui.flag.ImGuiConfigFlags;
 import imgui.type.ImString;
 import io.scriptor.context.Context;
+import io.scriptor.event.EventManager;
 import io.scriptor.graph.Attribute;
 import io.scriptor.graph.Blueprint;
 import io.scriptor.graph.Graph;
@@ -16,9 +17,8 @@ import io.scriptor.imgui.Array;
 import io.scriptor.imgui.ColorEdit;
 import io.scriptor.imgui.InputText;
 import io.scriptor.imgui.Layout;
-import io.scriptor.manager.EventManager;
 import io.scriptor.manager.ResourceManager;
-import io.scriptor.util.KeyMods;
+import io.scriptor.util.KeyPayload;
 import io.scriptor.util.RTException;
 import io.scriptor.util.Range;
 import io.scriptor.util.Task;
@@ -95,14 +95,14 @@ public class MainApp extends Application {
         Application.launch(new MainApp());
     }
 
-    private static KeyMods getMods(final int mods) {
+    private static KeyPayload getMods(final int mods) {
         final var mod_shift = (mods & GLFW_MOD_SHIFT) != 0;
         final var mod_control = (mods & GLFW_MOD_CONTROL) != 0;
         final var mod_alt = (mods & GLFW_MOD_ALT) != 0;
         final var mod_super = (mods & GLFW_MOD_SUPER) != 0;
         final var mod_caps_lock = (mods & GLFW_MOD_CAPS_LOCK) != 0;
         final var mod_num_lock = (mods & GLFW_MOD_NUM_LOCK) != 0;
-        return new KeyMods(mod_shift, mod_control, mod_alt, mod_super, mod_caps_lock, mod_num_lock);
+        return new KeyPayload(mod_shift, mod_control, mod_alt, mod_super, mod_caps_lock, mod_num_lock);
     }
 
     private final Context context;
@@ -299,9 +299,9 @@ public class MainApp extends Application {
                     .findElement(STRING_ATTRIBUTES_RENAME_CONTEXT_TEXT, InputText.class)
                     .ifPresent(text -> text.set(selectedAttribute.label().get()));
         });
-        events.registerEvent("attributes.container.array.select", args -> {
+        events.<Array.Payload<Attribute>>registerEvent("attributes.container.array.select", payload -> {
             events.schedule(() -> ImGui.openPopup("attributes.attribute-context"));
-            selectedAttribute = (Attribute) args[1];
+            selectedAttribute = payload.value();
         });
         events.registerEvent("attributes.attribute-context.rename.click", args -> {
             events.schedule(() -> ImGui.openPopup(STRING_ATTRIBUTES_RENAME_CONTEXT));
@@ -310,8 +310,8 @@ public class MainApp extends Application {
                     .ifPresent(text -> text.set(selectedAttribute.label().get()));
         });
         events.registerEvent("attributes.attribute-context.delete.click", args -> graph.remove(selectedAttribute));
-        events.registerEvent("attributes.rename-context.text.enter", args -> {
-            selectedAttribute.label().set((String) args[1], true);
+        events.<InputText.Payload>registerEvent("attributes.rename-context.text.enter", payload -> {
+            selectedAttribute.label().set(payload.value(), true);
             ImGui.closeCurrentPopup();
         });
 
@@ -332,9 +332,9 @@ public class MainApp extends Application {
                     .findElement("blueprints.rename-context.text", InputText.class)
                     .ifPresent(text -> text.set(selectedBlueprint.label().get()));
         });
-        events.registerEvent("blueprints.container.array.select", args -> {
+        events.<Array.Payload<Blueprint>>registerEvent("blueprints.container.array.select", payload -> {
             events.schedule(() -> ImGui.openPopup("blueprints.blueprint-context"));
-            selectedBlueprint = (Blueprint) args[1];
+            selectedBlueprint = payload.value();
         });
         events.registerEvent("blueprints.blueprint-context.rename.click", args -> {
             events.schedule(() -> ImGui.openPopup("blueprints.rename-context"));
@@ -352,15 +352,14 @@ public class MainApp extends Application {
             context.remove(selectedBlueprint);
             context.registry().remove(selectedBlueprint.function());
         });
-        events.registerEvent("blueprints.rename-context.text.enter", args -> {
-            selectedBlueprint.label().set((String) args[1], true);
+        events.<InputText.Payload>registerEvent("blueprints.rename-context.text.enter", payload -> {
+            selectedBlueprint.label().set(payload.value(), true);
             ImGui.closeCurrentPopup();
         });
-        events.registerEvent("blueprints.color-context.color.select", args -> selectedBlueprint.baseColor().set((Integer) args[1]));
+        events.<ColorEdit.Payload>registerEvent("blueprints.color-context.color.select", payload -> selectedBlueprint.baseColor().set(payload.value()));
 
-        events.registerEvent("key.s.press", args -> {
-            final var mods = (KeyMods) args[0];
-            if (mods.control())
+        events.<KeyPayload>registerEvent("key.s.press", payload -> {
+            if (payload.control())
                 save();
         });
     }

@@ -1,6 +1,6 @@
 package io.scriptor.imgui;
 
-import io.scriptor.manager.EventManager;
+import io.scriptor.event.EventManager;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;

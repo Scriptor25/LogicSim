@@ -42,13 +42,17 @@ public class Window extends Element {
 
     @Override
     protected void onStart() {
-        Arrays.stream(elements).forEach(Element::start);
+        Arrays
+                .stream(elements)
+                .forEach(Element::start);
     }
 
     @Override
     protected void onShow() {
         if (ImGui.begin(title)) {
-            Arrays.stream(elements).forEach(Element::show);
+            Arrays
+                    .stream(elements)
+                    .forEach(Element::show);
             getEvents().runTasks();
         }
         ImGui.end();

@@ -36,7 +36,8 @@ public class CallInstruction implements Instruction {
         final var uuid = IOStream.readUUID(inputStream);
         final var callee = IOStream.readUUID(inputStream);
         final var args = new Instruction[IOStream.readInt(inputStream)];
-        for (int i = 0; i < args.length; i++) args[i] = function.find(IOStream.readUUID(inputStream));
+        for (int i = 0; i < args.length; i++)
+            args[i] = function.find(IOStream.readUUID(inputStream));
         function.add(new CallInstruction(uuid, callee, args));
     }
 

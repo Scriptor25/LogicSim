@@ -1,5 +1,6 @@
 package io.scriptor.manager;
 
+import io.scriptor.event.EventManager;
 import io.scriptor.imgui.Component;
 import io.scriptor.imgui.Element;
 import io.scriptor.imgui.Enumeration;

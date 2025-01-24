@@ -2,6 +2,7 @@ package io.scriptor.imgui;
 
 import imgui.ImGui;
 import imgui.type.ImString;
+import io.scriptor.event.IPayload;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -25,6 +26,9 @@ import org.jetbrains.annotations.NotNull;
  * @author Felix Schreiber
  */
 public class InputText extends Element {
+
+    public record Payload(@NotNull InputText self, @NotNull String value) implements IPayload {
+    }
 
     private final String label;
     private final int flags;
@@ -57,7 +61,7 @@ public class InputText extends Element {
     protected void onShow() {
         ImGui.setKeyboardFocusHere();
         if (ImGui.inputText(label, buffer, flags))
-            getEvents().invokeEvent(event, this, buffer.get());
+            getEvents().invokeEvent(event, new Payload(this, buffer.get()));
         ImGui.setItemDefaultFocus();
     }
 }
