@@ -36,7 +36,7 @@ public class CallInstruction implements Instruction {
         final var uuid = IOStream.readUUID(inputStream);
         final var callee = IOStream.readUUID(inputStream);
         final var args = new Instruction[IOStream.readInt(inputStream)];
-        for (int i = 0; i < args.length; i++)
+        for (int i = 0; i < args.length; ++i)
             args[i] = function.find(IOStream.readUUID(inputStream));
         function.add(new CallInstruction(uuid, callee, args));
     }
@@ -73,7 +73,8 @@ public class CallInstruction implements Instruction {
         Instruction.super.write(outputStream);
         IOStream.write(outputStream, callee);
         IOStream.write(outputStream, args.length);
-        for (final var arg : args) IOStream.write(outputStream, arg.uuid());
+        for (final var arg : args)
+            IOStream.write(outputStream, arg.uuid());
     }
 
     @Override

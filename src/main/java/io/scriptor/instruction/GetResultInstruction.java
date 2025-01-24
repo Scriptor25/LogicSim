@@ -30,8 +30,11 @@ import java.util.UUID;
  *
  * @author Felix Schreiber
  */
-public record GetResultInstruction(@NotNull UUID uuid, @NotNull CallInstruction call,
-                                   int index) implements Instruction {
+public record GetResultInstruction(
+        @NotNull UUID uuid,
+        @NotNull CallInstruction call,
+        int index
+) implements Instruction {
 
     public static void read(final @NotNull InputStream inputStream, final @NotNull Function function) throws IOException {
         final var uuid = IOStream.readUUID(inputStream);
