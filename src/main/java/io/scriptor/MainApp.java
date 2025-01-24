@@ -118,7 +118,7 @@ public class MainApp extends Application {
     private Blueprint selectedBlueprint;
 
     private MainApp() {
-        final var file = new File("blueprints");
+        final var file = new File("project.bff");
         if (file.exists()) {
             context = handle(() -> new Context(file));
             assert context != null;
@@ -213,9 +213,9 @@ public class MainApp extends Application {
     }
 
     private void save() {
-        final var file = new File("blueprints");
+        final var file = new File("project.bff");
         if (file.exists()) {
-            final var bkp = new File("blueprints.bkp");
+            final var bkp = new File("backup.bff");
             handle(() -> Files.copy(file.toPath(), bkp.toPath(), REPLACE_EXISTING));
         }
 
