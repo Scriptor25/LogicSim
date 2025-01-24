@@ -267,6 +267,7 @@ public class MainApp extends Application {
         keyCallback = glfwSetKeyCallback(getHandle(), this::onKey);
 
         final var io = ImGui.getIO();
+        io.setMouseDrawCursor(false);
         io.addConfigFlags(ImGuiConfigFlags.DockingEnable);
         io.addConfigFlags(ImGuiConfigFlags.NavEnableKeyboard);
         ImNodes.createContext();
