@@ -1,3 +1,21 @@
+/*
+ * This file is part of https://github.com/Scriptor25/LogicSim
+ * 
+ * Copyright (C) 2025  Felix Schreiber
+ * 
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see https://www.gnu.org/licenses/.
+ */
 package io.scriptor.manager;
 
 import io.scriptor.event.EventManager;
@@ -11,10 +29,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.yaml.snakeyaml.Yaml;
 
-import java.io.BufferedReader;
-import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.lang.reflect.Array;
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
@@ -22,29 +37,9 @@ import java.util.stream.Stream;
 
 import static io.scriptor.MainApp.getLogger;
 
-/**
- * This class is part of the <a href="https://github.com/Scriptor25/LogicSim">Java Logic Sim</a> project.
- * <p>
- * Copyright (C) 2025  Felix Schreiber
- * <p>
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- * <p>
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * <p>
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <a href="https://www.gnu.org/licenses/">https://www.gnu.org/licenses/</a>.
- *
- * @author Felix Schreiber
- */
 public class ResourceManager {
 
-    private static final String STRING_ENUM = "enum:";
+    private static final String STRING_ENUM_COLON = "enum:";
     private static final String STRING_ELEMENT = "element";
 
     private final Map<String, Component> components = new HashMap<>();
@@ -72,7 +67,7 @@ public class ResourceManager {
         if (enumerations.containsKey(id))
             return enumerations.get(id);
 
-        parse("enum/" + id.replace(STRING_ENUM, "") + ".yml");
+        parse("enum/" + id.replace(STRING_ENUM_COLON, "") + ".yml");
         if (enumerations.containsKey(id))
             return enumerations.get(id);
 
@@ -108,20 +103,6 @@ public class ResourceManager {
                 return IYamlNode.from(new Yaml().loadAs(stream, Map.class));
         } catch (final IOException e) {
             getLogger().warning(e::getMessage);
-        }
-        throw new RTException("no resource registered with name '%s'", name);
-    }
-
-    public void parseDirectory(final @NotNull String name) {
-        try (final var stream = ClassLoader.getSystemResourceAsStream(name)) {
-            if (stream != null) {
-                final var reader = new BufferedReader(new InputStreamReader(stream));
-                reader.lines().forEach(line -> parse(name + File.separatorChar + line));
-                return;
-            }
-        } catch (final IOException e) {
-            getLogger().warning(e::getMessage);
-            return;
         }
         throw new RTException("no resource registered with name '%s'", name);
     }
@@ -188,7 +169,7 @@ public class ResourceManager {
             entries[i++] = new Enumeration.Entry(entryName, entryValue);
         }
 
-        putEnumeration(STRING_ENUM + id, new Enumeration(id, entries));
+        putEnumeration(STRING_ENUM_COLON + id, new Enumeration(id, entries));
     }
 
     public void parseTemplate(final @NotNull IYamlNode yaml) {
@@ -243,7 +224,7 @@ public class ResourceManager {
                 return String.class;
             }
             default -> {
-                if (type.startsWith(STRING_ENUM))
+                if (type.startsWith(STRING_ENUM_COLON))
                     return Integer.class;
 
                 return getComponent(type).clazz();
@@ -274,7 +255,7 @@ public class ResourceManager {
             case "boolean" -> yaml.as(Boolean.class, field.hasDefault() && (Boolean) field.defaultValue());
             case "string" -> yaml.as(String.class, field.hasDefault() ? (String) field.defaultValue() : "");
             default -> {
-                if (field.type().startsWith(STRING_ENUM)) {
+                if (field.type().startsWith(STRING_ENUM_COLON)) {
                     final var name = yaml.as(String.class, field.hasDefault() ? (String) field.defaultValue() : "");
                     yield Arrays.stream(getEnumeration(field.type()).entries())
                             .filter(entry -> entry.name().equals(name))
