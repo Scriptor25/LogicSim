@@ -1,3 +1,10 @@
+# Warning
+
+This project is still very much work in progress. That means that with every commit, your project files might no longer
+work. So don't blame me for not automatically converting your projects into some newer version of the format, as writing
+such thing does not make much sense at this point in time. So just don't expect everything to be perfect, don't create
+anything you will regret losing because it took a very long time to make or something like that... Just a warning.
+
 # Java Logic Sim - A digital logic simulation written in Java
 
 I think the title already tells you a lot about what this project is. But if it does not, here a short explanation: This
