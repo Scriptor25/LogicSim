@@ -121,6 +121,7 @@ public class MainApp extends Application {
         final var file = new File("blueprints");
         if (file.exists()) {
             context = handle(() -> new Context(file));
+            assert context != null;
         } else {
             context = new Context();
         }
@@ -231,6 +232,7 @@ public class MainApp extends Application {
         try (final var iconStream = ClassLoader.getSystemResourceAsStream("image/icon.png")) {
             if (iconStream != null) {
                 final var icon = handle(() -> ImageIO.read(iconStream));
+                assert icon != null;
 
                 final var width = icon.getWidth();
                 final var height = icon.getHeight();

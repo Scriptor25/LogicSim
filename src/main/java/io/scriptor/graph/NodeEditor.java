@@ -9,7 +9,6 @@ import io.scriptor.event.IPayload;
 import io.scriptor.imgui.Array;
 import io.scriptor.imgui.Element;
 import io.scriptor.imgui.Layout;
-import io.scriptor.event.EventManager;
 import io.scriptor.util.KeyPayload;
 import io.scriptor.util.Range;
 import org.jetbrains.annotations.NotNull;

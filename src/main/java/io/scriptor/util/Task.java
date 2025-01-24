@@ -1,5 +1,8 @@
 package io.scriptor.util;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 /**
  * This class is part of the <a href="https://github.com/Scriptor25/LogicSim">Java Logic Sim</a> project.
  * <p>
@@ -35,12 +38,54 @@ public class Task {
     }
 
     @FunctionalInterface
-    public interface ITask<T> {
+    public interface ITaskByte {
 
-        T run() throws Exception;
+        byte run() throws Exception;
     }
 
-    public static void handleVoid(final ITaskVoid task) {
+    @FunctionalInterface
+    public interface ITaskChar {
+
+        char run() throws Exception;
+    }
+
+    @FunctionalInterface
+    public interface ITaskShort {
+
+        short run() throws Exception;
+    }
+
+    @FunctionalInterface
+    public interface ITaskInt {
+
+        int run() throws Exception;
+    }
+
+    @FunctionalInterface
+    public interface ITaskLong {
+
+        long run() throws Exception;
+    }
+
+    @FunctionalInterface
+    public interface ITaskFloat {
+
+        float run() throws Exception;
+    }
+
+    @FunctionalInterface
+    public interface ITaskDouble {
+
+        double run() throws Exception;
+    }
+
+    @FunctionalInterface
+    public interface ITask<T> {
+
+        @Nullable T run() throws Exception;
+    }
+
+    public static void handleVoid(final @NotNull ITaskVoid task) {
         try {
             task.run();
         } catch (final Exception e) {
@@ -48,7 +93,7 @@ public class Task {
         }
     }
 
-    public static boolean handleBoolean(final ITaskBoolean task) {
+    public static boolean handleBoolean(final @NotNull ITaskBoolean task) {
         try {
             return task.run();
         } catch (final Exception e) {
@@ -56,7 +101,63 @@ public class Task {
         }
     }
 
-    public static <T> T handle(final ITask<T> task) {
+    public static byte handleByte(final @NotNull ITaskByte task) {
+        try {
+            return task.run();
+        } catch (final Exception e) {
+            throw new RTException(e);
+        }
+    }
+
+    public static char handleChar(final @NotNull ITaskChar task) {
+        try {
+            return task.run();
+        } catch (final Exception e) {
+            throw new RTException(e);
+        }
+    }
+
+    public static short handleShort(final @NotNull ITaskShort task) {
+        try {
+            return task.run();
+        } catch (final Exception e) {
+            throw new RTException(e);
+        }
+    }
+
+    public static int handleInt(final @NotNull ITaskInt task) {
+        try {
+            return task.run();
+        } catch (final Exception e) {
+            throw new RTException(e);
+        }
+    }
+
+    public static long handleLong(final @NotNull ITaskLong task) {
+        try {
+            return task.run();
+        } catch (final Exception e) {
+            throw new RTException(e);
+        }
+    }
+
+    public static float handleFloat(final @NotNull ITaskFloat task) {
+        try {
+            return task.run();
+        } catch (final Exception e) {
+            throw new RTException(e);
+        }
+    }
+
+    public static double handleDouble(final @NotNull ITaskDouble task) {
+        try {
+            return task.run();
+        } catch (final Exception e) {
+            throw new RTException(e);
+        }
+    }
+
+    public static <T> @Nullable T handle(final @NotNull ITask<T> task) {
         try {
             return task.run();
         } catch (final Exception e) {

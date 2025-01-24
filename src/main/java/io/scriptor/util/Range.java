@@ -99,8 +99,7 @@ public class Range<E> {
         var stream = collection
                 .stream()
                 .skip(start)
-                .filter(type::isInstance)
-                .map(type::cast);
+                .filter(type::isInstance);
         if (end > 0)
             stream = stream.limit((long) end - start);
         for (final var filter : filters)
