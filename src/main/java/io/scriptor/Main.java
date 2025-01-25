@@ -20,10 +20,10 @@ package io.scriptor;
 
 import imgui.ImColor;
 import imgui.ImGui;
-import imgui.app.Application;
-import imgui.app.Configuration;
 import imgui.extension.imnodes.ImNodes;
 import imgui.flag.ImGuiConfigFlags;
+import imgui.gl3.ImGuiImplGl3;
+import imgui.glfw.ImGuiImplGlfw;
 import imgui.type.ImString;
 import io.scriptor.context.Context;
 import io.scriptor.event.EventManager;
@@ -34,14 +34,13 @@ import io.scriptor.graph.NodeEditor;
 import io.scriptor.imgui.Array;
 import io.scriptor.imgui.ColorEdit;
 import io.scriptor.imgui.InputText;
-import io.scriptor.imgui.Layout;
-import io.scriptor.manager.ResourceManager;
+import io.scriptor.resource.ResourceManager;
 import io.scriptor.util.KeyPayload;
 import io.scriptor.util.RTException;
 import io.scriptor.util.Range;
-import io.scriptor.util.Task;
+import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.glfw.GLFWImage;
-import org.lwjgl.glfw.GLFWKeyCallback;
+import org.lwjgl.opengl.GL;
 import org.lwjgl.system.MemoryStack;
 
 import javax.imageio.ImageIO;
@@ -56,10 +55,13 @@ import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 
 import static io.scriptor.util.Task.handle;
+import static io.scriptor.util.Task.handleVoid;
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 import static org.lwjgl.glfw.GLFW.*;
+import static org.lwjgl.opengl.GL11.*;
+import static org.lwjgl.system.MemoryUtil.NULL;
 
-public class MainApp extends Application {
+public class Main {
 
     private static final String STRING_ATTRIBUTES_RENAME_CONTEXT = "attributes.rename-context";
     private static final String STRING_ATTRIBUTES_RENAME_CONTEXT_TEXT = "attributes.rename-context.text";
@@ -89,13 +91,6 @@ public class MainApp extends Application {
         return logger;
     }
 
-    /**
-     * Application entry point
-     */
-    public static void main(final String[] args) {
-        Application.launch(new MainApp());
-    }
-
     private static KeyPayload getMods(final int mods) {
         final var mod_shift = (mods & GLFW_MOD_SHIFT) != 0;
         final var mod_control = (mods & GLFW_MOD_CONTROL) != 0;
@@ -106,20 +101,31 @@ public class MainApp extends Application {
         return new KeyPayload(mod_shift, mod_control, mod_alt, mod_super, mod_caps_lock, mod_num_lock);
     }
 
+    /**
+     * Application entry point
+     */
+    public static void main(final String[] args) {
+        new Main();
+    }
+
     private final Context context;
-    private final Graph graph;
-
-    private final ResourceManager resources = new ResourceManager();
-    private final Layout layout;
-
-    private final EventManager events = new EventManager();
-    private GLFWKeyCallback keyCallback;
+    private final EventManager events;
 
     private Attribute selectedAttribute;
     private Blueprint selectedBlueprint;
 
-    private MainApp() {
+    private void setupGUI() {
+        ImGui.createContext();
+        ImNodes.createContext();
+
+        final var io = ImGui.getIO();
+        io.addConfigFlags(ImGuiConfigFlags.DockingEnable);
+        io.addConfigFlags(ImGuiConfigFlags.NavEnableKeyboard);
+    }
+
+    private Main() {
         final var file = new File("project.bff");
+
         if (file.exists()) {
             context = handle(() -> new Context(file));
             assert context != null;
@@ -127,10 +133,12 @@ public class MainApp extends Application {
             context = new Context();
         }
 
-        graph = new Graph(context.registry());
+        events = new EventManager();
 
-        layout = resources.parseLayout(events, "layout/main.yml");
+        final var graph = new Graph(context.registry());
+        final var resources = new ResourceManager();
 
+        final var layout = resources.parseLayout(events, "layout/main.yml");
         layout
                 .findElement("editor.editor", NodeEditor.class)
                 .ifPresent(editor -> {
@@ -142,94 +150,17 @@ public class MainApp extends Application {
         graph.add(new Attribute("In A", false));
         graph.add(new Attribute("In B", false));
         graph.add(new Attribute("Out", true));
-    }
 
-    private void onKey(long window, int key, int scancode, int action, int mods) {
-        if (keyCallback != null) keyCallback.invoke(window, key, scancode, action, mods);
+        layout.start();
 
-        final var id = "key." + switch (key) {
-            case GLFW_KEY_SPACE -> "space";
-            case GLFW_KEY_ESCAPE -> "escape";
-            case GLFW_KEY_ENTER -> "enter";
-            case GLFW_KEY_TAB -> "tab";
-            case GLFW_KEY_BACKSPACE -> "backspace";
-            case GLFW_KEY_INSERT -> "insert";
-            case GLFW_KEY_DELETE -> "delete";
-            case GLFW_KEY_RIGHT -> "right";
-            case GLFW_KEY_LEFT -> "left";
-            case GLFW_KEY_DOWN -> "down";
-            case GLFW_KEY_UP -> "up";
-            case GLFW_KEY_PAGE_UP -> "page-up";
-            case GLFW_KEY_PAGE_DOWN -> "page-down";
-            case GLFW_KEY_HOME -> "home";
-            case GLFW_KEY_END -> "end";
-            case GLFW_KEY_CAPS_LOCK -> "caps-lock";
-            case GLFW_KEY_SCROLL_LOCK -> "scroll-lock";
-            case GLFW_KEY_NUM_LOCK -> "num-lock";
-            case GLFW_KEY_PRINT_SCREEN -> "print-screen";
-            case GLFW_KEY_PAUSE -> "pause";
-            case GLFW_KEY_F1 -> "f1";
-            case GLFW_KEY_F2 -> "f2";
-            case GLFW_KEY_F3 -> "f3";
-            case GLFW_KEY_F4 -> "f4";
-            case GLFW_KEY_F5 -> "f5";
-            case GLFW_KEY_F6 -> "f6";
-            case GLFW_KEY_F7 -> "f7";
-            case GLFW_KEY_F8 -> "f8";
-            case GLFW_KEY_F9 -> "f9";
-            case GLFW_KEY_F10 -> "f10";
-            case GLFW_KEY_F11 -> "f11";
-            case GLFW_KEY_F12 -> "f12";
-            case GLFW_KEY_F13 -> "f13";
-            case GLFW_KEY_F14 -> "f14";
-            case GLFW_KEY_F15 -> "f15";
-            case GLFW_KEY_F16 -> "f16";
-            case GLFW_KEY_F17 -> "f17";
-            case GLFW_KEY_F18 -> "f18";
-            case GLFW_KEY_F19 -> "f19";
-            case GLFW_KEY_F20 -> "f20";
-            case GLFW_KEY_F21 -> "f21";
-            case GLFW_KEY_F22 -> "f22";
-            case GLFW_KEY_F23 -> "f23";
-            case GLFW_KEY_F24 -> "f24";
-            case GLFW_KEY_F25 -> "f25";
-            case GLFW_KEY_KP_ENTER -> "kp-enter";
-            case GLFW_KEY_LEFT_SHIFT -> "left-shift";
-            case GLFW_KEY_LEFT_CONTROL -> "left-control";
-            case GLFW_KEY_LEFT_ALT -> "left-alt";
-            case GLFW_KEY_LEFT_SUPER -> "left-super";
-            case GLFW_KEY_RIGHT_SHIFT -> "right-shift";
-            case GLFW_KEY_RIGHT_CONTROL -> "right-control";
-            case GLFW_KEY_RIGHT_ALT -> "right-alt";
-            case GLFW_KEY_RIGHT_SUPER -> "right-super";
-            case GLFW_KEY_MENU -> "menu";
-            default -> glfwGetKeyName(key, scancode);
-        } + switch (action) {
-            case GLFW_RELEASE -> ".release";
-            case GLFW_PRESS -> ".press";
-            case GLFW_REPEAT -> ".repeat";
-            default -> ".none";
-        };
-        events.invokeEvent(id, getMods(mods));
-    }
+        GLFWErrorCallback
+                .createPrint(System.err)
+                .set();
 
-    private void save() {
-        final var file = new File("project.bff");
-        if (file.exists()) {
-            final var bkp = new File("backup.bff");
-            handle(() -> Files.copy(file.toPath(), bkp.toPath(), REPLACE_EXISTING));
-        }
+        glfwInit();
+        glfwDefaultWindowHints();
+        final var window = glfwCreateWindow(1024, 768, "Java Logic Sim", NULL, NULL);
 
-        Task.handleVoid(() -> context.write(file));
-    }
-
-    @Override
-    protected void configure(final Configuration config) {
-        config.setTitle("Java Logic Sim");
-    }
-
-    @Override
-    protected void preRun() {
         try (final var iconStream = ClassLoader.getSystemResourceAsStream("image/icon.png")) {
             if (iconStream != null) {
                 final var icon = handle(() -> ImageIO.read(iconStream));
@@ -257,21 +188,27 @@ public class MainApp extends Application {
                     image.width(width);
                     image.height(height);
                     image.pixels(pixels);
-                    glfwSetWindowIcon(getHandle(), images);
+                    glfwSetWindowIcon(window, images);
                 }
             }
         } catch (final IOException e) {
             throw new RTException(e);
         }
 
-        keyCallback = glfwSetKeyCallback(getHandle(), this::onKey);
+        final var callback = glfwSetKeyCallback(window, this::onKey);
+        if (callback != null)
+            callback.close();
 
-        final var io = ImGui.getIO();
-        io.addConfigFlags(ImGuiConfigFlags.DockingEnable);
-        io.addConfigFlags(ImGuiConfigFlags.NavEnableKeyboard);
-        ImNodes.createContext();
+        glfwMakeContextCurrent(window);
+        GL.createCapabilities();
+        glfwSwapInterval(1);
 
-        layout.start();
+        setupGUI();
+
+        final var imGuiGlfw = new ImGuiImplGlfw();
+        final var imGuiGl3 = new ImGuiImplGl3();
+        imGuiGlfw.init(window, true);
+        imGuiGl3.init();
 
         final var attributeRange = new Range<>(Attribute.class);
         graph.attributes(attributeRange);
@@ -374,16 +311,110 @@ public class MainApp extends Application {
             if (payload.control())
                 save();
         });
-    }
 
-    @Override
-    public void process() {
-        layout.show();
-    }
+        while (!glfwWindowShouldClose(window)) {
+            glfwPollEvents();
 
-    @Override
-    protected void postRun() {
-        ImNodes.destroyContext();
+            imGuiGl3.newFrame();
+            imGuiGlfw.newFrame();
+            ImGui.newFrame();
+
+            layout.show();
+
+            ImGui.render();
+
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            imGuiGl3.renderDrawData(ImGui.getDrawData());
+
+            glfwSwapBuffers(window);
+        }
+
         save();
+
+        imGuiGl3.shutdown();
+        imGuiGlfw.shutdown();
+
+        ImNodes.destroyContext();
+        ImGui.destroyContext();
+
+        glfwDestroyWindow(window);
+        glfwTerminate();
+    }
+
+    private void save() {
+        final var file = new File("project.bff");
+        if (file.exists()) {
+            final var bkp = new File("backup.bff");
+            handle(() -> Files.copy(file.toPath(), bkp.toPath(), REPLACE_EXISTING));
+        }
+
+        handleVoid(() -> context.write(file));
+    }
+
+    private void onKey(long window, int key, int scancode, int action, int mods) {
+        final var id = "key." + switch (key) {
+            case GLFW_KEY_SPACE -> "space";
+            case GLFW_KEY_ESCAPE -> "escape";
+            case GLFW_KEY_ENTER -> "enter";
+            case GLFW_KEY_TAB -> "tab";
+            case GLFW_KEY_BACKSPACE -> "backspace";
+            case GLFW_KEY_INSERT -> "insert";
+            case GLFW_KEY_DELETE -> "delete";
+            case GLFW_KEY_RIGHT -> "right";
+            case GLFW_KEY_LEFT -> "left";
+            case GLFW_KEY_DOWN -> "down";
+            case GLFW_KEY_UP -> "up";
+            case GLFW_KEY_PAGE_UP -> "page-up";
+            case GLFW_KEY_PAGE_DOWN -> "page-down";
+            case GLFW_KEY_HOME -> "home";
+            case GLFW_KEY_END -> "end";
+            case GLFW_KEY_CAPS_LOCK -> "caps-lock";
+            case GLFW_KEY_SCROLL_LOCK -> "scroll-lock";
+            case GLFW_KEY_NUM_LOCK -> "num-lock";
+            case GLFW_KEY_PRINT_SCREEN -> "print-screen";
+            case GLFW_KEY_PAUSE -> "pause";
+            case GLFW_KEY_F1 -> "f1";
+            case GLFW_KEY_F2 -> "f2";
+            case GLFW_KEY_F3 -> "f3";
+            case GLFW_KEY_F4 -> "f4";
+            case GLFW_KEY_F5 -> "f5";
+            case GLFW_KEY_F6 -> "f6";
+            case GLFW_KEY_F7 -> "f7";
+            case GLFW_KEY_F8 -> "f8";
+            case GLFW_KEY_F9 -> "f9";
+            case GLFW_KEY_F10 -> "f10";
+            case GLFW_KEY_F11 -> "f11";
+            case GLFW_KEY_F12 -> "f12";
+            case GLFW_KEY_F13 -> "f13";
+            case GLFW_KEY_F14 -> "f14";
+            case GLFW_KEY_F15 -> "f15";
+            case GLFW_KEY_F16 -> "f16";
+            case GLFW_KEY_F17 -> "f17";
+            case GLFW_KEY_F18 -> "f18";
+            case GLFW_KEY_F19 -> "f19";
+            case GLFW_KEY_F20 -> "f20";
+            case GLFW_KEY_F21 -> "f21";
+            case GLFW_KEY_F22 -> "f22";
+            case GLFW_KEY_F23 -> "f23";
+            case GLFW_KEY_F24 -> "f24";
+            case GLFW_KEY_F25 -> "f25";
+            case GLFW_KEY_KP_ENTER -> "kp-enter";
+            case GLFW_KEY_LEFT_SHIFT -> "left-shift";
+            case GLFW_KEY_LEFT_CONTROL -> "left-control";
+            case GLFW_KEY_LEFT_ALT -> "left-alt";
+            case GLFW_KEY_LEFT_SUPER -> "left-super";
+            case GLFW_KEY_RIGHT_SHIFT -> "right-shift";
+            case GLFW_KEY_RIGHT_CONTROL -> "right-control";
+            case GLFW_KEY_RIGHT_ALT -> "right-alt";
+            case GLFW_KEY_RIGHT_SUPER -> "right-super";
+            case GLFW_KEY_MENU -> "menu";
+            default -> glfwGetKeyName(key, scancode);
+        } + switch (action) {
+            case GLFW_RELEASE -> ".release";
+            case GLFW_PRESS -> ".press";
+            case GLFW_REPEAT -> ".repeat";
+            default -> ".none";
+        };
+        events.invokeEvent(id, getMods(mods));
     }
 }
