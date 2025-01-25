@@ -48,6 +48,7 @@ public class Array extends Element {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     protected void onShow() {
         if (range == null)
             return;
