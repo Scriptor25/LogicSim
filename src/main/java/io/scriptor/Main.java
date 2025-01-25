@@ -331,8 +331,8 @@ public class Main {
 
         save();
 
-        imGuiGlfw.shutdown();
         imGuiGl3.shutdown();
+        imGuiGlfw.shutdown();
 
         ImNodes.destroyContext();
         ImGui.destroyContext();
