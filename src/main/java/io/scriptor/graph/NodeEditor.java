@@ -238,12 +238,12 @@ public class NodeEditor extends Element {
 
             if (target.output())
                 graph
-                        .findLinks(source)
-                        .forEach(graph::remove);
+                        .findLink(source)
+                        .ifPresent(graph::remove);
             else
                 graph
-                        .findLinks(target)
-                        .forEach(graph::remove);
+                        .findLink(target)
+                        .ifPresent(graph::remove);
 
             final Link link;
             if (source.output())

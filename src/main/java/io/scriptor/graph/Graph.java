@@ -152,13 +152,6 @@ public class Graph implements IUnique {
                 .findAny();
     }
 
-    public @NotNull Optional<INode> findNode(final @NotNull UUID uuid) {
-        return nodes
-                .stream()
-                .filter(node -> node.uuid().equals(uuid))
-                .findAny();
-    }
-
     public @NotNull Optional<Link> findLink(final int id) {
         return links
                 .stream()
