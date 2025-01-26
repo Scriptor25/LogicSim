@@ -1,18 +1,18 @@
 /*
  * This file is part of https://github.com/Scriptor25/LogicSim
- * 
+ *
  * Copyright (C) 2025  Felix Schreiber
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see https://www.gnu.org/licenses/.
  */
@@ -46,8 +46,6 @@ public class NodeEditor extends Element {
     private Pin target;
     private float mouseX;
     private float mouseY;
-
-    private Graph clipboard;
 
     public NodeEditor(final @NotNull Layout root, final @NotNull String id) {
         super(root, id);
@@ -88,34 +86,101 @@ public class NodeEditor extends Element {
         this.blueprints.collection(blueprints);
     }
 
-    private void onNodeContextCopyClick(final @NotNull IPayload payload) {
+    public @NotNull String copy() {
         final var nodeIds = new int[ImNodes.numSelectedNodes()];
         ImNodes.getSelectedNodes(nodeIds);
 
         final List<INode> nodes = new ArrayList<>();
-        if (hoveredNode.notSelected())
+        if (hoveredNode != null && hoveredNode.notSelected())
             nodes.add(hoveredNode);
         for (final var nodeId : nodeIds)
             graph
                     .findNode(nodeId)
                     .ifPresent(nodes::add);
+        final var nodeArray = nodes.toArray(INode[]::new);
 
-        if (clipboard != null)
-            clipboard.clear();
-        clipboard = graph.copy(nodes.toArray(INode[]::new));
+        final List<Link> links = new ArrayList<>();
+        graph
+                .links()
+                .filter(link -> !link.usesNoneOf(nodeArray))
+                .forEach(links::add);
+        final var linkArray = links.toArray(Link[]::new);
+
+        final var data = new StringBuilder();
+        data.append("Java Logic Sim\n");
+        data
+                .append(nodeArray.length)
+                .append('\n');
+        for (final var node : nodeArray)
+            data
+                    .append(node.getString())
+                    .append('\n');
+        data
+                .append(linkArray.length)
+                .append('\n');
+        for (final var link : linkArray)
+            data
+                    .append(link.getString(nodeArray))
+                    .append('\n');
+
+        return data.toString();
+    }
+
+    public void duplicate() {
+        paste(copy());
+    }
+
+    public @NotNull String cut() {
+        final var data = copy();
+
+        if (hoveredNode != null && hoveredNode.notSelected())
+            graph.remove(hoveredNode);
+        deleteSelectedNodes();
+
+        return data;
+    }
+
+    public void paste(final @NotNull String data) {
+        final var lines = data
+                .lines()
+                .toArray(String[]::new);
+        int i = 0;
+
+        final var magic = lines[i++];
+        if (!magic.equals("Java Logic Sim"))
+            return;
+
+        final var nodeArrayLength = Integer.parseInt(lines[i++], 10);
+        final var nodeArray = new INode[nodeArrayLength];
+        for (int j = 0; j < nodeArrayLength; ++j)
+            graph.add(nodeArray[j] = INode.parse(graph, lines[i++]));
+
+        final var linkArrayLength = Integer.parseInt(lines[i++], 10);
+        final var linkArray = new Link[linkArrayLength];
+        for (int j = 0; j < linkArrayLength; ++j)
+            graph.add(linkArray[j] = Link.parse(nodeArray, lines[i++]));
+
+        getEvents().scheduleTask(this, () -> {
+            ImNodes.clearNodeSelection();
+            ImNodes.clearLinkSelection();
+
+            for (final var node : nodeArray)
+                node.select();
+            for (final var link : linkArray)
+                link.select();
+        });
+    }
+
+    private void onNodeContextCopyClick(final @NotNull IPayload payload) {
+        getEvents().callService("nodes.copy", payload);
     }
 
     private void onNodeContextCutClick(final @NotNull IPayload payload) {
-        onNodeContextCopyClick(payload);
-
-        if (hoveredNode.notSelected())
-            graph.remove(hoveredNode);
-        deleteSelectedNodes();
+        getEvents().callService("nodes.cut", payload);
     }
 
     private void onNodeContextDuplicateClick(final @NotNull IPayload payload) {
-        onNodeContextCopyClick(payload);
-        graph.paste(clipboard);
+        getEvents().callService("nodes.duplicate", payload);
     }
 
     private void onNodeContextDeleteClick(final @NotNull IPayload payload) {
@@ -133,8 +198,7 @@ public class NodeEditor extends Element {
     }
 
     private void onEditorContextPasteClick(final @NotNull IPayload payload) {
-        if (clipboard != null)
-            graph.paste(clipboard);
+        getEvents().callService("nodes.paste", payload);
     }
 
     private void onEditorContextAddClick(final @NotNull IPayload payload) {
@@ -312,12 +376,12 @@ public class NodeEditor extends Element {
 
             if (target.output())
                 graph
-                        .findLinks(source)
-                        .forEach(graph::remove);
+                        .findLink(source)
+                        .ifPresent(graph::remove);
             else
                 graph
-                        .findLinks(target)
-                        .forEach(graph::remove);
+                        .findLink(target)
+                        .ifPresent(graph::remove);
 
             final Link link;
             if (source.output())

@@ -18,17 +18,17 @@
  */
 package io.scriptor.util;
 
-import io.scriptor.event.IPayload;
+import org.jetbrains.annotations.NotNull;
 
-public record KeyPayload(
-        int key,
-        int scancode,
-        int action,
-        boolean shift,
-        boolean control,
-        boolean alt,
-        boolean super_,
-        boolean caps,
-        boolean num
-) implements IPayload {
+public class Util {
+
+    public static <T> int indexOf(final @NotNull T @NotNull [] array, final @NotNull T value) {
+        for (int i = 0; i < array.length; ++i)
+            if (array[i].equals(value))
+                return i;
+        return -1;
+    }
+
+    private Util() {
+    }
 }

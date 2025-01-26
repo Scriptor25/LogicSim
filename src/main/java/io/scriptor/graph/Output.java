@@ -1,18 +1,18 @@
 /*
  * This file is part of https://github.com/Scriptor25/LogicSim
- * 
+ *
  * Copyright (C) 2025  Felix Schreiber
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see https://www.gnu.org/licenses/.
  */
@@ -32,6 +32,16 @@ import org.jetbrains.annotations.NotNull;
 import java.util.*;
 
 public class Output implements INode {
+
+    public static @NotNull Output parse(final @NotNull Graph graph, final @NotNull String string) {
+        final var split = string.split(",");
+        final var attribute = UUID.fromString(split[1]);
+        return new Output(
+                UUID.randomUUID(),
+                graph
+                        .findAttribute(attribute)
+                        .orElseThrow());
+    }
 
     private final UUID uuid;
     private final Attribute attribute;
@@ -133,5 +143,10 @@ public class Output implements INode {
             attribute.powered().set(out[pre.get().index()]);
         } else attribute.powered().set(false);
         return new boolean[0];
+    }
+
+    @Override
+    public @NotNull String getPvtString() {
+        return "1,%s".formatted(attribute.uuid());
     }
 }

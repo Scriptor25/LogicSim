@@ -44,7 +44,7 @@ public class Context {
      * Create a new context, containing only the 'not' and 'and' blueprints and functions.
      */
     public Context() {
-        registry = new Registry();
+        registry = new Registry(this);
 
         final var notFunction = new NotFunction(UUID.randomUUID());
         registry.add(notFunction);
@@ -99,7 +99,7 @@ public class Context {
      * @throws IOException if any
      */
     public Context(final @NotNull InputStream inputStream, final boolean closeStream) throws IOException {
-        registry = new Registry(inputStream);
+        registry = new Registry(this, inputStream);
 
         final var count = IOStream.readInt(inputStream);
         for (int i = 0; i < count; ++i)
@@ -162,6 +162,13 @@ public class Context {
      */
     public @NotNull Collection<Blueprint> blueprints() {
         return Collections.unmodifiableCollection(blueprints);
+    }
+
+    public @NotNull Optional<Blueprint> findBlueprint(final @NotNull UUID uuid) {
+        return blueprints
+                .stream()
+                .filter(blueprint -> blueprint.uuid().equals(uuid))
+                .findAny();
     }
 
     /**

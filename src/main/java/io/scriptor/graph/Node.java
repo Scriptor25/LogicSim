@@ -1,18 +1,18 @@
 /*
  * This file is part of https://github.com/Scriptor25/LogicSim
- * 
+ *
  * Copyright (C) 2025  Felix Schreiber
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see https://www.gnu.org/licenses/.
  */
@@ -27,6 +27,18 @@ import java.util.*;
 import java.util.stream.Stream;
 
 public class Node implements INode {
+
+    public static @NotNull Node parse(final @NotNull Graph graph, final @NotNull String string) {
+        final var split = string.split(",");
+        final var blueprint = UUID.fromString(split[1]);
+        return new Node(
+                UUID.randomUUID(),
+                graph
+                        .registry()
+                        .context()
+                        .findBlueprint(blueprint)
+                        .orElseThrow());
+    }
 
     private final UUID uuid;
     private final Blueprint blueprint;
@@ -87,18 +99,29 @@ public class Node implements INode {
 
     @Override
     public boolean isBegin(final @NotNull Graph graph) {
-        return Arrays.stream(inputs).allMatch(x -> x.predecessor(graph).isEmpty());
+        return Arrays
+                .stream(inputs)
+                .allMatch(x -> x
+                        .predecessor(graph)
+                        .isEmpty());
     }
 
     @Override
     public boolean isEnd(final @NotNull Graph graph) {
-        return Arrays.stream(outputs).allMatch(x -> x.successors(graph).isEmpty());
+        return Arrays
+                .stream(outputs)
+                .allMatch(x -> x
+                        .successors(graph)
+                        .findAny()
+                        .isEmpty());
     }
 
     @Override
     public @NotNull List<INode> successors(final @NotNull Graph graph) {
-        return Arrays.stream(outputs)
-                .<INode>mapMulti((pin, consumer) -> graph.findLinks(pin).stream()
+        return Arrays
+                .stream(outputs)
+                .<INode>mapMulti((pin, consumer) -> graph
+                        .findLinks(pin)
                         .map(link -> link.target().node())
                         .forEach(consumer))
                 .toList();
@@ -166,5 +189,10 @@ public class Node implements INode {
 
         executing.remove(this);
         return pinOut;
+    }
+
+    @Override
+    public @NotNull String getPvtString() {
+        return "2,%s".formatted(blueprint.uuid());
     }
 }

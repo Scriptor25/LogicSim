@@ -39,12 +39,14 @@ import java.util.UUID;
  */
 public class Registry {
 
+    private final Context context;
     private final Map<UUID, IFunction> functions = new HashMap<>();
 
     /**
      * Create an empty registry instance.
      */
-    public Registry() {
+    public Registry(final @NotNull Context context) {
+        this.context = context;
     }
 
     /**
@@ -53,7 +55,8 @@ public class Registry {
      * @param inputStream the input stream
      * @throws IOException if any
      */
-    public Registry(final @NotNull InputStream inputStream) throws IOException {
+    public Registry(final @NotNull Context context, final @NotNull InputStream inputStream) throws IOException {
+        this.context = context;
         final var functionCount = IOStream.readInt(inputStream);
         for (int i = 0; i < functionCount; ++i) {
             final var functionType = IOStream.readInt(inputStream);
@@ -107,5 +110,9 @@ public class Registry {
      */
     public void remove(final @NotNull IFunction function) {
         functions.remove(function.uuid());
+    }
+
+    public @NotNull Context context() {
+        return context;
     }
 }

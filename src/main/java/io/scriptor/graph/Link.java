@@ -26,7 +26,21 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.UUID;
 
+import static io.scriptor.util.Util.indexOf;
+
 public record Link(UUID uuid, Pin source, Pin target) implements IUnique {
+
+    public static @NotNull Link parse(final @NotNull INode @NotNull [] nodes, final @NotNull String string) {
+        final var split = string.split(",");
+        final var sourceNode = Integer.parseInt(split[0], 10);
+        final var sourceIndex = Integer.parseInt(split[1], 10);
+        final var targetNode = Integer.parseInt(split[2], 10);
+        final var targetIndex = Integer.parseInt(split[3], 10);
+        return new Link(
+                UUID.randomUUID(),
+                nodes[sourceNode].output(sourceIndex),
+                nodes[targetNode].input(targetIndex));
+    }
 
     public int id() {
         return uuid.hashCode();
@@ -65,5 +79,13 @@ public record Link(UUID uuid, Pin source, Pin target) implements IUnique {
 
     public boolean uses(final @NotNull Pin pin) {
         return source == pin || target == pin;
+    }
+
+    public @NotNull String getString(final @NotNull INode @NotNull [] nodes) {
+        return "%d,%d,%d,%d".formatted(
+                indexOf(nodes, source.node()),
+                source.index(),
+                indexOf(nodes, target.node()),
+                target.index());
     }
 }

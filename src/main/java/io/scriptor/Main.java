@@ -34,6 +34,7 @@ import io.scriptor.graph.NodeEditor;
 import io.scriptor.imgui.Array;
 import io.scriptor.imgui.ColorEdit;
 import io.scriptor.imgui.InputText;
+import io.scriptor.imgui.Layout;
 import io.scriptor.resource.ResourceManager;
 import io.scriptor.util.KeyPayload;
 import io.scriptor.util.RTException;
@@ -91,14 +92,23 @@ public class Main {
         return logger;
     }
 
-    private static KeyPayload getMods(final int mods) {
+    private static KeyPayload makePayload(final int key, final int scancode, final int action, final int mods) {
         final var mod_shift = (mods & GLFW_MOD_SHIFT) != 0;
         final var mod_control = (mods & GLFW_MOD_CONTROL) != 0;
         final var mod_alt = (mods & GLFW_MOD_ALT) != 0;
         final var mod_super = (mods & GLFW_MOD_SUPER) != 0;
         final var mod_caps_lock = (mods & GLFW_MOD_CAPS_LOCK) != 0;
         final var mod_num_lock = (mods & GLFW_MOD_NUM_LOCK) != 0;
-        return new KeyPayload(mod_shift, mod_control, mod_alt, mod_super, mod_caps_lock, mod_num_lock);
+        return new KeyPayload(
+                key,
+                scancode,
+                action,
+                mod_shift,
+                mod_control,
+                mod_alt,
+                mod_super,
+                mod_caps_lock,
+                mod_num_lock);
     }
 
     /**
@@ -108,58 +118,74 @@ public class Main {
         new Main();
     }
 
-    private final Context context;
-    private final EventManager events;
+    private long window;
+
+    private final ImGuiImplGlfw imGuiGlfw = new ImGuiImplGlfw();
+    private final ImGuiImplGl3 imGuiGl3 = new ImGuiImplGl3();
+
+    private Context context;
+    private EventManager events;
+    private Layout rootLayout;
 
     private Attribute selectedAttribute;
     private Blueprint selectedBlueprint;
 
-    private void setupGUI() {
-        ImGui.createContext();
-        ImNodes.createContext();
-
-        final var io = ImGui.getIO();
-        io.addConfigFlags(ImGuiConfigFlags.DockingEnable);
-        io.addConfigFlags(ImGuiConfigFlags.NavEnableKeyboard);
+    private Main() {
+        onInit();
+        onStart();
+        while (!glfwWindowShouldClose(window)) {
+            onFrame();
+        }
+        onStop();
+        onExit();
     }
 
-    private Main() {
+    private void save() {
         final var file = new File("project.bff");
-
         if (file.exists()) {
-            context = handle(() -> new Context(file));
-            assert context != null;
-        } else {
-            context = new Context();
+            final var bkp = new File("backup.bff");
+            handle(() -> Files.copy(file.toPath(), bkp.toPath(), REPLACE_EXISTING));
         }
 
-        events = new EventManager();
+        handleVoid(() -> context.write(file));
+    }
 
-        final var graph = new Graph(context.registry());
-        final var resources = new ResourceManager();
-
-        final var layout = resources.parseLayout(events, "layout/main.yml");
-        layout
+    private void copy() {
+        rootLayout
                 .findElement("editor.editor", NodeEditor.class)
-                .ifPresent(editor -> {
-                    editor.graph(graph);
-                    graph.attributes(editor.attributes());
-                    editor.blueprints(context.blueprints());
-                });
+                .ifPresent(editor -> glfwSetClipboardString(window, editor.copy()));
+    }
 
-        graph.add(new Attribute("In A", false));
-        graph.add(new Attribute("In B", false));
-        graph.add(new Attribute("Out", true));
+    private void duplicate() {
+        rootLayout
+                .findElement("editor.editor", NodeEditor.class)
+                .ifPresent(NodeEditor::duplicate);
+    }
 
-        layout.start();
+    private void cut() {
+        rootLayout
+                .findElement("editor.editor", NodeEditor.class)
+                .ifPresent(editor -> glfwSetClipboardString(window, editor.cut()));
+    }
 
+    private void paste() {
+        final var data = glfwGetClipboardString(window);
+        if (data == null)
+            return;
+
+        rootLayout
+                .findElement("editor.editor", NodeEditor.class)
+                .ifPresent(editor -> editor.paste(data));
+    }
+
+    private void onInit() {
         GLFWErrorCallback
                 .createPrint(System.err)
                 .set();
 
         glfwInit();
         glfwDefaultWindowHints();
-        final var window = glfwCreateWindow(1024, 768, "Java Logic Sim", NULL, NULL);
+        window = glfwCreateWindow(1024, 768, "Java Logic Sim", NULL, NULL);
 
         try (final var iconStream = ClassLoader.getSystemResourceAsStream("image/icon.png")) {
             if (iconStream != null) {
@@ -195,25 +221,58 @@ public class Main {
             throw new RTException(e);
         }
 
-        final var callback = glfwSetKeyCallback(window, this::onKey);
-        if (callback != null)
-            callback.close();
+        glfwSetKeyCallback(window, this::onKey);
+        glfwSetFramebufferSizeCallback(window, this::onSize);
 
         glfwMakeContextCurrent(window);
         GL.createCapabilities();
         glfwSwapInterval(1);
 
-        setupGUI();
+        ImGui.createContext();
+        ImNodes.createContext();
 
-        final var imGuiGlfw = new ImGuiImplGlfw();
-        final var imGuiGl3 = new ImGuiImplGl3();
+        final var io = ImGui.getIO();
+        io.addConfigFlags(ImGuiConfigFlags.DockingEnable);
+        io.addConfigFlags(ImGuiConfigFlags.NavEnableKeyboard);
+
         imGuiGlfw.init(window, true);
         imGuiGl3.init();
+    }
+
+    private void onStart() {
+        final var file = new File("project.bff");
+
+        if (file.exists()) {
+            context = handle(() -> new Context(file));
+            assert context != null;
+        } else {
+            context = new Context();
+        }
+
+        events = new EventManager();
+
+        final var graph = new Graph(context.registry());
+        final var resources = new ResourceManager();
+
+        rootLayout = resources.parseLayout(events, "layout/main.yml");
+        rootLayout
+                .findElement("editor.editor", NodeEditor.class)
+                .ifPresent(editor -> {
+                    editor.graph(graph);
+                    graph.attributes(editor.attributes());
+                    editor.blueprints(context.blueprints());
+                });
+
+        graph.add(new Attribute("In A", false));
+        graph.add(new Attribute("In B", false));
+        graph.add(new Attribute("Out", true));
+
+        rootLayout.start();
 
         final var attributeRange = new Range<>(Attribute.class);
         graph.attributes(attributeRange);
         attributeRange.sorted(Comparator.comparing(Attribute::output));
-        layout
+        rootLayout
                 .findElement("attributes.container.array", Array.class)
                 .ifPresent(array -> {
                     array.setRange(attributeRange);
@@ -228,7 +287,7 @@ public class Main {
 
         final var blueprintRange = new Range<>(context.blueprints(), Blueprint.class);
         blueprintRange.sorted(Comparator.comparing(Blueprint::label));
-        layout
+        rootLayout
                 .findElement("blueprints.container.array", Array.class)
                 .ifPresent(array -> array.setRange(blueprintRange));
 
@@ -236,7 +295,7 @@ public class Main {
             selectedAttribute = new Attribute("New In", false);
             graph.add(selectedAttribute);
             events.scheduleTask(() -> ImGui.openPopup(STRING_ATTRIBUTES_RENAME_CONTEXT));
-            layout
+            rootLayout
                     .findElement(STRING_ATTRIBUTES_RENAME_CONTEXT_TEXT, InputText.class)
                     .ifPresent(text -> text.set(selectedAttribute.label().get()));
         });
@@ -244,7 +303,7 @@ public class Main {
             selectedAttribute = new Attribute("New Out", true);
             graph.add(selectedAttribute);
             events.scheduleTask(() -> ImGui.openPopup(STRING_ATTRIBUTES_RENAME_CONTEXT));
-            layout
+            rootLayout
                     .findElement(STRING_ATTRIBUTES_RENAME_CONTEXT_TEXT, InputText.class)
                     .ifPresent(text -> text.set(selectedAttribute.label().get()));
         });
@@ -254,7 +313,7 @@ public class Main {
         });
         events.registerEvent("attributes.attribute-context.rename.click", args -> {
             events.scheduleTask(() -> ImGui.openPopup(STRING_ATTRIBUTES_RENAME_CONTEXT));
-            layout
+            rootLayout
                     .findElement(STRING_ATTRIBUTES_RENAME_CONTEXT_TEXT, InputText.class)
                     .ifPresent(text -> text.set(selectedAttribute.label().get()));
         });
@@ -263,7 +322,6 @@ public class Main {
             selectedAttribute.label().set(payload.value(), true);
             ImGui.closeCurrentPopup();
         });
-
         events.registerEvent("blueprints.create.click", args -> {
             final var copy = graph.copy();
             selectedBlueprint = new Blueprint.Builder()
@@ -277,7 +335,7 @@ public class Main {
             graph.clear();
 
             events.scheduleTask(() -> ImGui.openPopup("blueprints.rename-context"));
-            layout
+            rootLayout
                     .findElement("blueprints.rename-context.text", InputText.class)
                     .ifPresent(text -> text.set(selectedBlueprint.label().get()));
         });
@@ -287,13 +345,13 @@ public class Main {
         });
         events.registerEvent("blueprints.blueprint-context.rename.click", args -> {
             events.scheduleTask(() -> ImGui.openPopup("blueprints.rename-context"));
-            layout
+            rootLayout
                     .findElement("blueprints.rename-context.text", InputText.class)
                     .ifPresent(text -> text.set(selectedBlueprint.label().get()));
         });
         events.registerEvent("blueprints.blueprint-context.color.click", args -> {
             events.scheduleTask(() -> ImGui.openPopup("blueprints.color-context"));
-            layout
+            rootLayout
                     .findElement("blueprints.color-context.color", ColorEdit.class)
                     .ifPresent(color -> color.color(selectedBlueprint.baseColor().get()));
         });
@@ -306,31 +364,78 @@ public class Main {
             ImGui.closeCurrentPopup();
         });
         events.<ColorEdit.Payload>registerEvent("blueprints.color-context.color.select", payload -> selectedBlueprint.baseColor().set(payload.value()));
-
         events.<KeyPayload>registerEvent("key.s.press", payload -> {
             if (payload.control())
                 save();
         });
+        events.<KeyPayload>registerEvent("key.c.press", payload -> {
+            if (payload.control())
+                copy();
+        });
+        events.<KeyPayload>registerEvent("key.d.press", payload -> {
+            if (payload.control())
+                duplicate();
+        });
+        events.<KeyPayload>registerEvent("key.x.press", payload -> {
+            if (payload.control())
+                cut();
+        });
+        events.<KeyPayload>registerEvent("key.v.press", payload -> {
+            if (payload.control())
+                paste();
+        });
 
-        while (!glfwWindowShouldClose(window)) {
-            glfwPollEvents();
+        events.offerService("nodes.copy", payload -> {
+            copy();
+            return null;
+        });
+        events.offerService("nodes.duplicate", payload -> {
+            duplicate();
+            return null;
+        });
+        events.offerService("nodes.cut", payload -> {
+            cut();
+            return null;
+        });
+        events.offerService("nodes.paste", payload -> {
+            paste();
+            return null;
+        });
+    }
 
-            imGuiGl3.newFrame();
-            imGuiGlfw.newFrame();
-            ImGui.newFrame();
+    private void onFrame() {
+        onFrameBegin();
+        onUpdate();
+        onFrameEnd();
+    }
 
-            layout.show();
+    private void onFrameBegin() {
+        glfwPollEvents();
 
-            ImGui.render();
+        imGuiGl3.newFrame();
+        imGuiGlfw.newFrame();
 
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-            imGuiGl3.renderDrawData(ImGui.getDrawData());
+        ImGui.newFrame();
+    }
 
-            glfwSwapBuffers(window);
-        }
+    private void onUpdate() {
+        rootLayout.show();
+    }
 
+    private void onFrameEnd() {
+        ImGui.render();
+
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        imGuiGl3.renderDrawData(ImGui.getDrawData());
+
+        glfwSwapBuffers(window);
+    }
+
+    private void onStop() {
         save();
+    }
 
+    private void onExit() {
         imGuiGl3.shutdown();
         imGuiGlfw.shutdown();
 
@@ -341,18 +446,8 @@ public class Main {
         glfwTerminate();
     }
 
-    private void save() {
-        final var file = new File("project.bff");
-        if (file.exists()) {
-            final var bkp = new File("backup.bff");
-            handle(() -> Files.copy(file.toPath(), bkp.toPath(), REPLACE_EXISTING));
-        }
-
-        handleVoid(() -> context.write(file));
-    }
-
-    private void onKey(long window, int key, int scancode, int action, int mods) {
-        final var id = "key." + switch (key) {
+    private void onKey(final long window, final int key, final int scancode, final int action, final int mods) {
+        final var keyString = switch (key) {
             case GLFW_KEY_SPACE -> "space";
             case GLFW_KEY_ESCAPE -> "escape";
             case GLFW_KEY_ENTER -> "enter";
@@ -409,12 +504,22 @@ public class Main {
             case GLFW_KEY_RIGHT_SUPER -> "right-super";
             case GLFW_KEY_MENU -> "menu";
             default -> glfwGetKeyName(key, scancode);
-        } + switch (action) {
-            case GLFW_RELEASE -> ".release";
-            case GLFW_PRESS -> ".press";
-            case GLFW_REPEAT -> ".repeat";
-            default -> ".none";
         };
-        events.invokeEvent(id, getMods(mods));
+
+        final var actionString = switch (action) {
+            case GLFW_RELEASE -> "release";
+            case GLFW_PRESS -> "press";
+            case GLFW_REPEAT -> "repeat";
+            default -> "none";
+        };
+
+        final var payload = makePayload(key, scancode, action, mods);
+        events.invokeEvent("key", payload);
+        events.invokeEvent("key." + keyString, payload);
+        events.invokeEvent("key." + keyString + '.' + actionString, payload);
+    }
+
+    private void onSize(final long window, final int width, final int height) {
+        onFrame();
     }
 }

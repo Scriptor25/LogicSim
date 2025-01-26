@@ -32,6 +32,16 @@ import java.util.*;
 
 public class Input implements INode {
 
+    public static @NotNull Input parse(final @NotNull Graph graph, final @NotNull String string) {
+        final var split = string.split(",");
+        final var attribute = UUID.fromString(split[1]);
+        return new Input(
+                UUID.randomUUID(),
+                graph
+                        .findAttribute(attribute)
+                        .orElseThrow());
+    }
+
     private final UUID uuid;
     private final Attribute attribute;
     private final Pin pin = new Pin(this, 0, true);
@@ -84,13 +94,16 @@ public class Input implements INode {
 
     @Override
     public boolean isEnd(final @NotNull Graph graph) {
-        return pin.successors(graph).isEmpty();
+        return pin
+                .successors(graph)
+                .findAny()
+                .isEmpty();
     }
 
     @Override
     public @NotNull List<INode> successors(final @NotNull Graph graph) {
-        return graph.findLinks(pin)
-                .stream()
+        return graph
+                .findLinks(pin)
                 .map(link -> link.target().node())
                 .toList();
     }
@@ -129,5 +142,10 @@ public class Input implements INode {
     @Override
     public boolean @NotNull [] exec(final @NotNull Graph graph, final @NotNull Set<INode> executing) {
         return new boolean[]{powered()};
+    }
+
+    @Override
+    public @NotNull String getPvtString() {
+        return "0,%s".formatted(attribute.uuid());
     }
 }

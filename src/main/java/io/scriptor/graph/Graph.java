@@ -58,6 +58,10 @@ public class Graph implements IUnique {
         this.state = new State(registry);
     }
 
+    public @NotNull Registry registry() {
+        return registry;
+    }
+
     public @NotNull UUID uuid() {
         return uuid;
     }
@@ -120,51 +124,75 @@ public class Graph implements IUnique {
     }
 
     public void remove(final @NotNull INode node) {
-        if (!nodes.remove(node)) return;
+        if (!nodes.remove(node))
+            return;
+
         links.removeIf(link -> link.uses(node));
         function = null;
     }
 
     public void remove(final @NotNull Link link) {
-        if (!links.remove(link)) return;
+        if (!links.remove(link))
+            return;
+
         function = null;
     }
 
     public void remove(final @NotNull Attribute attribute) {
-        if (!attributes.remove(attribute)) return;
+        if (!attributes.remove(attribute))
+            return;
+
         function = null;
     }
 
     public @NotNull Optional<INode> findNode(final int id) {
-        return nodes.stream()
+        return nodes
+                .stream()
                 .filter(node -> node.id() == id)
-                .findFirst();
+                .findAny();
+    }
+
+    public @NotNull Optional<INode> findNode(final @NotNull UUID uuid) {
+        return nodes
+                .stream()
+                .filter(node -> node.uuid().equals(uuid))
+                .findAny();
     }
 
     public @NotNull Optional<Link> findLink(final int id) {
-        return links.stream()
+        return links
+                .stream()
                 .filter(link -> link.id() == id)
-                .findFirst();
+                .findAny();
     }
 
     public @NotNull Optional<Link> findLink(final @NotNull Pin pin) {
-        return links.stream()
+        return links
+                .stream()
                 .filter(link -> link.uses(pin))
-                .findFirst();
+                .findAny();
     }
 
-    public @NotNull List<Link> findLinks(final @NotNull Pin pin) {
-        return links.stream()
-                .filter(link -> link.uses(pin))
-                .toList();
+    public @NotNull Stream<Link> findLinks(final @NotNull Pin pin) {
+        return links
+                .stream()
+                .filter(link -> link.uses(pin));
     }
 
     public @NotNull Optional<Pin> findPin(final int id) {
-        return nodes.stream()
+        return nodes
+                .stream()
                 .map(node -> node.pin(id))
                 .filter(Optional::isPresent)
                 .map(Optional::get)
-                .findFirst();
+                .findAny();
+    }
+
+    public @NotNull Optional<Attribute> findAttribute(final @NotNull UUID uuid) {
+        return attributes
+                .stream()
+                .filter(attribute -> attribute.uuid().equals(uuid))
+                .findAny();
     }
 
     public @NotNull Stream<INode> findEntryPoints() {
@@ -172,7 +200,9 @@ public class Graph implements IUnique {
     }
 
     public @NotNull Stream<INode> findExitPoints() {
-        return nodes.stream().filter(node -> node.isEnd(this));
+        return nodes
+                .stream()
+                .filter(node -> node.isEnd(this));
     }
 
     public @NotNull Graph copy() {
