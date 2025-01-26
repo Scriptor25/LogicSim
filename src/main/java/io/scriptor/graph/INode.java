@@ -34,12 +34,13 @@ public interface INode extends IUnique {
 
     static @NotNull INode parse(final @NotNull Graph graph, final @NotNull String string) {
         final var split = string.split(",");
-        final var node = switch (split[0]) {
+        final var node = (switch (split[0]) {
+            case "-1" -> InvalidNode.parse();
             case "0" -> Input.parse(graph, string);
             case "1" -> Output.parse(graph, string);
             case "2" -> Node.parse(graph, string);
             default -> throw new RTException("undefined node type in '%s'", string);
-        };
+        }).orElseGet(InvalidNode::new);
         final var posX = Integer.parseInt(split[2]);
         final var posY = Integer.parseInt(split[3]);
         node.screenPosition(new ImVec2(posX, posY));
@@ -100,7 +101,7 @@ public interface INode extends IUnique {
 
     @NotNull INode copy();
 
-    void compile(final @NotNull Graph graph, final @NotNull Collection<Instruction> instructions, final @NotNull Set<INode> compiled);
+    void compile(final @NotNull Graph graph, final @NotNull Collection<Instruction> instructions, final @NotNull Set<INode> compiling);
 
     boolean @NotNull [] exec(final @NotNull Graph graph, final @NotNull Set<INode> executing);
 

@@ -28,16 +28,13 @@ import java.util.stream.Stream;
 
 public class Node implements INode {
 
-    public static @NotNull Node parse(final @NotNull Graph graph, final @NotNull String string) {
+    public static @NotNull Optional<INode> parse(final @NotNull Graph graph, final @NotNull String string) {
         final var split = string.split(",");
-        final var blueprint = UUID.fromString(split[1]);
-        return new Node(
-                UUID.randomUUID(),
-                graph
-                        .registry()
-                        .context()
-                        .findBlueprint(blueprint)
-                        .orElseThrow());
+        return graph
+                .registry()
+                .context()
+                .findBlueprint(UUID.fromString(split[1]))
+                .map(blueprint -> new Node(UUID.randomUUID(), blueprint));
     }
 
     private final UUID uuid;
@@ -79,11 +76,13 @@ public class Node implements INode {
 
     @Override
     public boolean powered(final @NotNull Graph graph, final boolean output, final int index) {
-        if (output && index < pinOut.length) return pinOut[index];
-        if (!output && index < inputs.length) {
-            final var pre = inputs[index].predecessor(graph);
-            return pre.map(pin -> pin.powered(graph)).orElse(false);
-        }
+        if (output && index < pinOut.length)
+            return pinOut[index];
+        if (!output && index < inputs.length)
+            return inputs[index]
+                    .predecessor(graph)
+                    .map(pin -> pin.powered(graph))
+                    .orElse(false);
         throw new RTException("cannot get powered state of %s pin at index '%d'", output ? "output" : "input", index);
     }
 
@@ -91,8 +90,7 @@ public class Node implements INode {
     public @NotNull Optional<Pin> pin(final int id) {
         return Stream.concat(
                         Arrays.stream(inputs),
-                        Arrays.stream(outputs)
-                )
+                        Arrays.stream(outputs))
                 .filter(x -> x.id() == id)
                 .findFirst();
     }

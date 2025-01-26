@@ -32,14 +32,11 @@ import java.util.*;
 
 public class Input implements INode {
 
-    public static @NotNull Input parse(final @NotNull Graph graph, final @NotNull String string) {
+    public static @NotNull Optional<INode> parse(final @NotNull Graph graph, final @NotNull String string) {
         final var split = string.split(",");
-        final var attribute = UUID.fromString(split[1]);
-        return new Input(
-                UUID.randomUUID(),
-                graph
-                        .findAttribute(attribute)
-                        .orElseThrow());
+        return graph
+                .findAttribute(UUID.fromString(split[1]))
+                .map(attribute -> new Input(UUID.randomUUID(), attribute));
     }
 
     private final UUID uuid;

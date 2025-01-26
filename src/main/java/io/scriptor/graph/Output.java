@@ -33,14 +33,11 @@ import java.util.*;
 
 public class Output implements INode {
 
-    public static @NotNull Output parse(final @NotNull Graph graph, final @NotNull String string) {
+    public static @NotNull Optional<INode> parse(final @NotNull Graph graph, final @NotNull String string) {
         final var split = string.split(",");
-        final var attribute = UUID.fromString(split[1]);
-        return new Output(
-                UUID.randomUUID(),
-                graph
-                        .findAttribute(attribute)
-                        .orElseThrow());
+        return graph
+                .findAttribute(UUID.fromString(split[1]))
+                .map(attribute -> new Output(UUID.randomUUID(), attribute));
     }
 
     private final UUID uuid;
@@ -63,7 +60,8 @@ public class Output implements INode {
 
     @Override
     public @NotNull Pin input(final int i) {
-        if (i == 0) return pin;
+        if (i == 0)
+            return pin;
         throw new RTException("no input pin at index '%d'", i);
     }
 
@@ -74,13 +72,15 @@ public class Output implements INode {
 
     @Override
     public boolean powered(final @NotNull Graph graph, final boolean output, final int index) {
-        if (!output && index == 0) return powered();
+        if (!output && index == 0)
+            return powered();
         throw new RTException("cannot get powered state of %s pin at index '%d'", output ? "output" : "input", index);
     }
 
     @Override
     public @NotNull Optional<Pin> pin(final int id) {
-        if (pin.id() == id) return Optional.of(pin);
+        if (pin.id() == id)
+            return Optional.of(pin);
         return Optional.empty();
     }
 
@@ -123,7 +123,7 @@ public class Output implements INode {
     }
 
     @Override
-    public void compile(final @NotNull Graph graph, final @NotNull Collection<Instruction> instructions, @NotNull Set<INode> compiling) {
+    public void compile(final @NotNull Graph graph, final @NotNull Collection<Instruction> instructions, final @NotNull Set<INode> compiling) {
         final var pre = pin.predecessor(graph);
         final Instruction get;
         if (pre.isPresent()) {
