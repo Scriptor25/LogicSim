@@ -57,6 +57,16 @@ public class InvalidNode implements INode {
     }
 
     @Override
+    public int numInputs() {
+        return inputs.size();
+    }
+
+    @Override
+    public int numOutputs() {
+        return outputs.size();
+    }
+
+    @Override
     public boolean powered(final @NotNull Graph graph, final boolean output, final int index) {
         if (output)
             return false;

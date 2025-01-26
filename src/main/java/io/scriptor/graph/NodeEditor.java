@@ -19,6 +19,7 @@
 package io.scriptor.graph;
 
 import imgui.ImGui;
+import imgui.ImVec2;
 import imgui.extension.imnodes.ImNodes;
 import imgui.extension.imnodes.flag.ImNodesMiniMapLocation;
 import imgui.flag.ImGuiMouseButton;
@@ -57,6 +58,7 @@ public class NodeEditor extends Element {
         getEvents().registerEvent(getParentId() + ".node-context.copy.click", this::onNodeContextCopyClick);
         getEvents().registerEvent(getParentId() + ".node-context.cut.click", this::onNodeContextCutClick);
         getEvents().registerEvent(getParentId() + ".node-context.duplicate.click", this::onNodeContextDuplicateClick);
+        getEvents().registerEvent(getParentId() + ".node-context.replace.click", this::onNodeContextReplaceClick);
         getEvents().registerEvent(getParentId() + ".node-context.delete.click", this::onNodeContextDeleteClick);
         getEvents().registerEvent(getParentId() + ".link-context.delete.click", this::onLinkContextDeleteClick);
         getEvents().registerEvent(getParentId() + ".editor-context.paste.click", this::onEditorContextPasteClick);
@@ -64,14 +66,16 @@ public class NodeEditor extends Element {
         getEvents().registerEvent(getParentId() + ".editor-context.clear.click", args -> graph.clear());
         getEvents().registerEvent(getParentId() + ".add-context.attributes.select", this::onAddContextAttributesSelect);
         getEvents().registerEvent(getParentId() + ".add-context.blueprints.select", this::onAddContextBlueprintsSelect);
+        getEvents().registerEvent(getParentId() + ".replace-context.attributes.select", this::onReplaceContextAttributesSelect);
+        getEvents().registerEvent(getParentId() + ".replace-context.blueprints.select", this::onReplaceContextBlueprintsSelect);
         getEvents().registerEvent(getParentId() + ".delete-context.nodes.click", args -> deleteSelectedNodes());
         getEvents().registerEvent(getParentId() + ".delete-context.links.click", args -> deleteSelectedLinks());
 
         getEvents().<KeyPayload>registerEvent("key.a.press", payload -> {
             if (payload.control())
-                getEvents().scheduleTask(NodeEditor.this, this::handleSelectAll);
+                getEvents().scheduleTask(this, this::handleSelectAll);
         });
-        getEvents().<KeyPayload>registerEvent("key.delete.press", payload -> getEvents().scheduleTask(NodeEditor.this, this::handleDelete));
+        getEvents().<KeyPayload>registerEvent("key.delete.press", payload -> getEvents().scheduleTask(this, this::handleDelete));
     }
 
     public void graph(final @NotNull Graph graph) {
@@ -183,6 +187,16 @@ public class NodeEditor extends Element {
         getEvents().callService("nodes.duplicate", payload);
     }
 
+    private void onNodeContextReplaceClick(final @NotNull IPayload payload) {
+        getEvents().scheduleTask(() -> ImGui.openPopup(getParentId() + ".replace-context"));
+
+        attributes.clearTempFilters();
+        blueprints.clearTempFilters();
+
+        attributes.tempFilter(attribute -> !hoveredNode.uses(attribute));
+        blueprints.tempFilter(blueprint -> !hoveredNode.uses(blueprint));
+    }
+
     private void onNodeContextDeleteClick(final @NotNull IPayload payload) {
         deleteSelectedNodes();
 
@@ -229,7 +243,7 @@ public class NodeEditor extends Element {
 
     private void onAddNode(final @NotNull INode node) {
         graph.add(node);
-        ImNodes.setNodeScreenSpacePos(node.id(), mouseX, mouseY);
+        node.screenPosition(new ImVec2(mouseX, mouseY));
 
         if (source != null) {
             target = source.output()
@@ -260,14 +274,62 @@ public class NodeEditor extends Element {
         blueprints.clearTempFilters();
     }
 
+    private void onReplaceContextAttributesSelect(final @NotNull Array.Payload<Attribute> payload) {
+        final var attribute = payload.value();
+
+        final INode node;
+        if (attribute.output())
+            node = new Output(UUID.randomUUID(), attribute);
+        else
+            node = new Input(UUID.randomUUID(), attribute);
+
+        onReplaceNode(node);
+    }
+
+    private void onReplaceContextBlueprintsSelect(final @NotNull Array.Payload<Blueprint> payload) {
+        final var blueprint = payload.value();
+        final var node = new Node(UUID.randomUUID(), blueprint);
+
+        onReplaceNode(node);
+    }
+
+    private void onReplaceNode(final @NotNull INode node) {
+        node.screenPosition(hoveredNode.screenPosition());
+
+        final List<Link> newLinks = new ArrayList<>();
+
+        graph
+                .links()
+                .filter(link -> link.uses(hoveredNode))
+                .forEach(link -> {
+                    if (link.source().node() == hoveredNode && link.source().index() < node.numOutputs()) {
+                        newLinks.add(new Link(UUID.randomUUID(), node.output(link.source().index()), link.target()));
+                    } else if (link.target().node() == hoveredNode && link.target().index() < node.numInputs()) {
+                        newLinks.add(new Link(UUID.randomUUID(), link.source(), node.input(link.target().index())));
+                    }
+                });
+
+        graph.remove(hoveredNode);
+        graph.add(node);
+        newLinks.forEach(graph::add);
+
+        attributes.clearTempFilters();
+        blueprints.clearTempFilters();
+    }
+
     @Override
     protected void onStart() {
         getRoot()
                 .findElement(getParentId() + ".add-context.attributes", Array.class)
                 .ifPresent(array -> array.setRange(attributes));
-
         getRoot()
                 .findElement(getParentId() + ".add-context.blueprints", Array.class)
+                .ifPresent(array -> array.setRange(blueprints));
+        getRoot()
+                .findElement(getParentId() + ".replace-context.attributes", Array.class)
+                .ifPresent(array -> array.setRange(attributes));
+        getRoot()
+                .findElement(getParentId() + ".replace-context.blueprints", Array.class)
                 .ifPresent(array -> array.setRange(blueprints));
     }
 
@@ -336,7 +398,7 @@ public class NodeEditor extends Element {
                         .findLink(hoveredLinkId)
                         .ifPresent(link -> hoveredLink = link);
             } else if (isEditorHovered) {
-                getEvents().scheduleTask(() -> ImGui.openPopup(getParentId() + ".editor-context"));
+                getEvents().scheduleTask(this, () -> ImGui.openPopup(getParentId() + ".editor-context"));
             }
         }
     }

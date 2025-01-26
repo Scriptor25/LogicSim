@@ -87,6 +87,10 @@ public interface INode extends IUnique {
 
     @NotNull Pin output(final int i);
 
+    int numInputs();
+
+    int numOutputs();
+
     boolean powered(final @NotNull Graph graph, final boolean output, final int index);
 
     @NotNull Optional<Pin> pin(final int id);
@@ -96,6 +100,14 @@ public interface INode extends IUnique {
     boolean isEnd(final @NotNull Graph graph);
 
     @NotNull List<INode> successors(final @NotNull Graph graph);
+
+    default boolean uses(final @NotNull Attribute attribute) {
+        return false;
+    }
+
+    default boolean uses(final @NotNull Blueprint blueprint) {
+        return false;
+    }
 
     void show(final @NotNull Graph graph);
 

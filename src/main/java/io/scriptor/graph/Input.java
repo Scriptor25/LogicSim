@@ -73,6 +73,16 @@ public class Input implements INode {
     }
 
     @Override
+    public int numInputs() {
+        return 0;
+    }
+
+    @Override
+    public int numOutputs() {
+        return 1;
+    }
+
+    @Override
     public boolean powered(final @NotNull Graph graph, final boolean output, final int index) {
         if (output && index == 0) return powered();
         throw new RTException("cannot get powered state of %s pin at index '%d'", output ? "output" : "input", index);
@@ -103,6 +113,11 @@ public class Input implements INode {
                 .findLinks(pin)
                 .map(link -> link.target().node())
                 .toList();
+    }
+
+    @Override
+    public boolean uses(final @NotNull Attribute attribute) {
+        return this.attribute == attribute;
     }
 
     @Override

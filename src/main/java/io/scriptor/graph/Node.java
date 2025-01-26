@@ -75,6 +75,16 @@ public class Node implements INode {
     }
 
     @Override
+    public int numInputs() {
+        return inputs.length;
+    }
+
+    @Override
+    public int numOutputs() {
+        return outputs.length;
+    }
+
+    @Override
     public boolean powered(final @NotNull Graph graph, final boolean output, final int index) {
         if (output && index < pinOut.length)
             return pinOut[index];
@@ -123,6 +133,11 @@ public class Node implements INode {
                         .map(link -> link.target().node())
                         .forEach(consumer))
                 .toList();
+    }
+
+    @Override
+    public boolean uses(final @NotNull Blueprint blueprint) {
+        return this.blueprint == blueprint;
     }
 
     @Override

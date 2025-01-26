@@ -7,4 +7,5 @@ elements:
   - use: link-context
   - use: editor-context
   - use: add-context
+  - use: replace-context
   - use: delete-context

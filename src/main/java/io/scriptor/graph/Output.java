@@ -71,6 +71,16 @@ public class Output implements INode {
     }
 
     @Override
+    public int numInputs() {
+        return 1;
+    }
+
+    @Override
+    public int numOutputs() {
+        return 0;
+    }
+
+    @Override
     public boolean powered(final @NotNull Graph graph, final boolean output, final int index) {
         if (!output && index == 0)
             return powered();
@@ -97,6 +107,11 @@ public class Output implements INode {
     @Override
     public @NotNull List<INode> successors(final @NotNull Graph graph) {
         return List.of();
+    }
+
+    @Override
+    public boolean uses(final @NotNull Attribute attribute) {
+        return this.attribute == attribute;
     }
 
     @Override

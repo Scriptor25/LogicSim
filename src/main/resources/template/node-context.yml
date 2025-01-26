@@ -14,5 +14,8 @@ content:
       id: duplicate
       label: "Duplicate"
     - type: selectable
+      id: replace
+      label: "Replace"
+    - type: selectable
       id: delete
       label: "Delete"
