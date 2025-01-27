@@ -1,18 +1,18 @@
 /*
  * This file is part of https://github.com/Scriptor25/LogicSim
- * 
+ *
  * Copyright (C) 2025  Felix Schreiber
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see https://www.gnu.org/licenses/.
  */
@@ -23,15 +23,15 @@ import org.jetbrains.annotations.NotNull;
 
 public class TypeID {
 
-    public static final int GET_ATTRIB_INSTRUCTION = 1;
-    public static final int SET_ATTRIB_INSTRUCTION = 2;
-    public static final int GET_REG_INSTRUCTION = 3;
-    public static final int SET_REG_INSTRUCTION = 4;
-    public static final int CALL_INSTRUCTION = 5;
-    public static final int GET_RESULT_INSTRUCTION = 6;
-    public static final int CONST_INSTRUCTION = 7;
+    public static final byte GET_ATTRIB_INSTRUCTION = 1;
+    public static final byte SET_ATTRIB_INSTRUCTION = 2;
+    public static final byte GET_REG_INSTRUCTION = 3;
+    public static final byte SET_REG_INSTRUCTION = 4;
+    public static final byte CALL_INSTRUCTION = 5;
+    public static final byte GET_RESULT_INSTRUCTION = 6;
+    public static final byte CONST_INSTRUCTION = 7;
 
-    public static @NotNull Class<? extends Instruction> toClass(final int typeId) {
+    public static @NotNull Class<? extends Instruction> toClass(final byte typeId) {
         return switch (typeId) {
             case GET_ATTRIB_INSTRUCTION -> GetAttribInstruction.class;
             case SET_ATTRIB_INSTRUCTION -> SetAttribInstruction.class;
@@ -44,7 +44,7 @@ public class TypeID {
         };
     }
 
-    public static int fromClass(final @NotNull Class<? extends Instruction> type) {
+    public static byte fromClass(final @NotNull Class<? extends Instruction> type) {
         if (type == GetAttribInstruction.class)
             return GET_ATTRIB_INSTRUCTION;
         if (type == SetAttribInstruction.class)

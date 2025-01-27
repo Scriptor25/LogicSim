@@ -22,7 +22,6 @@ import io.scriptor.function.AndFunction;
 import io.scriptor.function.Function;
 import io.scriptor.function.IFunction;
 import io.scriptor.function.NotFunction;
-import io.scriptor.util.IOStream;
 import io.scriptor.util.RTException;
 import org.jetbrains.annotations.NotNull;
 
@@ -33,6 +32,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+
+import static io.scriptor.util.IO.*;
 
 /**
  * The registry stores and manages blueprint functions.
@@ -57,14 +58,14 @@ public class Registry {
      */
     public Registry(final @NotNull Context context, final @NotNull InputStream inputStream) throws IOException {
         this.context = context;
-        final var functionCount = IOStream.readInt(inputStream);
+        final var functionCount = readInt(inputStream);
         for (int i = 0; i < functionCount; ++i) {
-            final var functionType = IOStream.readInt(inputStream);
-            final var function = switch (functionType) {
+            final var typeId = readByte(inputStream);
+            final var function = switch (typeId) {
                 case 0 -> NotFunction.read(inputStream);
                 case 1 -> AndFunction.read(inputStream);
                 case 2 -> Function.read(inputStream);
-                default -> throw new RTException("invalid function type '%d'", functionType);
+                default -> throw new RTException("invalid function type id '%d'", typeId);
             };
             add(function);
         }
@@ -77,7 +78,7 @@ public class Registry {
      * @throws IOException if any
      */
     public void write(final @NotNull OutputStream outputStream) throws IOException {
-        IOStream.write(outputStream, functions.size());
+        writeInt(outputStream, functions.size());
         for (final var function : functions.values())
             function.write(outputStream);
     }

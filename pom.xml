@@ -182,6 +182,40 @@
                 <lwjgl.natives>natives-windows-arm64</lwjgl.natives>
             </properties>
         </profile>
+        <profile>
+            <id>imgui-java-natives-windows</id>
+            <activation>
+                <os>
+                    <family>windows</family>
+                </os>
+            </activation>
+            <properties>
+                <imgui.java.natives>imgui-java-natives-windows</imgui.java.natives>
+            </properties>
+        </profile>
+        <profile>
+            <id>imgui-java-natives-linux</id>
+            <activation>
+                <os>
+                    <family>unix</family>
+                    <name>linux</name>
+                </os>
+            </activation>
+            <properties>
+                <imgui.java.natives>imgui-java-natives-linux</imgui.java.natives>
+            </properties>
+        </profile>
+        <profile>
+            <id>imgui-java-natives-macos</id>
+            <activation>
+                <os>
+                    <family>mac</family>
+                </os>
+            </activation>
+            <properties>
+                <imgui.java.natives>imgui-java-natives-macos</imgui.java.natives>
+            </properties>
+        </profile>
     </profiles>
 
     <dependencyManagement>
@@ -255,17 +289,7 @@
         </dependency>
         <dependency>
             <groupId>io.github.spair</groupId>
-            <artifactId>imgui-java-natives-windows</artifactId>
-            <version>${imgui.java.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.github.spair</groupId>
-            <artifactId>imgui-java-natives-linux</artifactId>
-            <version>${imgui.java.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.github.spair</groupId>
-            <artifactId>imgui-java-natives-macos</artifactId>
+            <artifactId>${imgui.java.natives}</artifactId>
             <version>${imgui.java.version}</version>
         </dependency>
 

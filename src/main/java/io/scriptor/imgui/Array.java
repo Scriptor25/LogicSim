@@ -39,12 +39,14 @@ public class Array extends Element {
         this.event = id + '.' + event;
     }
 
-    public <T> void setRange(final @Nullable Range<T> range) {
+    public <T> @NotNull Array range(final @Nullable Range<T> range) {
         this.range = range;
+        return this;
     }
 
-    public <T> void setElement(final @Nullable ICustomView<T> element) {
+    public <T> @NotNull Array element(final @Nullable ICustomView<T> element) {
         this.element = element;
+        return this;
     }
 
     @Override

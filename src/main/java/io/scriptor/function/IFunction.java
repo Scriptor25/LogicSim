@@ -19,7 +19,7 @@
 package io.scriptor.function;
 
 import io.scriptor.context.State;
-import io.scriptor.util.IOStream;
+import io.scriptor.util.IO;
 import io.scriptor.util.IUnique;
 import org.jetbrains.annotations.NotNull;
 
@@ -37,7 +37,7 @@ public interface IFunction extends IUnique {
      *
      * @return the type id
      */
-    int typeId();
+    byte typeId();
 
     /**
      * Get the number of inputs.
@@ -69,7 +69,7 @@ public interface IFunction extends IUnique {
      * @throws IOException if any
      */
     default void write(final @NotNull OutputStream outputStream) throws IOException {
-        IOStream.write(outputStream, typeId());
-        IOStream.write(outputStream, uuid());
+        IO.writeByte(outputStream, typeId());
+        IO.writeUUID(outputStream, uuid());
     }
 }

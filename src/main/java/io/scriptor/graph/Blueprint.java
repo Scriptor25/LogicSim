@@ -1,18 +1,18 @@
 /*
  * This file is part of https://github.com/Scriptor25/LogicSim
- * 
+ *
  * Copyright (C) 2025  Felix Schreiber
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see https://www.gnu.org/licenses/.
  */
@@ -24,10 +24,9 @@ import imgui.extension.imnodes.ImNodes;
 import imgui.extension.imnodes.flag.ImNodesCol;
 import imgui.type.ImInt;
 import imgui.type.ImString;
-import io.scriptor.Constants;
 import io.scriptor.context.Context;
 import io.scriptor.function.IFunction;
-import io.scriptor.util.IOStream;
+import io.scriptor.util.Constants;
 import io.scriptor.util.IUnique;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -36,6 +35,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.*;
+
+import static io.scriptor.util.IO.*;
 
 public record Blueprint(
         @NotNull UUID uuid,
@@ -97,39 +98,42 @@ public record Blueprint(
     }
 
     public static void read(final @NotNull InputStream in, final @NotNull Context context) throws IOException {
-        final var uuid = IOStream.readUUID(in);
+        final var uuid = readUUID(in);
 
         final var builder = new Builder()
                 .uuid(uuid)
-                .label(IOStream.readString(in))
-                .baseColor(IOStream.readInt(in));
+                .label(readString(in))
+                .baseColor(readInt(in));
 
-        final var inputs = new String[IOStream.readInt(in)];
+        final var inputs = new String[readInt(in)];
         for (int i = 0; i < inputs.length; ++i)
-            inputs[i] = IOStream.readString(in);
+            inputs[i] = readString(in);
         builder.inputs(inputs);
 
-        final var outputs = new String[IOStream.readInt(in)];
+        final var outputs = new String[readInt(in)];
         for (int i = 0; i < outputs.length; ++i)
-            outputs[i] = IOStream.readString(in);
+            outputs[i] = readString(in);
         builder.outputs(outputs);
 
         context.registry()
-                .get(IOStream.readUUID(in))
-                .ifPresent(fn -> context.add(builder.function(fn).build()));
+                .get(readUUID(in))
+                .ifPresent(fn -> context.add(
+                        builder
+                                .function(fn)
+                                .build()));
     }
 
     public void write(final @NotNull OutputStream outputStream) throws IOException {
-        IOStream.write(outputStream, uuid);
-        IOStream.write(outputStream, label.get());
-        IOStream.write(outputStream, baseColor.get());
-        IOStream.write(outputStream, inputs.length);
+        writeUUID(outputStream, uuid);
+        writeString(outputStream, label.get());
+        writeInt(outputStream, baseColor.get());
+        writeInt(outputStream, inputs.length);
         for (final var input : inputs)
-            IOStream.write(outputStream, input);
-        IOStream.write(outputStream, outputs.length);
+            writeString(outputStream, input);
+        writeInt(outputStream, outputs.length);
         for (final var output : outputs)
-            IOStream.write(outputStream, output);
-        IOStream.write(outputStream, function.uuid());
+            writeString(outputStream, output);
+        writeUUID(outputStream, function.uuid());
     }
 
     @Override

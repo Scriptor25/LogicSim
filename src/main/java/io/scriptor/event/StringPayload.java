@@ -16,30 +16,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see https://www.gnu.org/licenses/.
  */
-package io.scriptor.instruction;
+package io.scriptor.event;
 
-import io.scriptor.context.State;
-import io.scriptor.util.RTException;
 import org.jetbrains.annotations.NotNull;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.util.UUID;
-
-import static io.scriptor.util.IO.writeUUID;
-
-public interface Instruction {
-
-    @NotNull UUID uuid();
-
-    default void write(final @NotNull OutputStream outputStream) throws IOException {
-        writeUUID(outputStream, uuid());
-    }
-
-    default boolean get(final @NotNull State state) {
-        throw new RTException();
-    }
-
-    default void exec(final @NotNull State state) {
-    }
+public record StringPayload(@NotNull String value) implements IPayload {
 }

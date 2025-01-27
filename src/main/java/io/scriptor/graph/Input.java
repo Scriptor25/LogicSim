@@ -21,7 +21,7 @@ package io.scriptor.graph;
 import imgui.ImGui;
 import imgui.extension.imnodes.ImNodes;
 import imgui.extension.imnodes.flag.ImNodesCol;
-import io.scriptor.Constants;
+import io.scriptor.util.Constants;
 import io.scriptor.instruction.GetAttribInstruction;
 import io.scriptor.instruction.Instruction;
 import io.scriptor.instruction.SetRegInstruction;

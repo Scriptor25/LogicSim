@@ -19,7 +19,7 @@
 package io.scriptor.function;
 
 import io.scriptor.context.State;
-import io.scriptor.util.IOStream;
+import io.scriptor.util.IO;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
@@ -34,12 +34,12 @@ import java.util.UUID;
 public record AndFunction(@NotNull UUID uuid) implements IFunction {
 
     public static IFunction read(final @NotNull InputStream inputStream) throws IOException {
-        final var uuid = IOStream.readUUID(inputStream);
+        final var uuid = IO.readUUID(inputStream);
         return new AndFunction(uuid);
     }
 
     @Override
-    public int typeId() {
+    public byte typeId() {
         return 1;
     }
 

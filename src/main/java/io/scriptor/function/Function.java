@@ -21,7 +21,6 @@ package io.scriptor.function;
 import io.scriptor.context.State;
 import io.scriptor.instruction.Instruction;
 import io.scriptor.instruction.TypeID;
-import io.scriptor.util.IOStream;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -31,6 +30,7 @@ import java.io.OutputStream;
 import java.lang.reflect.Array;
 import java.util.*;
 
+import static io.scriptor.util.IO.*;
 import static io.scriptor.util.Task.handleVoid;
 
 /**
@@ -46,17 +46,17 @@ public class Function implements IFunction, Collection<Instruction> {
      * @throws IOException if any
      */
     public static @NotNull IFunction read(final @NotNull InputStream inputStream) throws IOException {
-        final var uuid = IOStream.readUUID(inputStream);
-        final var inputs = new UUID[IOStream.readInt(inputStream)];
+        final var uuid = readUUID(inputStream);
+        final var inputs = new UUID[readInt(inputStream)];
         for (int i = 0; i < inputs.length; ++i)
-            inputs[i] = IOStream.readUUID(inputStream);
-        final var outputs = new UUID[IOStream.readInt(inputStream)];
+            inputs[i] = readUUID(inputStream);
+        final var outputs = new UUID[readInt(inputStream)];
         for (int i = 0; i < outputs.length; ++i)
-            outputs[i] = IOStream.readUUID(inputStream);
+            outputs[i] = readUUID(inputStream);
         final var function = new Function(uuid, inputs, outputs);
-        final var instructions = IOStream.readInt(inputStream);
+        final var instructions = readInt(inputStream);
         for (int i = 0; i < instructions; ++i) {
-            final var typeId = IOStream.readInt(inputStream);
+            final var typeId = readByte(inputStream);
             handleVoid(() -> TypeID
                     .toClass(typeId)
                     .getMethod("read", InputStream.class, Function.class)
@@ -134,7 +134,7 @@ public class Function implements IFunction, Collection<Instruction> {
     }
 
     @Override
-    public int typeId() {
+    public byte typeId() {
         return 2;
     }
 
@@ -161,15 +161,15 @@ public class Function implements IFunction, Collection<Instruction> {
     @Override
     public void write(final @NotNull OutputStream outputStream) throws IOException {
         IFunction.super.write(outputStream);
-        IOStream.write(outputStream, numInputs());
+        writeInt(outputStream, numInputs());
         for (final var input : inputs)
-            IOStream.write(outputStream, input);
-        IOStream.write(outputStream, numOutputs());
+            writeUUID(outputStream, input);
+        writeInt(outputStream, numOutputs());
         for (final var output : outputs)
-            IOStream.write(outputStream, output);
-        IOStream.write(outputStream, size);
+            writeUUID(outputStream, output);
+        writeInt(outputStream, size);
         for (final var instruction : this) {
-            IOStream.write(outputStream, TypeID.fromClass(instruction.getClass()));
+            writeByte(outputStream, TypeID.fromClass(instruction.getClass()));
             instruction.write(outputStream);
         }
     }

@@ -20,7 +20,6 @@ package io.scriptor.instruction;
 
 import io.scriptor.context.State;
 import io.scriptor.function.Function;
-import io.scriptor.util.IOStream;
 import io.scriptor.util.RTException;
 import org.jetbrains.annotations.NotNull;
 
@@ -29,6 +28,9 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.UUID;
 
+import static io.scriptor.util.IO.readUUID;
+import static io.scriptor.util.IO.writeUUID;
+
 public record SetAttribInstruction(
         @NotNull UUID uuid,
         @NotNull UUID attrib,
@@ -36,9 +38,9 @@ public record SetAttribInstruction(
 ) implements Instruction {
 
     public static void read(final @NotNull InputStream inputStream, final @NotNull Function function) throws IOException {
-        final var uuid = IOStream.readUUID(inputStream);
-        final var attrib = IOStream.readUUID(inputStream);
-        final var value = IOStream.readUUID(inputStream);
+        final var uuid = readUUID(inputStream);
+        final var attrib = readUUID(inputStream);
+        final var value = readUUID(inputStream);
         final var valueInstruction = function.find(value);
         if (valueInstruction == null)
             throw new RTException("invalid value instruction id %s", value);
@@ -52,8 +54,8 @@ public record SetAttribInstruction(
     @Override
     public void write(final @NotNull OutputStream outputStream) throws IOException {
         Instruction.super.write(outputStream);
-        IOStream.write(outputStream, attrib);
-        IOStream.write(outputStream, value.uuid());
+        writeUUID(outputStream, attrib);
+        writeUUID(outputStream, value.uuid());
     }
 
     @Override

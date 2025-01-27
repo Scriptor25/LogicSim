@@ -27,6 +27,8 @@ import imgui.glfw.ImGuiImplGlfw;
 import imgui.type.ImString;
 import io.scriptor.context.Context;
 import io.scriptor.event.EventManager;
+import io.scriptor.event.KeyPayload;
+import io.scriptor.event.StringPayload;
 import io.scriptor.graph.Attribute;
 import io.scriptor.graph.Blueprint;
 import io.scriptor.graph.Graph;
@@ -36,61 +38,33 @@ import io.scriptor.imgui.ColorEdit;
 import io.scriptor.imgui.InputText;
 import io.scriptor.imgui.Layout;
 import io.scriptor.resource.ResourceManager;
-import io.scriptor.util.KeyPayload;
 import io.scriptor.util.RTException;
 import io.scriptor.util.Range;
+import org.jetbrains.annotations.NotNull;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.glfw.GLFWImage;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.system.MemoryStack;
 
-import javax.imageio.ImageIO;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.Comparator;
-import java.util.Date;
-import java.util.logging.ConsoleHandler;
-import java.util.logging.Formatter;
-import java.util.logging.LogRecord;
-import java.util.logging.Logger;
+import java.util.HashMap;
+import java.util.Map;
 
+import static io.scriptor.util.ID.*;
 import static io.scriptor.util.Task.handle;
 import static io.scriptor.util.Task.handleVoid;
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
+import static java.util.Objects.requireNonNullElse;
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
+import static org.lwjgl.stb.STBImage.stbi_image_free;
+import static org.lwjgl.stb.STBImage.stbi_load_from_memory;
 import static org.lwjgl.system.MemoryUtil.NULL;
 
 public class Main {
-
-    private static final String STRING_ATTRIBUTES_RENAME_CONTEXT = "attributes.rename-context";
-    private static final String STRING_ATTRIBUTES_RENAME_CONTEXT_TEXT = "attributes.rename-context.text";
-
-    private static Logger logger;
-
-    public static Logger getLogger() {
-        if (logger != null)
-            return logger;
-
-        logger = Logger.getLogger("io.scriptor");
-
-        final var handler = new ConsoleHandler();
-        handler.setFormatter(new Formatter() {
-            @Override
-            public String format(final LogRecord rec) {
-                return "[%s][%s]%n%s%n".formatted(
-                        new Date(rec.getMillis()),
-                        rec.getLevel(),
-                        rec.getMessage());
-            }
-        });
-
-        logger.setUseParentHandlers(false);
-        logger.addHandler(handler);
-
-        return logger;
-    }
 
     private static KeyPayload makePayload(final int key, final int scancode, final int action, final int mods) {
         final var mod_shift = (mods & GLFW_MOD_SHIFT) != 0;
@@ -127,55 +101,36 @@ public class Main {
     private EventManager events;
     private Layout rootLayout;
 
+    private Graph graph;
+
     private Attribute selectedAttribute;
     private Blueprint selectedBlueprint;
 
     private Main() {
         onInit();
         onStart();
-        while (!glfwWindowShouldClose(window)) {
+        while (!glfwWindowShouldClose(window))
             onFrame();
-        }
         onStop();
         onExit();
+    }
+
+    private void load() {
+        final var file = new File("project.bff");
+        if (file.exists()) {
+            context = handle(() -> new Context(file));
+        } else {
+            context = new Context();
+        }
     }
 
     private void save() {
         final var file = new File("project.bff");
         if (file.exists()) {
             final var bkp = new File("backup.bff");
-            handle(() -> Files.copy(file.toPath(), bkp.toPath(), REPLACE_EXISTING));
+            handleVoid(() -> Files.copy(file.toPath(), bkp.toPath(), REPLACE_EXISTING));
         }
-
         handleVoid(() -> context.write(file));
-    }
-
-    private void copy() {
-        rootLayout
-                .findElement("editor.editor", NodeEditor.class)
-                .ifPresent(editor -> glfwSetClipboardString(window, editor.copy()));
-    }
-
-    private void duplicate() {
-        rootLayout
-                .findElement("editor.editor", NodeEditor.class)
-                .ifPresent(NodeEditor::duplicate);
-    }
-
-    private void cut() {
-        rootLayout
-                .findElement("editor.editor", NodeEditor.class)
-                .ifPresent(editor -> glfwSetClipboardString(window, editor.cut()));
-    }
-
-    private void paste() {
-        final var data = glfwGetClipboardString(window);
-        if (data == null)
-            return;
-
-        rootLayout
-                .findElement("editor.editor", NodeEditor.class)
-                .ifPresent(editor -> editor.paste(data));
     }
 
     private void onInit() {
@@ -188,34 +143,18 @@ public class Main {
         window = glfwCreateWindow(1024, 768, "Java Logic Sim", NULL, NULL);
 
         try (final var iconStream = ClassLoader.getSystemResourceAsStream("image/icon.png")) {
-            if (iconStream != null) {
-                final var icon = handle(() -> ImageIO.read(iconStream));
-                assert icon != null;
-
-                final var width = icon.getWidth();
-                final var height = icon.getHeight();
-                final var rgb = new int[width * height];
-                icon.getRGB(0, 0, width, height, rgb, 0, width);
-
-                for (int i = 0; i < rgb.length; ++i) {
-                    final var alpha = (rgb[i] >> 24) & 0xff;
-                    final var blue = (rgb[i] >> 16) & 0xff;
-                    final var green = (rgb[i] >> 8) & 0xff;
-                    final var red = rgb[i] & 0xff;
-                    rgb[i] = (alpha << 24) | (red << 16) | (green << 8) | blue;
-                }
-
-                try (final var stack = MemoryStack.stackPush()) {
-                    final var pixels = stack.malloc(width * height * Integer.BYTES);
-                    pixels.asIntBuffer().put(rgb);
-
-                    final var images = GLFWImage.malloc(1, stack);
-                    final var image = images.get(0);
-                    image.width(width);
-                    image.height(height);
-                    image.pixels(pixels);
-                    glfwSetWindowIcon(window, images);
-                }
+            assert iconStream != null;
+            try (final var stack = MemoryStack.stackPush()) {
+                final var buffer = stack.bytes(iconStream.readAllBytes());
+                final var width = new int[1];
+                final var height = new int[1];
+                final var pixels = stbi_load_from_memory(buffer, width, height, new int[1], 4);
+                assert pixels != null;
+                final var images = GLFWImage.malloc(1, stack);
+                final var image = images.get(0);
+                image.set(width[0], height[0], pixels);
+                glfwSetWindowIcon(window, images);
+                stbi_image_free(pixels);
             }
         } catch (final IOException e) {
             throw new RTException(e);
@@ -239,24 +178,124 @@ public class Main {
         imGuiGl3.init();
     }
 
+    private static boolean attributeCustomView(final @NotNull Attribute value) {
+        if (value.output()) ImGui.beginDisabled();
+        ImGui.checkbox("##powered", value.powered());
+        if (value.output()) ImGui.endDisabled();
+        ImGui.sameLine();
+        return ImGui.selectable(value.label().get());
+    }
+
+    private void onAddInput() {
+        selectedAttribute = new Attribute("New In", false);
+        graph.add(selectedAttribute);
+        events.scheduleTask(() -> ImGui.openPopup(ID_ATTRIBUTES_RENAME_CONTEXT));
+        rootLayout
+                .findElement(ID_ATTRIBUTES_RENAME_CONTEXT_TEXT, InputText.class)
+                .ifPresent(text -> text.set(selectedAttribute.label().get()));
+    }
+
+    private void onAddOutput() {
+        selectedAttribute = new Attribute("New Out", true);
+        graph.add(selectedAttribute);
+        events.scheduleTask(() -> ImGui.openPopup(ID_ATTRIBUTES_RENAME_CONTEXT));
+        rootLayout
+                .findElement(ID_ATTRIBUTES_RENAME_CONTEXT_TEXT, InputText.class)
+                .ifPresent(text -> text.set(selectedAttribute.label().get()));
+    }
+
+    private void onAttributeSelect(final @NotNull Array.Payload<Attribute> payload) {
+        events.scheduleTask(() -> ImGui.openPopup(ID_ATTRIBUTES_ATTRIBUTE_CONTEXT));
+        selectedAttribute = payload.value();
+    }
+
+    private void onAttributeRename() {
+        events.scheduleTask(() -> ImGui.openPopup(ID_ATTRIBUTES_RENAME_CONTEXT));
+        rootLayout
+                .findElement(ID_ATTRIBUTES_RENAME_CONTEXT_TEXT, InputText.class)
+                .ifPresent(text -> text.set(selectedAttribute.label().get()));
+    }
+
+    private void onAttributeDelete() {
+        graph.remove(selectedAttribute);
+    }
+
+    private void onAttributeRenameEnter(final @NotNull InputText.Payload payload) {
+        selectedAttribute.label().set(payload.value(), true);
+        ImGui.closeCurrentPopup();
+    }
+
+    private void onBlueprintCreate() {
+        final var copy = graph.copy();
+        selectedBlueprint = new Blueprint.Builder()
+                .label("New Blueprint")
+                .baseColor(ImColor.rgb((float) Math.random(), (float) Math.random(), (float) Math.random()))
+                .inputs(copy
+                        .inputs()
+                        .map(Attribute::label)
+                        .map(ImString::get)
+                        .toArray(String[]::new))
+                .outputs(copy
+                        .outputs()
+                        .map(Attribute::label)
+                        .map(ImString::get)
+                        .toArray(String[]::new))
+                .function(copy.compile(true))
+                .build();
+        context.add(selectedBlueprint);
+        graph.clear();
+
+        events.scheduleTask(() -> ImGui.openPopup(ID_BLUEPRINTS_RENAME_CONTEXT));
+        rootLayout
+                .findElement(ID_BLUEPRINTS_RENAME_CONTEXT_TEXT, InputText.class)
+                .ifPresent(text -> text.set(selectedBlueprint.label().get()));
+    }
+
+    private void onBlueprintSelect(final @NotNull Array.Payload<Blueprint> payload) {
+        events.scheduleTask(() -> ImGui.openPopup(ID_BLUEPRINTS_BLUEPRINT_CONTEXT));
+        selectedBlueprint = payload.value();
+    }
+
+    private void onBlueprintRename() {
+        events.scheduleTask(() -> ImGui.openPopup(ID_BLUEPRINTS_RENAME_CONTEXT));
+        rootLayout
+                .findElement(ID_BLUEPRINTS_RENAME_CONTEXT_TEXT, InputText.class)
+                .ifPresent(text -> text.set(selectedBlueprint.label().get()));
+    }
+
+    private void onBlueprintColor() {
+        events.scheduleTask(() -> ImGui.openPopup(ID_BLUEPRINTS_COLOR_CONTEXT));
+        rootLayout
+                .findElement(ID_BLUEPRINTS_COLOR_CONTEXT_COLOR, ColorEdit.class)
+                .ifPresent(color -> color.color(selectedBlueprint.baseColor().get()));
+    }
+
+    private void onBlueprintDelete() {
+        context.remove(selectedBlueprint);
+        context.registry().remove(selectedBlueprint.function());
+    }
+
+    private void onBlueprintRenameEnter(final @NotNull InputText.Payload payload) {
+        selectedBlueprint.label().set(payload.value(), true);
+        ImGui.closeCurrentPopup();
+    }
+
+    private void onBlueprintColorSelect(final @NotNull ColorEdit.Payload payload) {
+        selectedBlueprint
+                .baseColor()
+                .set(payload.value());
+    }
+
     private void onStart() {
-        final var file = new File("project.bff");
+        load();
 
-        if (file.exists()) {
-            context = handle(() -> new Context(file));
-            assert context != null;
-        } else {
-            context = new Context();
-        }
-
+        graph = new Graph(context.registry());
         events = new EventManager();
-
-        final var graph = new Graph(context.registry());
         final var resources = new ResourceManager();
 
         rootLayout = resources.parseLayout(events, "layout/main.yml");
         rootLayout
-                .findElement("editor.editor", NodeEditor.class)
+                .findElement(ID_EDITOR_EDITOR, NodeEditor.class)
                 .ifPresent(editor -> {
                     editor.graph(graph);
                     graph.attributes(editor.attributes());
@@ -273,134 +312,35 @@ public class Main {
         graph.attributes(attributeRange);
         attributeRange.sorted(Comparator.comparing(Attribute::output));
         rootLayout
-                .findElement("attributes.container.array", Array.class)
-                .ifPresent(array -> {
-                    array.setRange(attributeRange);
-                    array.<Attribute>setElement(value -> {
-                        if (value.output()) ImGui.beginDisabled();
-                        ImGui.checkbox("##powered", value.powered());
-                        if (value.output()) ImGui.endDisabled();
-                        ImGui.sameLine();
-                        return ImGui.selectable(value.label().get());
-                    });
-                });
+                .findElement(ID_ATTRIBUTES_CONTAINER_ARRAY, Array.class)
+                .ifPresent(array -> array
+                        .range(attributeRange)
+                        .element(Main::attributeCustomView));
 
         final var blueprintRange = new Range<>(context.blueprints(), Blueprint.class);
         blueprintRange.sorted(Comparator.comparing(Blueprint::label));
         rootLayout
-                .findElement("blueprints.container.array", Array.class)
-                .ifPresent(array -> array.setRange(blueprintRange));
+                .findElement(ID_BLUEPRINTS_CONTAINER_ARRAY, Array.class)
+                .ifPresent(array -> array.range(blueprintRange));
 
-        events.registerEvent("attributes.add-input.click", args -> {
-            selectedAttribute = new Attribute("New In", false);
-            graph.add(selectedAttribute);
-            events.scheduleTask(() -> ImGui.openPopup(STRING_ATTRIBUTES_RENAME_CONTEXT));
-            rootLayout
-                    .findElement(STRING_ATTRIBUTES_RENAME_CONTEXT_TEXT, InputText.class)
-                    .ifPresent(text -> text.set(selectedAttribute.label().get()));
-        });
-        events.registerEvent("attributes.add-output.click", args -> {
-            selectedAttribute = new Attribute("New Out", true);
-            graph.add(selectedAttribute);
-            events.scheduleTask(() -> ImGui.openPopup(STRING_ATTRIBUTES_RENAME_CONTEXT));
-            rootLayout
-                    .findElement(STRING_ATTRIBUTES_RENAME_CONTEXT_TEXT, InputText.class)
-                    .ifPresent(text -> text.set(selectedAttribute.label().get()));
-        });
-        events.<Array.Payload<Attribute>>registerEvent("attributes.container.array.select", payload -> {
-            events.scheduleTask(() -> ImGui.openPopup("attributes.attribute-context"));
-            selectedAttribute = payload.value();
-        });
-        events.registerEvent("attributes.attribute-context.rename.click", args -> {
-            events.scheduleTask(() -> ImGui.openPopup(STRING_ATTRIBUTES_RENAME_CONTEXT));
-            rootLayout
-                    .findElement(STRING_ATTRIBUTES_RENAME_CONTEXT_TEXT, InputText.class)
-                    .ifPresent(text -> text.set(selectedAttribute.label().get()));
-        });
-        events.registerEvent("attributes.attribute-context.delete.click", args -> graph.remove(selectedAttribute));
-        events.<InputText.Payload>registerEvent("attributes.rename-context.text.enter", payload -> {
-            selectedAttribute.label().set(payload.value(), true);
-            ImGui.closeCurrentPopup();
-        });
-        events.registerEvent("blueprints.create.click", args -> {
-            final var copy = graph.copy();
-            selectedBlueprint = new Blueprint.Builder()
-                    .label("New")
-                    .baseColor(ImColor.rgb((float) Math.random(), (float) Math.random(), (float) Math.random()))
-                    .inputs(copy.inputs().map(Attribute::label).map(ImString::get).toArray(String[]::new))
-                    .outputs(copy.outputs().map(Attribute::label).map(ImString::get).toArray(String[]::new))
-                    .function(copy.compile(true))
-                    .build();
-            context.add(selectedBlueprint);
-            graph.clear();
+        events.registerEvent(ID_ATTRIBUTES_ADD_INPUT_CLICK, this::onAddInput);
+        events.registerEvent(ID_ATTRIBUTES_ADD_OUTPUT_CLICK, this::onAddOutput);
+        events.registerEvent(ID_ATTRIBUTES_CONTAINER_ARRAY_SELECT, this::onAttributeSelect);
+        events.registerEvent(ID_ATTRIBUTES_ATTRIBUTE_CONTEXT_RENAME_CLICK, this::onAttributeRename);
+        events.registerEvent(ID_ATTRIBUTES_ATTRIBUTE_CONTEXT_DELETE_CLICK, this::onAttributeDelete);
+        events.registerEvent(ID_ATTRIBUTES_RENAME_CONTEXT_TEXT_ENTER, this::onAttributeRenameEnter);
+        events.registerEvent(ID_BLUEPRINTS_CREATE_CLICK, this::onBlueprintCreate);
+        events.registerEvent(ID_BLUEPRINTS_CONTAINER_ARRAY_SELECT, this::onBlueprintSelect);
+        events.registerEvent(ID_BLUEPRINTS_BLUEPRINT_CONTEXT_RENAME_CLICK, this::onBlueprintRename);
+        events.registerEvent(ID_BLUEPRINTS_BLUEPRINT_CONTEXT_COLOR_CLICK, this::onBlueprintColor);
+        events.registerEvent(ID_BLUEPRINTS_BLUEPRINT_CONTEXT_DELETE_CLICK, this::onBlueprintDelete);
+        events.registerEvent(ID_BLUEPRINTS_RENAME_CONTEXT_TEXT_ENTER, this::onBlueprintRenameEnter);
+        events.registerEvent(ID_BLUEPRINTS_COLOR_CONTEXT_COLOR_SELECT, this::onBlueprintColorSelect);
 
-            events.scheduleTask(() -> ImGui.openPopup("blueprints.rename-context"));
-            rootLayout
-                    .findElement("blueprints.rename-context.text", InputText.class)
-                    .ifPresent(text -> text.set(selectedBlueprint.label().get()));
-        });
-        events.<Array.Payload<Blueprint>>registerEvent("blueprints.container.array.select", payload -> {
-            events.scheduleTask(() -> ImGui.openPopup("blueprints.blueprint-context"));
-            selectedBlueprint = payload.value();
-        });
-        events.registerEvent("blueprints.blueprint-context.rename.click", args -> {
-            events.scheduleTask(() -> ImGui.openPopup("blueprints.rename-context"));
-            rootLayout
-                    .findElement("blueprints.rename-context.text", InputText.class)
-                    .ifPresent(text -> text.set(selectedBlueprint.label().get()));
-        });
-        events.registerEvent("blueprints.blueprint-context.color.click", args -> {
-            events.scheduleTask(() -> ImGui.openPopup("blueprints.color-context"));
-            rootLayout
-                    .findElement("blueprints.color-context.color", ColorEdit.class)
-                    .ifPresent(color -> color.color(selectedBlueprint.baseColor().get()));
-        });
-        events.registerEvent("blueprints.blueprint-context.delete.click", args -> {
-            context.remove(selectedBlueprint);
-            context.registry().remove(selectedBlueprint.function());
-        });
-        events.<InputText.Payload>registerEvent("blueprints.rename-context.text.enter", payload -> {
-            selectedBlueprint.label().set(payload.value(), true);
-            ImGui.closeCurrentPopup();
-        });
-        events.<ColorEdit.Payload>registerEvent("blueprints.color-context.color.select", payload -> selectedBlueprint.baseColor().set(payload.value()));
-        events.<KeyPayload>registerEvent("key.s.press", payload -> {
-            if (payload.control())
-                save();
-        });
-        events.<KeyPayload>registerEvent("key.c.press", payload -> {
-            if (payload.control())
-                copy();
-        });
-        events.<KeyPayload>registerEvent("key.d.press", payload -> {
-            if (payload.control())
-                duplicate();
-        });
-        events.<KeyPayload>registerEvent("key.x.press", payload -> {
-            if (payload.control())
-                cut();
-        });
-        events.<KeyPayload>registerEvent("key.v.press", payload -> {
-            if (payload.control())
-                paste();
-        });
+        events.<KeyPayload>registerEvent("key.s.press+control", payload -> save());
 
-        events.offerService("nodes.copy", payload -> {
-            copy();
-            return null;
-        });
-        events.offerService("nodes.duplicate", payload -> {
-            duplicate();
-            return null;
-        });
-        events.offerService("nodes.cut", payload -> {
-            cut();
-            return null;
-        });
-        events.offerService("nodes.paste", payload -> {
-            paste();
-            return null;
-        });
+        events.offerService(ID_CLIPBOARD_GET, () -> requireNonNullElse(glfwGetClipboardString(window), ""));
+        events.<StringPayload>offerService(ID_CLIPBOARD_SET, payload -> glfwSetClipboardString(window, payload.value()));
     }
 
     private void onFrame() {
@@ -446,65 +386,68 @@ public class Main {
         glfwTerminate();
     }
 
+    private static final Map<Integer, String> keymap = new HashMap<>();
+
+    static {
+        keymap.put(GLFW_KEY_SPACE, "space");
+        keymap.put(GLFW_KEY_ESCAPE, "escape");
+        keymap.put(GLFW_KEY_ENTER, "enter");
+        keymap.put(GLFW_KEY_TAB, "tab");
+        keymap.put(GLFW_KEY_BACKSPACE, "backspace");
+        keymap.put(GLFW_KEY_INSERT, "insert");
+        keymap.put(GLFW_KEY_DELETE, "delete");
+        keymap.put(GLFW_KEY_RIGHT, "right");
+        keymap.put(GLFW_KEY_LEFT, "left");
+        keymap.put(GLFW_KEY_DOWN, "down");
+        keymap.put(GLFW_KEY_UP, "up");
+        keymap.put(GLFW_KEY_PAGE_UP, "page-up");
+        keymap.put(GLFW_KEY_PAGE_DOWN, "page-down");
+        keymap.put(GLFW_KEY_HOME, "home");
+        keymap.put(GLFW_KEY_END, "end");
+        keymap.put(GLFW_KEY_CAPS_LOCK, "caps-lock");
+        keymap.put(GLFW_KEY_SCROLL_LOCK, "scroll-lock");
+        keymap.put(GLFW_KEY_NUM_LOCK, "num-lock");
+        keymap.put(GLFW_KEY_PRINT_SCREEN, "print-screen");
+        keymap.put(GLFW_KEY_PAUSE, "pause");
+        keymap.put(GLFW_KEY_F1, "f1");
+        keymap.put(GLFW_KEY_F2, "f2");
+        keymap.put(GLFW_KEY_F3, "f3");
+        keymap.put(GLFW_KEY_F4, "f4");
+        keymap.put(GLFW_KEY_F5, "f5");
+        keymap.put(GLFW_KEY_F6, "f6");
+        keymap.put(GLFW_KEY_F7, "f7");
+        keymap.put(GLFW_KEY_F8, "f8");
+        keymap.put(GLFW_KEY_F9, "f9");
+        keymap.put(GLFW_KEY_F10, "f10");
+        keymap.put(GLFW_KEY_F11, "f11");
+        keymap.put(GLFW_KEY_F12, "f12");
+        keymap.put(GLFW_KEY_F13, "f13");
+        keymap.put(GLFW_KEY_F14, "f14");
+        keymap.put(GLFW_KEY_F15, "f15");
+        keymap.put(GLFW_KEY_F16, "f16");
+        keymap.put(GLFW_KEY_F17, "f17");
+        keymap.put(GLFW_KEY_F18, "f18");
+        keymap.put(GLFW_KEY_F19, "f19");
+        keymap.put(GLFW_KEY_F20, "f20");
+        keymap.put(GLFW_KEY_F21, "f21");
+        keymap.put(GLFW_KEY_F22, "f22");
+        keymap.put(GLFW_KEY_F23, "f23");
+        keymap.put(GLFW_KEY_F24, "f24");
+        keymap.put(GLFW_KEY_F25, "f25");
+        keymap.put(GLFW_KEY_KP_ENTER, "kp-enter");
+        keymap.put(GLFW_KEY_LEFT_SHIFT, "left-shift");
+        keymap.put(GLFW_KEY_LEFT_CONTROL, "left-control");
+        keymap.put(GLFW_KEY_LEFT_ALT, "left-alt");
+        keymap.put(GLFW_KEY_LEFT_SUPER, "left-super");
+        keymap.put(GLFW_KEY_RIGHT_SHIFT, "right-shift");
+        keymap.put(GLFW_KEY_RIGHT_CONTROL, "right-control");
+        keymap.put(GLFW_KEY_RIGHT_ALT, "right-alt");
+        keymap.put(GLFW_KEY_RIGHT_SUPER, "right-super");
+        keymap.put(GLFW_KEY_MENU, "menu");
+    }
+
     private void onKey(final long window, final int key, final int scancode, final int action, final int mods) {
-        final var keyString = switch (key) {
-            case GLFW_KEY_SPACE -> "space";
-            case GLFW_KEY_ESCAPE -> "escape";
-            case GLFW_KEY_ENTER -> "enter";
-            case GLFW_KEY_TAB -> "tab";
-            case GLFW_KEY_BACKSPACE -> "backspace";
-            case GLFW_KEY_INSERT -> "insert";
-            case GLFW_KEY_DELETE -> "delete";
-            case GLFW_KEY_RIGHT -> "right";
-            case GLFW_KEY_LEFT -> "left";
-            case GLFW_KEY_DOWN -> "down";
-            case GLFW_KEY_UP -> "up";
-            case GLFW_KEY_PAGE_UP -> "page-up";
-            case GLFW_KEY_PAGE_DOWN -> "page-down";
-            case GLFW_KEY_HOME -> "home";
-            case GLFW_KEY_END -> "end";
-            case GLFW_KEY_CAPS_LOCK -> "caps-lock";
-            case GLFW_KEY_SCROLL_LOCK -> "scroll-lock";
-            case GLFW_KEY_NUM_LOCK -> "num-lock";
-            case GLFW_KEY_PRINT_SCREEN -> "print-screen";
-            case GLFW_KEY_PAUSE -> "pause";
-            case GLFW_KEY_F1 -> "f1";
-            case GLFW_KEY_F2 -> "f2";
-            case GLFW_KEY_F3 -> "f3";
-            case GLFW_KEY_F4 -> "f4";
-            case GLFW_KEY_F5 -> "f5";
-            case GLFW_KEY_F6 -> "f6";
-            case GLFW_KEY_F7 -> "f7";
-            case GLFW_KEY_F8 -> "f8";
-            case GLFW_KEY_F9 -> "f9";
-            case GLFW_KEY_F10 -> "f10";
-            case GLFW_KEY_F11 -> "f11";
-            case GLFW_KEY_F12 -> "f12";
-            case GLFW_KEY_F13 -> "f13";
-            case GLFW_KEY_F14 -> "f14";
-            case GLFW_KEY_F15 -> "f15";
-            case GLFW_KEY_F16 -> "f16";
-            case GLFW_KEY_F17 -> "f17";
-            case GLFW_KEY_F18 -> "f18";
-            case GLFW_KEY_F19 -> "f19";
-            case GLFW_KEY_F20 -> "f20";
-            case GLFW_KEY_F21 -> "f21";
-            case GLFW_KEY_F22 -> "f22";
-            case GLFW_KEY_F23 -> "f23";
-            case GLFW_KEY_F24 -> "f24";
-            case GLFW_KEY_F25 -> "f25";
-            case GLFW_KEY_KP_ENTER -> "kp-enter";
-            case GLFW_KEY_LEFT_SHIFT -> "left-shift";
-            case GLFW_KEY_LEFT_CONTROL -> "left-control";
-            case GLFW_KEY_LEFT_ALT -> "left-alt";
-            case GLFW_KEY_LEFT_SUPER -> "left-super";
-            case GLFW_KEY_RIGHT_SHIFT -> "right-shift";
-            case GLFW_KEY_RIGHT_CONTROL -> "right-control";
-            case GLFW_KEY_RIGHT_ALT -> "right-alt";
-            case GLFW_KEY_RIGHT_SUPER -> "right-super";
-            case GLFW_KEY_MENU -> "menu";
-            default -> glfwGetKeyName(key, scancode);
-        };
+        final var keyString = keymap.computeIfAbsent(key, k -> glfwGetKeyName(key, scancode));
 
         final var actionString = switch (action) {
             case GLFW_RELEASE -> "release";
@@ -515,8 +458,26 @@ public class Main {
 
         final var payload = makePayload(key, scancode, action, mods);
         events.invokeEvent("key", payload);
-        events.invokeEvent("key." + keyString, payload);
-        events.invokeEvent("key." + keyString + '.' + actionString, payload);
+
+        final var id = new StringBuilder();
+        id
+                .append("key.")
+                .append(keyString)
+                .append('.')
+                .append(actionString);
+        if (payload.shift())
+            id.append("+shift");
+        if (payload.control())
+            id.append("+control");
+        if (payload.alt())
+            id.append("+alt");
+        if (payload.super_())
+            id.append("+super");
+        if (payload.caps())
+            id.append("+caps");
+        if (payload.num())
+            id.append("+num");
+        events.invokeEvent(id.toString(), payload);
     }
 
     private void onSize(final long window, final int width, final int height) {

@@ -25,40 +25,40 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.UUID;
 
-public class IOStream {
+public class IO {
 
-    public static void write(final @NotNull OutputStream outputStream, final @NotNull UUID uuid) throws IOException {
-        write(outputStream, uuid.getMostSignificantBits());
-        write(outputStream, uuid.getLeastSignificantBits());
+    public static void writeUUID(final @NotNull OutputStream outputStream, final @NotNull UUID uuid) throws IOException {
+        writeLong(outputStream, uuid.getMostSignificantBits());
+        writeLong(outputStream, uuid.getLeastSignificantBits());
     }
 
-    public static void write(final @NotNull OutputStream outputStream, final @NotNull String string) throws IOException {
+    public static void writeString(final @NotNull OutputStream outputStream, final @NotNull String string) throws IOException {
         final var bytes = string.getBytes();
-        write(outputStream, bytes.length);
+        writeInt(outputStream, bytes.length);
         outputStream.write(bytes);
     }
 
-    public static void write(final @NotNull OutputStream outputStream, final boolean value) throws IOException {
+    public static void writeBool(final @NotNull OutputStream outputStream, final boolean value) throws IOException {
         outputStream.write(value ? 1 : 0);
     }
 
-    public static void write(final @NotNull OutputStream outputStream, final byte value) throws IOException {
+    public static void writeByte(final @NotNull OutputStream outputStream, final byte value) throws IOException {
         outputStream.write(value);
     }
 
-    public static void write(final @NotNull OutputStream outputStream, final short value) throws IOException {
+    public static void writeShort(final @NotNull OutputStream outputStream, final short value) throws IOException {
         outputStream.write((byte) (value >> 8));
         outputStream.write((byte) value);
     }
 
-    public static void write(final @NotNull OutputStream outputStream, final int value) throws IOException {
+    public static void writeInt(final @NotNull OutputStream outputStream, final int value) throws IOException {
         outputStream.write((byte) (value >> 24));
         outputStream.write((byte) (value >> 16));
         outputStream.write((byte) (value >> 8));
         outputStream.write((byte) value);
     }
 
-    public static void write(final @NotNull OutputStream outputStream, final long value) throws IOException {
+    public static void writeLong(final @NotNull OutputStream outputStream, final long value) throws IOException {
         outputStream.write((byte) (value >> 56));
         outputStream.write((byte) (value >> 48));
         outputStream.write((byte) (value >> 40));
@@ -69,7 +69,7 @@ public class IOStream {
         outputStream.write((byte) value);
     }
 
-    public static UUID readUUID(final @NotNull InputStream inputStream) throws IOException {
+    public static @NotNull UUID readUUID(final @NotNull InputStream inputStream) throws IOException {
         final var msb = readLong(inputStream);
         final var lsb = readLong(inputStream);
         return new UUID(msb, lsb);
@@ -83,7 +83,7 @@ public class IOStream {
         return new String(bytes);
     }
 
-    public static boolean readBoolean(final @NotNull InputStream inputStream) throws IOException {
+    public static boolean readBool(final @NotNull InputStream inputStream) throws IOException {
         return inputStream.read() != 0;
     }
 
@@ -120,6 +120,6 @@ public class IOStream {
         return value;
     }
 
-    private IOStream() {
+    private IO() {
     }
 }

@@ -21,7 +21,6 @@ package io.scriptor.context;
 import io.scriptor.function.AndFunction;
 import io.scriptor.function.NotFunction;
 import io.scriptor.graph.Blueprint;
-import io.scriptor.util.IOStream;
 import io.scriptor.util.Task;
 import org.jetbrains.annotations.NotNull;
 
@@ -31,6 +30,9 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.util.*;
+
+import static io.scriptor.util.IO.readInt;
+import static io.scriptor.util.IO.writeInt;
 
 /**
  * The context manages the function registry and blueprint storage.
@@ -101,7 +103,7 @@ public class Context {
     public Context(final @NotNull InputStream inputStream, final boolean closeStream) throws IOException {
         registry = new Registry(this, inputStream);
 
-        final var count = IOStream.readInt(inputStream);
+        final var count = readInt(inputStream);
         for (int i = 0; i < count; ++i)
             Blueprint.read(inputStream, this);
 
@@ -139,7 +141,7 @@ public class Context {
     public void write(final @NotNull OutputStream outputStream, final boolean closeStream) throws IOException {
         registry.write(outputStream);
 
-        IOStream.write(outputStream, blueprints.size());
+        writeInt(outputStream, blueprints.size());
         blueprints.forEach(blueprint -> Task.handleVoid(() -> blueprint.write(outputStream)));
 
         if (closeStream)

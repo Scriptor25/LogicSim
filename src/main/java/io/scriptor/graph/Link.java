@@ -20,7 +20,7 @@ package io.scriptor.graph;
 
 import imgui.extension.imnodes.ImNodes;
 import imgui.extension.imnodes.flag.ImNodesCol;
-import io.scriptor.Constants;
+import io.scriptor.util.Constants;
 import io.scriptor.util.IUnique;
 import org.jetbrains.annotations.NotNull;
 

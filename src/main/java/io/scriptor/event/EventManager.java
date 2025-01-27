@@ -25,6 +25,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 /**
  * The event manager handles events, services and tasks on an application-wide scale, enabling communication between systems at runtime.
@@ -46,6 +48,10 @@ public class EventManager {
         eventMap
                 .computeIfAbsent(id, key -> new ArrayList<>())
                 .add(listener);
+    }
+
+    public void registerEvent(final @NotNull Object id, final @NotNull Runnable listener) {
+        registerEvent(id, payload -> listener.run());
     }
 
     /**
@@ -77,6 +83,24 @@ public class EventManager {
         serviceMap.put(id, callback);
     }
 
+    public <T extends IPayload> void offerService(final @NotNull Object id, final @NotNull Consumer<T> callback) {
+        this.<Void, T>offerService(id, payload -> {
+            callback.accept(payload);
+            return null;
+        });
+    }
+
+    public <R> void offerService(final @NotNull Object id, final @NotNull Supplier<R> callback) {
+        this.<R, IPayload>offerService(id, payload -> callback.get());
+    }
+
+    public void offerService(final @NotNull Object id, final @NotNull Runnable callback) {
+        this.<Void, IPayload>offerService(id, payload -> {
+            callback.run();
+            return null;
+        });
+    }
+
     /**
      * Call a service and return the result. If no service is registered for the id, an exception is thrown.
      *
@@ -92,6 +116,20 @@ public class EventManager {
         if (!serviceMap.containsKey(id))
             throw new RTException("service for id '%s' does not exist", id);
         return ((IServiceCallback<R, T>) serviceMap.get(id)).call(payload);
+    }
+
+    public <R> R callService(final @NotNull Object id) {
+        return callService(id, new IPayload() {
+        });
+    }
+
+    public <T extends IPayload> void callVoidService(final @NotNull Object id, final @NotNull T payload) {
+        callService(id, payload);
+    }
+
+    public void callVoidService(final @NotNull Object id) {
+        callService(id, new IPayload() {
+        });
     }
 
     /**
