@@ -37,11 +37,11 @@ public record SetRegInstruction(
         @NotNull Instruction value
 ) implements Instruction {
 
-    public static void read(final @NotNull InputStream inputStream, final @NotNull Function function) throws IOException {
-        final var uuid = readUUID(inputStream);
-        final var reg = readUUID(inputStream);
-        final var index = readInt(inputStream);
-        final var value = readUUID(inputStream);
+    public static void read(final @NotNull InputStream stream, final @NotNull Function function) throws IOException {
+        final var uuid = readUUID(stream);
+        final var reg = readUUID(stream);
+        final var index = readInt(stream);
+        final var value = readUUID(stream);
         final var valueInstruction = function.find(value);
         if (valueInstruction == null)
             throw new RTException("invalid value instruction id %s", value);
@@ -53,11 +53,11 @@ public record SetRegInstruction(
     }
 
     @Override
-    public void write(final @NotNull OutputStream outputStream) throws IOException {
-        Instruction.super.write(outputStream);
-        writeUUID(outputStream, reg);
-        writeInt(outputStream, index);
-        writeUUID(outputStream, value.uuid());
+    public void write(final @NotNull OutputStream stream) throws IOException {
+        Instruction.super.write(stream);
+        writeUUID(stream, reg);
+        writeInt(stream, index);
+        writeUUID(stream, value.uuid());
     }
 
     @Override

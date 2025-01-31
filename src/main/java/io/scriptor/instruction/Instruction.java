@@ -32,8 +32,8 @@ public interface Instruction {
 
     @NotNull UUID uuid();
 
-    default void write(final @NotNull OutputStream outputStream) throws IOException {
-        writeUUID(outputStream, uuid());
+    default void write(final @NotNull OutputStream stream) throws IOException {
+        writeUUID(stream, uuid());
     }
 
     default boolean get(final @NotNull State state) {

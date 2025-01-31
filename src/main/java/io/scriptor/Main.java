@@ -18,29 +18,18 @@
  */
 package io.scriptor;
 
-import imgui.ImColor;
 import imgui.ImGui;
 import imgui.extension.imnodes.ImNodes;
 import imgui.flag.ImGuiConfigFlags;
 import imgui.gl3.ImGuiImplGl3;
 import imgui.glfw.ImGuiImplGlfw;
-import imgui.type.ImString;
 import io.scriptor.context.Context;
 import io.scriptor.event.EventManager;
 import io.scriptor.event.KeyPayload;
 import io.scriptor.event.StringPayload;
-import io.scriptor.graph.Attribute;
-import io.scriptor.graph.Blueprint;
-import io.scriptor.graph.Graph;
-import io.scriptor.graph.NodeEditor;
-import io.scriptor.imgui.Array;
-import io.scriptor.imgui.ColorEdit;
-import io.scriptor.imgui.InputText;
-import io.scriptor.imgui.Layout;
-import io.scriptor.resource.ResourceManager;
 import io.scriptor.util.RTException;
-import io.scriptor.util.Range;
-import org.jetbrains.annotations.NotNull;
+import io.scriptor.view.BlueprintView;
+import io.scriptor.view.EditorView;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.glfw.GLFWImage;
 import org.lwjgl.opengl.GL;
@@ -49,11 +38,13 @@ import org.lwjgl.system.MemoryStack;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.util.Comparator;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
-import static io.scriptor.util.ID.*;
+import static io.scriptor.util.Constants.ID_CLIPBOARD_GET;
+import static io.scriptor.util.Constants.ID_CLIPBOARD_SET;
 import static io.scriptor.util.Task.handle;
 import static io.scriptor.util.Task.handleVoid;
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
@@ -99,12 +90,9 @@ public class Main {
 
     private Context context;
     private EventManager events;
-    private Layout rootLayout;
 
-    private Graph graph;
-
-    private Attribute selectedAttribute;
-    private Blueprint selectedBlueprint;
+    private final List<EditorView> editors = new ArrayList<>();
+    private BlueprintView blueprints;
 
     private Main() {
         onInit();
@@ -118,9 +106,9 @@ public class Main {
     private void load() {
         final var file = new File("project.bff");
         if (file.exists()) {
-            context = handle(() -> new Context(file));
+            context = handle(() -> Context.read(file));
         } else {
-            context = new Context();
+            context = new Context(true);
         }
     }
 
@@ -178,169 +166,18 @@ public class Main {
         imGuiGl3.init();
     }
 
-    private static boolean attributeCustomView(final @NotNull Attribute value) {
-        if (value.output()) ImGui.beginDisabled();
-        ImGui.checkbox("##powered", value.powered());
-        if (value.output()) ImGui.endDisabled();
-        ImGui.sameLine();
-        return ImGui.selectable(value.label().get());
-    }
-
-    private void onAddInput() {
-        selectedAttribute = new Attribute("New In", false);
-        graph.add(selectedAttribute);
-        events.scheduleTask(() -> ImGui.openPopup(ID_ATTRIBUTES_RENAME_CONTEXT));
-        rootLayout
-                .findElement(ID_ATTRIBUTES_RENAME_CONTEXT_TEXT, InputText.class)
-                .ifPresent(text -> text.set(selectedAttribute.label().get()));
-    }
-
-    private void onAddOutput() {
-        selectedAttribute = new Attribute("New Out", true);
-        graph.add(selectedAttribute);
-        events.scheduleTask(() -> ImGui.openPopup(ID_ATTRIBUTES_RENAME_CONTEXT));
-        rootLayout
-                .findElement(ID_ATTRIBUTES_RENAME_CONTEXT_TEXT, InputText.class)
-                .ifPresent(text -> text.set(selectedAttribute.label().get()));
-    }
-
-    private void onAttributeSelect(final @NotNull Array.Payload<Attribute> payload) {
-        events.scheduleTask(() -> ImGui.openPopup(ID_ATTRIBUTES_ATTRIBUTE_CONTEXT));
-        selectedAttribute = payload.value();
-    }
-
-    private void onAttributeRename() {
-        events.scheduleTask(() -> ImGui.openPopup(ID_ATTRIBUTES_RENAME_CONTEXT));
-        rootLayout
-                .findElement(ID_ATTRIBUTES_RENAME_CONTEXT_TEXT, InputText.class)
-                .ifPresent(text -> text.set(selectedAttribute.label().get()));
-    }
-
-    private void onAttributeDelete() {
-        graph.remove(selectedAttribute);
-    }
-
-    private void onAttributeRenameEnter(final @NotNull InputText.Payload payload) {
-        selectedAttribute.label().set(payload.value(), true);
-        ImGui.closeCurrentPopup();
-    }
-
-    private void onBlueprintCreate() {
-        final var copy = graph.copy();
-        selectedBlueprint = new Blueprint.Builder()
-                .label("New Blueprint")
-                .baseColor(ImColor.rgb((float) Math.random(), (float) Math.random(), (float) Math.random()))
-                .inputs(copy
-                        .inputs()
-                        .map(Attribute::label)
-                        .map(ImString::get)
-                        .toArray(String[]::new))
-                .outputs(copy
-                        .outputs()
-                        .map(Attribute::label)
-                        .map(ImString::get)
-                        .toArray(String[]::new))
-                .function(copy.compile(true))
-                .build();
-        context.add(selectedBlueprint);
-        graph.clear();
-
-        events.scheduleTask(() -> ImGui.openPopup(ID_BLUEPRINTS_RENAME_CONTEXT));
-        rootLayout
-                .findElement(ID_BLUEPRINTS_RENAME_CONTEXT_TEXT, InputText.class)
-                .ifPresent(text -> text.set(selectedBlueprint.label().get()));
-    }
-
-    private void onBlueprintSelect(final @NotNull Array.Payload<Blueprint> payload) {
-        events.scheduleTask(() -> ImGui.openPopup(ID_BLUEPRINTS_BLUEPRINT_CONTEXT));
-        selectedBlueprint = payload.value();
-    }
-
-    private void onBlueprintRename() {
-        events.scheduleTask(() -> ImGui.openPopup(ID_BLUEPRINTS_RENAME_CONTEXT));
-        rootLayout
-                .findElement(ID_BLUEPRINTS_RENAME_CONTEXT_TEXT, InputText.class)
-                .ifPresent(text -> text.set(selectedBlueprint.label().get()));
-    }
-
-    private void onBlueprintColor() {
-        events.scheduleTask(() -> ImGui.openPopup(ID_BLUEPRINTS_COLOR_CONTEXT));
-        rootLayout
-                .findElement(ID_BLUEPRINTS_COLOR_CONTEXT_COLOR, ColorEdit.class)
-                .ifPresent(color -> color.color(selectedBlueprint.baseColor().get()));
-    }
-
-    private void onBlueprintDelete() {
-        context.remove(selectedBlueprint);
-        context.registry().remove(selectedBlueprint.function());
-    }
-
-    private void onBlueprintRenameEnter(final @NotNull InputText.Payload payload) {
-        selectedBlueprint.label().set(payload.value(), true);
-        ImGui.closeCurrentPopup();
-    }
-
-    private void onBlueprintColorSelect(final @NotNull ColorEdit.Payload payload) {
-        selectedBlueprint
-                .baseColor()
-                .set(payload.value());
-    }
-
     private void onStart() {
         load();
 
-        graph = new Graph(context.registry());
         events = new EventManager();
-        final var resources = new ResourceManager();
-
-        rootLayout = resources.parseLayout(events, "layout/main.yml");
-        rootLayout
-                .findElement(ID_EDITOR_EDITOR, NodeEditor.class)
-                .ifPresent(editor -> {
-                    editor.graph(graph);
-                    graph.attributes(editor.attributes());
-                    editor.blueprints(context.blueprints());
-                });
-
-        graph.add(new Attribute("In A", false));
-        graph.add(new Attribute("In B", false));
-        graph.add(new Attribute("Out", true));
-
-        rootLayout.start();
-
-        final var attributeRange = new Range<>(Attribute.class);
-        graph.attributes(attributeRange);
-        attributeRange.sorted(Comparator.comparing(Attribute::output));
-        rootLayout
-                .findElement(ID_ATTRIBUTES_CONTAINER_ARRAY, Array.class)
-                .ifPresent(array -> array
-                        .range(attributeRange)
-                        .element(Main::attributeCustomView));
-
-        final var blueprintRange = new Range<>(context.blueprints(), Blueprint.class);
-        blueprintRange.sorted(Comparator.comparing(Blueprint::label));
-        rootLayout
-                .findElement(ID_BLUEPRINTS_CONTAINER_ARRAY, Array.class)
-                .ifPresent(array -> array.range(blueprintRange));
-
-        events.registerEvent(ID_ATTRIBUTES_ADD_INPUT_CLICK, this::onAddInput);
-        events.registerEvent(ID_ATTRIBUTES_ADD_OUTPUT_CLICK, this::onAddOutput);
-        events.registerEvent(ID_ATTRIBUTES_CONTAINER_ARRAY_SELECT, this::onAttributeSelect);
-        events.registerEvent(ID_ATTRIBUTES_ATTRIBUTE_CONTEXT_RENAME_CLICK, this::onAttributeRename);
-        events.registerEvent(ID_ATTRIBUTES_ATTRIBUTE_CONTEXT_DELETE_CLICK, this::onAttributeDelete);
-        events.registerEvent(ID_ATTRIBUTES_RENAME_CONTEXT_TEXT_ENTER, this::onAttributeRenameEnter);
-        events.registerEvent(ID_BLUEPRINTS_CREATE_CLICK, this::onBlueprintCreate);
-        events.registerEvent(ID_BLUEPRINTS_CONTAINER_ARRAY_SELECT, this::onBlueprintSelect);
-        events.registerEvent(ID_BLUEPRINTS_BLUEPRINT_CONTEXT_RENAME_CLICK, this::onBlueprintRename);
-        events.registerEvent(ID_BLUEPRINTS_BLUEPRINT_CONTEXT_COLOR_CLICK, this::onBlueprintColor);
-        events.registerEvent(ID_BLUEPRINTS_BLUEPRINT_CONTEXT_DELETE_CLICK, this::onBlueprintDelete);
-        events.registerEvent(ID_BLUEPRINTS_RENAME_CONTEXT_TEXT_ENTER, this::onBlueprintRenameEnter);
-        events.registerEvent(ID_BLUEPRINTS_COLOR_CONTEXT_COLOR_SELECT, this::onBlueprintColorSelect);
-
         events.<KeyPayload>registerEvent("key.s.press+control", payload -> save());
-
         events.offerService(ID_CLIPBOARD_GET, () -> requireNonNullElse(glfwGetClipboardString(window), ""));
         events.<StringPayload>offerService(ID_CLIPBOARD_SET, payload -> glfwSetClipboardString(window, payload.value()));
+
+        blueprints = new BlueprintView(events, context, blueprint -> {
+            context.add(blueprint);
+            editors.add(new EditorView(events, blueprint));
+        });
     }
 
     private void onFrame() {
@@ -359,7 +196,12 @@ public class Main {
     }
 
     private void onUpdate() {
-        rootLayout.show();
+        events.runTasks();
+
+        ImGui.dockSpaceOverViewport();
+        editors.forEach(EditorView::show);
+
+        blueprints.show();
     }
 
     private void onFrameEnd() {

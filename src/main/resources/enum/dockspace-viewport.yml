@@ -1,7 +1,0 @@
-type: enum
-id: dockspace-viewport
-entries:
-  - name: main
-    value: 0
-  - name: window
-    value: 1

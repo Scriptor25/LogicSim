@@ -36,10 +36,10 @@ public record GetResultInstruction(
         int index
 ) implements Instruction {
 
-    public static void read(final @NotNull InputStream inputStream, final @NotNull Function function) throws IOException {
-        final var uuid = readUUID(inputStream);
-        final var call = readUUID(inputStream);
-        final var index = readInt(inputStream);
+    public static void read(final @NotNull InputStream stream, final @NotNull Function function) throws IOException {
+        final var uuid = readUUID(stream);
+        final var call = readUUID(stream);
+        final var index = readInt(stream);
         final var callInstruction = function.find(call, CallInstruction.class);
         if (callInstruction == null)
             throw new RTException("invalid call instruction id %s", call);
@@ -51,10 +51,10 @@ public record GetResultInstruction(
     }
 
     @Override
-    public void write(final @NotNull OutputStream outputStream) throws IOException {
-        Instruction.super.write(outputStream);
-        writeUUID(outputStream, call.uuid());
-        writeInt(outputStream, index);
+    public void write(final @NotNull OutputStream stream) throws IOException {
+        Instruction.super.write(stream);
+        writeUUID(stream, call.uuid());
+        writeInt(stream, index);
     }
 
     @Override

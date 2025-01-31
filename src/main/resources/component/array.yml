@@ -1,7 +1,0 @@
-type: component
-id: array
-class: io.scriptor.imgui.Array
-fields:
-  - name: event
-    type: string
-    default: select

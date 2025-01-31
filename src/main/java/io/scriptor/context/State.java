@@ -29,7 +29,7 @@ import java.util.UUID;
  */
 public class State {
 
-    private final Registry registry;
+    private final Context context;
 
     private final Map<UUID, Boolean> attributeMap = new HashMap<>();
     private final Map<UUID, Map<Integer, Boolean>> registerMap = new HashMap<>();
@@ -37,21 +37,21 @@ public class State {
     private final Map<UUID, State> substateMap = new HashMap<>();
 
     /**
-     * Create a new state using the given registry.
+     * Create a new state using the given context.
      *
-     * @param registry the registry
+     * @param context the context
      */
-    public State(final @NotNull Registry registry) {
-        this.registry = registry;
+    public State(final @NotNull Context context) {
+        this.context = context;
     }
 
     /**
-     * Create a new state using the registry of the given state.
+     * Create a new state using the context of the given state.
      *
      * @param state the state
      */
     public State(final @NotNull State state) {
-        this.registry = state.registry;
+        this.context = state.context;
     }
 
     /**
@@ -105,12 +105,16 @@ public class State {
      * @return true if the callee does not exist
      */
     public boolean call(final @NotNull UUID caller, final @NotNull UUID callee, final boolean @NotNull [] args) {
-        return registry.get(callee).map(function -> {
-            resultMap.put(caller, new boolean[function.numOutputs()]);
-            final var substate = substateMap.computeIfAbsent(caller, key -> new State(this));
-            function.exec(substate, args, resultMap.get(caller));
-            return false;
-        }).orElse(true);
+        return context
+                .registry()
+                .get(callee)
+                .map(function -> {
+                    resultMap.put(caller, new boolean[function.numOutputs()]);
+                    final var substate = substateMap.computeIfAbsent(caller, key -> new State(this));
+                    function.exec(substate, args, resultMap.get(caller));
+                    return false;
+                })
+                .orElse(true);
     }
 
     /**

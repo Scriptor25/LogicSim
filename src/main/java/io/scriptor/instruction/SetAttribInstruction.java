@@ -37,10 +37,10 @@ public record SetAttribInstruction(
         @NotNull Instruction value
 ) implements Instruction {
 
-    public static void read(final @NotNull InputStream inputStream, final @NotNull Function function) throws IOException {
-        final var uuid = readUUID(inputStream);
-        final var attrib = readUUID(inputStream);
-        final var value = readUUID(inputStream);
+    public static void read(final @NotNull InputStream stream, final @NotNull Function function) throws IOException {
+        final var uuid = readUUID(stream);
+        final var attrib = readUUID(stream);
+        final var value = readUUID(stream);
         final var valueInstruction = function.find(value);
         if (valueInstruction == null)
             throw new RTException("invalid value instruction id %s", value);
@@ -52,10 +52,10 @@ public record SetAttribInstruction(
     }
 
     @Override
-    public void write(final @NotNull OutputStream outputStream) throws IOException {
-        Instruction.super.write(outputStream);
-        writeUUID(outputStream, attrib);
-        writeUUID(outputStream, value.uuid());
+    public void write(final @NotNull OutputStream stream) throws IOException {
+        Instruction.super.write(stream);
+        writeUUID(stream, attrib);
+        writeUUID(stream, value.uuid());
     }
 
     @Override

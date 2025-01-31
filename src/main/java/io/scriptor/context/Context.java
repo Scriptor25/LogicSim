@@ -20,8 +20,9 @@ package io.scriptor.context;
 
 import io.scriptor.function.AndFunction;
 import io.scriptor.function.NotFunction;
+import io.scriptor.graph.Attribute;
 import io.scriptor.graph.Blueprint;
-import io.scriptor.util.Task;
+import io.scriptor.graph.Graph;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
@@ -31,6 +32,8 @@ import java.io.OutputStream;
 import java.nio.file.Files;
 import java.util.*;
 
+import static io.scriptor.util.Constants.UUID_AND;
+import static io.scriptor.util.Constants.UUID_NOT;
 import static io.scriptor.util.IO.readInt;
 import static io.scriptor.util.IO.writeInt;
 
@@ -42,73 +45,41 @@ public class Context {
     private final Registry registry;
     private final List<Blueprint> blueprints = new ArrayList<>();
 
-    /**
-     * Create a new context, containing only the 'not' and 'and' blueprints and functions.
-     */
-    public Context() {
+    public Context(final boolean addDefaults) {
+        final var notFunction = new NotFunction(UUID_NOT);
+        final var andFunction = new AndFunction(UUID_AND);
+
         registry = new Registry(this);
-
-        final var notFunction = new NotFunction(UUID.randomUUID());
         registry.add(notFunction);
-
-        final var notBlueprint = new Blueprint.Builder()
-                .label("Not")
-                .baseColor(0x3f579a)
-                .inputs("In")
-                .outputs("Out")
-                .function(notFunction)
-                .build();
-        add(notBlueprint);
-
-        final var andFunction = new AndFunction(UUID.randomUUID());
         registry.add(andFunction);
 
+        if (!addDefaults)
+            return;
+
+        final var notGraph = new Graph(this);
+        notGraph.add(new Attribute("In", false));
+        notGraph.add(new Attribute("Out", true));
+
+        final var notBlueprint = new Blueprint.Builder()
+                .uuid(UUID_NOT)
+                .label("Not")
+                .baseColor(0x3f579a)
+                .source(notGraph)
+                .build(this);
+        add(notBlueprint);
+
+        final var andGraph = new Graph(this);
+        andGraph.add(new Attribute("In A", false));
+        andGraph.add(new Attribute("In B", false));
+        andGraph.add(new Attribute("Out", true));
+
         final var andBlueprint = new Blueprint.Builder()
+                .uuid(UUID_AND)
                 .label("And")
                 .baseColor(0x3f579a)
-                .inputs("In A", "In B")
-                .outputs("Out")
-                .function(andFunction)
-                .build();
+                .source(andGraph)
+                .build(this);
         add(andBlueprint);
-    }
-
-    /**
-     * Load a context from a file.
-     *
-     * @param filename the filename
-     * @throws IOException if any
-     */
-    public Context(final @NotNull String filename) throws IOException {
-        this(new File(filename));
-    }
-
-    /**
-     * Load a context from a file.
-     *
-     * @param file the file
-     * @throws IOException if any
-     */
-    public Context(final @NotNull File file) throws IOException {
-        this(Files.newInputStream(file.toPath()), true);
-    }
-
-    /**
-     * Load a context from an input stream.
-     *
-     * @param inputStream the input stream
-     * @param closeStream if the input stream should be closed after the operation has finished
-     * @throws IOException if any
-     */
-    public Context(final @NotNull InputStream inputStream, final boolean closeStream) throws IOException {
-        registry = new Registry(this, inputStream);
-
-        final var count = readInt(inputStream);
-        for (int i = 0; i < count; ++i)
-            Blueprint.read(inputStream, this);
-
-        if (closeStream)
-            inputStream.close();
     }
 
     /**
@@ -128,24 +99,38 @@ public class Context {
      * @throws IOException if any
      */
     public void write(final @NotNull File file) throws IOException {
-        write(Files.newOutputStream(file.toPath()), true);
+        try (final var stream = Files.newOutputStream(file.toPath())) {
+            write(stream);
+        }
     }
 
     /**
      * Write this context to an output stream.
      *
-     * @param outputStream the output stream
-     * @param closeStream  if the output stream should be closed after the operation has finished
+     * @param stream the output stream
      * @throws IOException if any
      */
-    public void write(final @NotNull OutputStream outputStream, final boolean closeStream) throws IOException {
-        registry.write(outputStream);
+    public void write(final @NotNull OutputStream stream) throws IOException {
+        writeInt(stream, blueprints.size());
+        for (final var blueprint : blueprints)
+            blueprint.write(stream);
+    }
 
-        writeInt(outputStream, blueprints.size());
-        blueprints.forEach(blueprint -> Task.handleVoid(() -> blueprint.write(outputStream)));
+    public static @NotNull Context read(final @NotNull File file) throws IOException {
+        try (final var stream = Files.newInputStream(file.toPath())) {
+            return read(stream);
+        }
+    }
 
-        if (closeStream)
-            outputStream.close();
+    public static @NotNull Context read(final @NotNull InputStream stream) throws IOException {
+        final var context = new Context(false);
+        final var blueprintCount = readInt(stream);
+        for (int i = 0; i < blueprintCount; ++i) {
+            final var blueprint = Blueprint.read(context, stream);
+            context.registry.add(blueprint.function());
+            context.add(blueprint);
+        }
+        return context;
     }
 
     /**

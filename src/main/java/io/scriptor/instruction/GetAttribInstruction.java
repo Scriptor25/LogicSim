@@ -32,9 +32,9 @@ import static io.scriptor.util.IO.writeUUID;
 
 public record GetAttribInstruction(@NotNull UUID uuid, @NotNull UUID attrib) implements Instruction {
 
-    public static void read(final @NotNull InputStream inputStream, final @NotNull Function function) throws IOException {
-        final var uuid = readUUID(inputStream);
-        final var attrib = readUUID(inputStream);
+    public static void read(final @NotNull InputStream stream, final @NotNull Function function) throws IOException {
+        final var uuid = readUUID(stream);
+        final var attrib = readUUID(stream);
         function.add(new GetAttribInstruction(uuid, attrib));
     }
 
@@ -43,9 +43,9 @@ public record GetAttribInstruction(@NotNull UUID uuid, @NotNull UUID attrib) imp
     }
 
     @Override
-    public void write(final @NotNull OutputStream outputStream) throws IOException {
-        Instruction.super.write(outputStream);
-        writeUUID(outputStream, attrib);
+    public void write(final @NotNull OutputStream stream) throws IOException {
+        Instruction.super.write(stream);
+        writeUUID(stream, attrib);
     }
 
     @Override

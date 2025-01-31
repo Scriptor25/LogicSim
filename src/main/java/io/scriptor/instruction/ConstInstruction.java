@@ -31,9 +31,9 @@ import static io.scriptor.util.IO.*;
 
 public record ConstInstruction(@NotNull UUID uuid, boolean value) implements Instruction {
 
-    public static void read(final @NotNull InputStream inputStream, final @NotNull Function function) throws IOException {
-        final var uuid = readUUID(inputStream);
-        final var value = readBool(inputStream);
+    public static void read(final @NotNull InputStream stream, final @NotNull Function function) throws IOException {
+        final var uuid = readUUID(stream);
+        final var value = readBool(stream);
         function.add(new ConstInstruction(uuid, value));
     }
 
@@ -47,8 +47,8 @@ public record ConstInstruction(@NotNull UUID uuid, boolean value) implements Ins
     }
 
     @Override
-    public void write(final @NotNull OutputStream outputStream) throws IOException {
-        Instruction.super.write(outputStream);
-        writeBool(outputStream, value);
+    public void write(final @NotNull OutputStream stream) throws IOException {
+        Instruction.super.write(stream);
+        writeBool(stream, value);
     }
 }

@@ -19,43 +19,66 @@
 package io.scriptor.graph;
 
 import imgui.ImGui;
+import imgui.ImVec2;
 import imgui.extension.imnodes.ImNodes;
 import imgui.extension.imnodes.flag.ImNodesCol;
-import io.scriptor.util.Constants;
 import io.scriptor.instruction.ConstInstruction;
 import io.scriptor.instruction.GetRegInstruction;
 import io.scriptor.instruction.Instruction;
 import io.scriptor.instruction.SetAttribInstruction;
+import io.scriptor.util.Constants;
 import io.scriptor.util.RTException;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.*;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.Collection;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.stream.Stream;
 
-public class Output implements INode {
+import static io.scriptor.util.Constants.NODE_ID_OUTPUT;
+import static io.scriptor.util.IO.*;
 
-    public static @NotNull Optional<INode> parse(final @NotNull Graph graph, final @NotNull String string) {
+public class OutputNode extends Node {
+
+    public static @NotNull Node asNode(final @NotNull Graph graph, final @NotNull String string) {
         final var split = string.split(",");
-        return graph
+        final var node = graph
                 .findAttribute(UUID.fromString(split[1]))
-                .map(attribute -> new Output(UUID.randomUUID(), attribute));
+                .<Node>map(attribute -> new OutputNode(UUID.randomUUID(), attribute))
+                .orElseGet(InvalidNode::new);
+        final var posX = Integer.parseInt(split[2]);
+        final var posY = Integer.parseInt(split[3]);
+        node.editorPosition(new ImVec2(posX, posY));
+        return node;
     }
 
-    private final UUID uuid;
+    public static @NotNull OutputNode read(final @NotNull Graph graph, final @NotNull InputStream stream) throws IOException {
+        final var uuid = readUUID(stream);
+        final var attribute = readUUID(stream);
+        final var node = graph
+                .findAttribute(attribute)
+                .map(x -> new OutputNode(uuid, x))
+                .orElseThrow();
+        final var posX = readInt(stream);
+        final var posY = readInt(stream);
+        node.position(posX, posY);
+        return node;
+    }
+
     private final Attribute attribute;
     private final Pin pin = new Pin(this, 0, false);
 
-    public Output(final @NotNull UUID uuid, final @NotNull Attribute attribute) {
-        this.uuid = uuid;
+    public OutputNode(final @NotNull UUID uuid, final @NotNull Attribute attribute) {
+        super(uuid);
         this.attribute = attribute;
     }
 
     public boolean powered() {
         return attribute.powered().get();
-    }
-
-    @Override
-    public @NotNull UUID uuid() {
-        return uuid;
     }
 
     @Override
@@ -95,18 +118,18 @@ public class Output implements INode {
     }
 
     @Override
-    public boolean isBegin(final @NotNull Graph graph) {
+    public boolean front(final @NotNull Graph graph) {
         return pin.predecessor(graph).isEmpty();
     }
 
     @Override
-    public boolean isEnd(final @NotNull Graph graph) {
+    public boolean back(final @NotNull Graph graph) {
         return true;
     }
 
     @Override
-    public @NotNull List<INode> successors(final @NotNull Graph graph) {
-        return List.of();
+    public @NotNull Stream<Node> successors(final @NotNull Graph graph) {
+        return Stream.empty();
     }
 
     @Override
@@ -133,35 +156,45 @@ public class Output implements INode {
     }
 
     @Override
-    public @NotNull INode copy() {
-        return new Output(UUID.randomUUID(), attribute);
+    public @NotNull Node copy(final @NotNull Map<Attribute, Attribute> copies) {
+        final var node = new OutputNode(UUID.randomUUID(), copies.get(attribute));
+        node.position(posX(), posY());
+        return node;
     }
 
     @Override
-    public void compile(final @NotNull Graph graph, final @NotNull Collection<Instruction> instructions, final @NotNull Set<INode> compiling) {
-        final var pre = pin.predecessor(graph);
-        final Instruction get;
-        if (pre.isPresent()) {
-            pre.get().node().compile(graph, instructions, compiling);
-            get = new GetRegInstruction(pre.get().node().uuid(), pre.get().index());
-        } else get = new ConstInstruction(false);
-        final var set = new SetAttribInstruction(attribute.uuid(), get);
-        instructions.add(get);
-        instructions.add(set);
+    public void compile(final @NotNull Graph graph, final @NotNull Collection<Instruction> instructions) {
+        final var get = pin
+                .predecessor(graph)
+                .<Instruction>map(pre -> {
+                    pre.node().compile(graph, instructions);
+                    return new GetRegInstruction(pre.node().uuid(), pre.index());
+                })
+                .orElseGet(() -> new ConstInstruction(false));
+        instructions.add(new SetAttribInstruction(attribute.uuid(), get));
     }
 
     @Override
-    public boolean @NotNull [] exec(final @NotNull Graph graph, final @NotNull Set<INode> executing) {
-        final var pre = pin.predecessor(graph);
-        if (pre.isPresent()) {
-            final var out = pre.get().node().exec(graph, executing);
-            attribute.powered().set(out[pre.get().index()]);
-        } else attribute.powered().set(false);
-        return new boolean[0];
+    public boolean @NotNull [] exec(final @NotNull Graph graph) {
+        attribute.powered().set(pin
+                .predecessor(graph)
+                .map(pre -> pre.node().exec(graph)[pre.index()])
+                .orElse(false));
+        return new boolean[]{};
     }
 
     @Override
-    public @NotNull String getPvtString() {
-        return "1,%s".formatted(attribute.uuid());
+    public @NotNull String asString() {
+        final var pos = editorPosition();
+        return "%d,%s,%d,%d".formatted(NODE_ID_OUTPUT, attribute.uuid(), (int) pos.x, (int) pos.y);
+    }
+
+    @Override
+    public void write(final @NotNull OutputStream stream) throws IOException {
+        writeByte(stream, NODE_ID_OUTPUT);
+        writeUUID(stream, uuid());
+        writeUUID(stream, attribute.uuid());
+        writeInt(stream, posX());
+        writeInt(stream, posY());
     }
 }

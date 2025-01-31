@@ -18,22 +18,13 @@
  */
 package io.scriptor.context;
 
-import io.scriptor.function.AndFunction;
-import io.scriptor.function.Function;
 import io.scriptor.function.IFunction;
-import io.scriptor.function.NotFunction;
-import io.scriptor.util.RTException;
 import org.jetbrains.annotations.NotNull;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-
-import static io.scriptor.util.IO.*;
 
 /**
  * The registry stores and manages blueprint functions.
@@ -48,39 +39,6 @@ public class Registry {
      */
     public Registry(final @NotNull Context context) {
         this.context = context;
-    }
-
-    /**
-     * Load a registry from an input stream.
-     *
-     * @param inputStream the input stream
-     * @throws IOException if any
-     */
-    public Registry(final @NotNull Context context, final @NotNull InputStream inputStream) throws IOException {
-        this.context = context;
-        final var functionCount = readInt(inputStream);
-        for (int i = 0; i < functionCount; ++i) {
-            final var typeId = readByte(inputStream);
-            final var function = switch (typeId) {
-                case 0 -> NotFunction.read(inputStream);
-                case 1 -> AndFunction.read(inputStream);
-                case 2 -> Function.read(inputStream);
-                default -> throw new RTException("invalid function type id '%d'", typeId);
-            };
-            add(function);
-        }
-    }
-
-    /**
-     * Write this registry to an output stream.
-     *
-     * @param outputStream the output stream
-     * @throws IOException if any
-     */
-    public void write(final @NotNull OutputStream outputStream) throws IOException {
-        writeInt(outputStream, functions.size());
-        for (final var function : functions.values())
-            function.write(outputStream);
     }
 
     /**
@@ -111,9 +69,5 @@ public class Registry {
      */
     public void remove(final @NotNull IFunction function) {
         functions.remove(function.uuid());
-    }
-
-    public @NotNull Context context() {
-        return context;
     }
 }

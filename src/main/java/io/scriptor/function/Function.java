@@ -20,50 +20,16 @@ package io.scriptor.function;
 
 import io.scriptor.context.State;
 import io.scriptor.instruction.Instruction;
-import io.scriptor.instruction.TypeID;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.lang.reflect.Array;
 import java.util.*;
-
-import static io.scriptor.util.IO.*;
-import static io.scriptor.util.Task.handleVoid;
 
 /**
  * A function represents a linear collection of instructions executed in sequence to produce a result. It consists of inputs, outputs and said instruction list.
  */
 public class Function implements IFunction, Collection<Instruction> {
-
-    /**
-     * Read a function from an input stream.
-     *
-     * @param inputStream the input stream
-     * @return the function
-     * @throws IOException if any
-     */
-    public static @NotNull IFunction read(final @NotNull InputStream inputStream) throws IOException {
-        final var uuid = readUUID(inputStream);
-        final var inputs = new UUID[readInt(inputStream)];
-        for (int i = 0; i < inputs.length; ++i)
-            inputs[i] = readUUID(inputStream);
-        final var outputs = new UUID[readInt(inputStream)];
-        for (int i = 0; i < outputs.length; ++i)
-            outputs[i] = readUUID(inputStream);
-        final var function = new Function(uuid, inputs, outputs);
-        final var instructions = readInt(inputStream);
-        for (int i = 0; i < instructions; ++i) {
-            final var typeId = readByte(inputStream);
-            handleVoid(() -> TypeID
-                    .toClass(typeId)
-                    .getMethod("read", InputStream.class, Function.class)
-                    .invoke(null, inputStream, function));
-        }
-        return function;
-    }
 
     private final UUID uuid;
     private final UUID[] inputs;
@@ -71,17 +37,6 @@ public class Function implements IFunction, Collection<Instruction> {
 
     private Instruction[] data = new Instruction[8];
     private int size = 0;
-
-    /**
-     * Create a function using a random uuid, given inputs and outputs.
-     *
-     * @param inputs  the input uuids
-     * @param outputs the output uuids
-     */
-    public Function(final @NotNull UUID @NotNull [] inputs,
-                    final @NotNull UUID @NotNull [] outputs) {
-        this(UUID.randomUUID(), inputs, outputs);
-    }
 
     /**
      * Create a function using the given uuid, inputs and outputs.
@@ -93,8 +48,6 @@ public class Function implements IFunction, Collection<Instruction> {
     public Function(final @NotNull UUID uuid,
                     final @NotNull UUID @NotNull [] inputs,
                     final @NotNull UUID @NotNull [] outputs) {
-        super();
-
         this.uuid = uuid;
         this.inputs = inputs;
         this.outputs = outputs;
@@ -134,11 +87,6 @@ public class Function implements IFunction, Collection<Instruction> {
     }
 
     @Override
-    public byte typeId() {
-        return 2;
-    }
-
-    @Override
     public int numInputs() {
         return inputs.length;
     }
@@ -156,22 +104,6 @@ public class Function implements IFunction, Collection<Instruction> {
             instruction.exec(state);
         for (int i = 0; i < this.outputs.length; ++i)
             outputs[i] = state.getAttribute(this.outputs[i]);
-    }
-
-    @Override
-    public void write(final @NotNull OutputStream outputStream) throws IOException {
-        IFunction.super.write(outputStream);
-        writeInt(outputStream, numInputs());
-        for (final var input : inputs)
-            writeUUID(outputStream, input);
-        writeInt(outputStream, numOutputs());
-        for (final var output : outputs)
-            writeUUID(outputStream, output);
-        writeInt(outputStream, size);
-        for (final var instruction : this) {
-            writeByte(outputStream, TypeID.fromClass(instruction.getClass()));
-            instruction.write(outputStream);
-        }
     }
 
     @Override

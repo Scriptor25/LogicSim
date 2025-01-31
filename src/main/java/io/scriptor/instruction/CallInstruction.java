@@ -31,12 +31,12 @@ import static io.scriptor.util.IO.*;
 
 public class CallInstruction implements Instruction {
 
-    public static void read(final @NotNull InputStream inputStream, final @NotNull Function function) throws IOException {
-        final var uuid = readUUID(inputStream);
-        final var callee = readUUID(inputStream);
-        final var args = new Instruction[readInt(inputStream)];
+    public static void read(final @NotNull InputStream stream, final @NotNull Function function) throws IOException {
+        final var uuid = readUUID(stream);
+        final var callee = readUUID(stream);
+        final var args = new Instruction[readInt(stream)];
         for (int i = 0; i < args.length; ++i)
-            args[i] = function.find(readUUID(inputStream));
+            args[i] = function.find(readUUID(stream));
         function.add(new CallInstruction(uuid, callee, args));
     }
 
@@ -68,12 +68,12 @@ public class CallInstruction implements Instruction {
     }
 
     @Override
-    public void write(final @NotNull OutputStream outputStream) throws IOException {
-        Instruction.super.write(outputStream);
-        writeUUID(outputStream, callee);
-        writeInt(outputStream, args.length);
+    public void write(final @NotNull OutputStream stream) throws IOException {
+        Instruction.super.write(stream);
+        writeUUID(stream, callee);
+        writeInt(stream, args.length);
         for (final var arg : args)
-            writeUUID(outputStream, arg.uuid());
+            writeUUID(stream, arg.uuid());
     }
 
     @Override

@@ -18,45 +18,55 @@
  */
 package io.scriptor.graph;
 
-import io.scriptor.context.State;
-import io.scriptor.instruction.*;
+import imgui.ImVec2;
+import imgui.extension.imnodes.ImNodes;
+import io.scriptor.instruction.Instruction;
+import io.scriptor.util.IUnique;
 import io.scriptor.util.RTException;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.*;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.Collection;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Stream;
 
-public class Node implements INode {
+import static io.scriptor.util.Constants.*;
+import static io.scriptor.util.IO.readByte;
 
-    public static @NotNull Optional<INode> parse(final @NotNull Graph graph, final @NotNull String string) {
+public abstract class Node implements IUnique {
+
+    public static @NotNull Node asNode(final @NotNull Graph graph, final @NotNull String string) {
         final var split = string.split(",");
-        return graph
-                .registry()
-                .context()
-                .findBlueprint(UUID.fromString(split[1]))
-                .map(blueprint -> new Node(UUID.randomUUID(), blueprint));
+        return switch (Byte.parseByte(split[0])) {
+            case NODE_ID_INVALID -> InvalidNode.asNode(graph, string);
+            case NODE_ID_INPUT -> InputNode.asNode(graph, string);
+            case NODE_ID_OUTPUT -> OutputNode.asNode(graph, string);
+            case NODE_ID_BLUEPRINT -> BlueprintNode.asNode(graph, string);
+            default -> throw new RTException("undefined node type in '%s'", string);
+        };
+    }
+
+    static @NotNull Node read(final @NotNull Graph graph, final @NotNull InputStream stream) throws IOException {
+        final var type = readByte(stream);
+        return switch (type) {
+            case NODE_ID_INVALID -> InvalidNode.read(stream);
+            case NODE_ID_INPUT -> InputNode.read(graph, stream);
+            case NODE_ID_OUTPUT -> OutputNode.read(graph, stream);
+            case NODE_ID_BLUEPRINT -> BlueprintNode.read(graph, stream);
+            default -> throw new RTException("invalid node type '%d'", type);
+        };
     }
 
     private final UUID uuid;
-    private final Blueprint blueprint;
+    private int posX;
+    private int posY;
 
-    private final Pin[] inputs;
-    private final Pin[] outputs;
-
-    private final boolean[] pinOut;
-    private State state;
-
-    public Node(final @NotNull UUID uuid, final @NotNull Blueprint blueprint) {
+    protected Node(final @NotNull UUID uuid) {
         this.uuid = uuid;
-        this.blueprint = blueprint;
-
-        this.inputs = new Pin[blueprint.function().numInputs()];
-        for (int i = 0; i < inputs.length; ++i) this.inputs[i] = new Pin(this, i, false);
-
-        this.outputs = new Pin[blueprint.function().numOutputs()];
-        for (int i = 0; i < outputs.length; ++i) this.outputs[i] = new Pin(this, i, true);
-
-        this.pinOut = new boolean[blueprint.function().numOutputs()];
     }
 
     @Override
@@ -64,148 +74,123 @@ public class Node implements INode {
         return uuid;
     }
 
-    @Override
-    public @NotNull Pin input(final int i) {
-        return inputs[i];
+    public int posX() {
+        return posX;
     }
 
-    @Override
-    public @NotNull Pin output(final int i) {
-        return outputs[i];
+    public int posY() {
+        return posY;
     }
 
-    @Override
-    public int numInputs() {
-        return inputs.length;
+    public void position(final int posX, final int posY) {
+        this.posX = posX;
+        this.posY = posY;
     }
 
-    @Override
-    public int numOutputs() {
-        return outputs.length;
+    public int id() {
+        return uuid().hashCode();
     }
 
-    @Override
-    public boolean powered(final @NotNull Graph graph, final boolean output, final int index) {
-        if (output && index < pinOut.length)
-            return pinOut[index];
-        if (!output && index < inputs.length)
-            return inputs[index]
-                    .predecessor(graph)
-                    .map(pin -> pin.powered(graph))
-                    .orElse(false);
-        throw new RTException("cannot get powered state of %s pin at index '%d'", output ? "output" : "input", index);
+    public boolean notSelected() {
+        return !ImNodes.isNodeSelected(id());
     }
 
-    @Override
-    public @NotNull Optional<Pin> pin(final int id) {
-        return Stream.concat(
-                        Arrays.stream(inputs),
-                        Arrays.stream(outputs))
-                .filter(x -> x.id() == id)
-                .findFirst();
+    public void select() {
+        ImNodes.selectNode(id());
     }
 
-    @Override
-    public boolean isBegin(final @NotNull Graph graph) {
-        return Arrays
-                .stream(inputs)
-                .allMatch(x -> x
-                        .predecessor(graph)
-                        .isEmpty());
+    public @NotNull ImVec2 editorPosition() {
+        return ImNodes.getNodeEditorSpacePos(id());
     }
 
-    @Override
-    public boolean isEnd(final @NotNull Graph graph) {
-        return Arrays
-                .stream(outputs)
-                .allMatch(x -> x
-                        .successors(graph)
-                        .findAny()
-                        .isEmpty());
+    public void editorPosition(final @NotNull ImVec2 pos) {
+        ImNodes.setNodeEditorSpacePos(id(), pos);
     }
 
-    @Override
-    public @NotNull List<INode> successors(final @NotNull Graph graph) {
-        return Arrays
-                .stream(outputs)
-                .<INode>mapMulti((pin, consumer) -> graph
-                        .findLinks(pin)
-                        .map(link -> link.target().node())
-                        .forEach(consumer))
-                .toList();
+    public @NotNull ImVec2 gridPosition() {
+        return ImNodes.getNodeGridSpacePos(id());
     }
 
-    @Override
+    public void gridPosition(final @NotNull ImVec2 pos) {
+        ImNodes.setNodeGridSpacePos(id(), pos);
+    }
+
+    public @NotNull ImVec2 screenPosition() {
+        return ImNodes.getNodeScreenSpacePos(id());
+    }
+
+    public void screenPosition(final @NotNull ImVec2 pos) {
+        ImNodes.setNodeScreenSpacePos(id(), pos);
+    }
+
+    public abstract @NotNull Pin input(final int i);
+
+    public abstract @NotNull Pin output(final int i);
+
+    public abstract int numInputs();
+
+    public abstract int numOutputs();
+
+    public abstract boolean powered(final @NotNull Graph graph, final boolean output, final int index);
+
+    public abstract @NotNull Optional<Pin> pin(final int id);
+
+    /**
+     * Check if this node has no predecessors.
+     *
+     * @param graph parent graph
+     * @return if no predecessors
+     */
+    public abstract boolean front(final @NotNull Graph graph);
+
+    /**
+     * Check if this node has no successors.
+     *
+     * @param graph parent graph
+     * @return if no successors
+     */
+    public abstract boolean back(final @NotNull Graph graph);
+
+    public abstract @NotNull Stream<Node> successors(final @NotNull Graph graph);
+
+    /**
+     * Check if this node uses given attribute.
+     *
+     * @param attribute some attribute
+     * @return if used
+     */
+    public boolean uses(final @NotNull Attribute attribute) {
+        return false;
+    }
+
+    /**
+     * Check if this node uses given blueprint.
+     *
+     * @param blueprint some blueprint
+     * @return if used
+     */
     public boolean uses(final @NotNull Blueprint blueprint) {
-        return this.blueprint == blueprint;
+        return false;
     }
 
-    @Override
-    public void show(final @NotNull Graph graph) {
-        blueprint.show(graph, this);
+    public abstract void show(final @NotNull Graph graph);
+
+    public abstract @NotNull Node copy(final @NotNull Map<Attribute, Attribute> copies);
+
+    public abstract void compile(final @NotNull Graph graph, final @NotNull Collection<Instruction> instructions);
+
+    public abstract boolean @NotNull [] exec(final @NotNull Graph graph);
+
+    public abstract @NotNull String asString();
+
+    public abstract void write(final @NotNull OutputStream stream) throws IOException;
+
+    public void loadPosition() {
+        gridPosition(new ImVec2(posX, posY));
     }
 
-    @Override
-    public @NotNull INode copy() {
-        return new Node(UUID.randomUUID(), blueprint);
-    }
-
-    @Override
-    public void compile(final @NotNull Graph graph, final @NotNull Collection<Instruction> instructions, final @NotNull Set<INode> compiling) {
-        if (compiling.contains(this))
-            return;
-        compiling.add(this);
-
-        final var args = new Instruction[inputs.length];
-        for (int i = 0; i < args.length; ++i) {
-            final var pre = inputs[i].predecessor(graph);
-            if (pre.isPresent()) {
-                pre.get().node().compile(graph, instructions, compiling);
-                args[i] = new GetRegInstruction(pre.get().node().uuid(), pre.get().index());
-            } else
-                args[i] = new ConstInstruction(false);
-            instructions.add(args[i]);
-        }
-
-        final var call = new CallInstruction(blueprint.function().uuid(), args);
-        instructions.add(call);
-
-        for (int i = 0; i < outputs.length; ++i) {
-            final var get = new GetResultInstruction(call, i);
-            final var set = new SetRegInstruction(uuid, i, get);
-            instructions.add(get);
-            instructions.add(set);
-        }
-
-        compiling.remove(this);
-    }
-
-    @Override
-    public boolean @NotNull [] exec(final @NotNull Graph graph, final @NotNull Set<INode> executing) {
-        if (executing.contains(this))
-            return pinOut;
-        executing.add(this);
-
-        final var args = new boolean[inputs.length];
-        for (int i = 0; i < args.length; ++i) {
-            final var pre = inputs[i].predecessor(graph);
-            if (pre.isPresent()) {
-                final var out = pre.get().node().exec(graph, executing);
-                args[i] = out[pre.get().index()];
-            }
-        }
-
-        if (state == null)
-            state = new State(graph.state());
-
-        blueprint.function().exec(state, args, pinOut);
-
-        executing.remove(this);
-        return pinOut;
-    }
-
-    @Override
-    public @NotNull String getPvtString() {
-        return "2,%s".formatted(blueprint.uuid());
+    public void savePosition() {
+        final var pos = gridPosition();
+        position((int) pos.x, (int) pos.y);
     }
 }

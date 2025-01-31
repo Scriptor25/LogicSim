@@ -147,10 +147,11 @@ public class EventManager {
      * Run all scheduled unscoped tasks.
      */
     public void runTasks() {
-        final var taskList = taskMap.computeIfAbsent(null, key -> new ArrayList<>());
-        for (final var task : taskList)
+        final var tasks = taskMap.computeIfAbsent(null, key -> new ArrayList<>());
+        final var copy = new ArrayList<>(tasks);
+        tasks.clear();
+        for (final var task : copy)
             task.run();
-        taskList.clear();
     }
 
     /**
@@ -171,9 +172,10 @@ public class EventManager {
      * @param id the frame id
      */
     public void runTasks(final @NotNull Object id) {
-        final var taskList = taskMap.computeIfAbsent(id, key -> new ArrayList<>());
-        for (final var task : taskList)
+        final var tasks = taskMap.computeIfAbsent(id, key -> new ArrayList<>());
+        final var copy = new ArrayList<>(tasks);
+        tasks.clear();
+        for (final var task : copy)
             task.run();
-        taskList.clear();
     }
 }

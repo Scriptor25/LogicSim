@@ -23,7 +23,12 @@ import imgui.type.ImString;
 import io.scriptor.util.IUnique;
 import org.jetbrains.annotations.NotNull;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.UUID;
+
+import static io.scriptor.util.IO.*;
 
 public record Attribute(
         @NotNull UUID uuid,
@@ -36,8 +41,29 @@ public record Attribute(
         this(UUID.randomUUID(), new ImString(label), output, new ImBoolean());
     }
 
+    public Attribute(final @NotNull UUID uuid, final @NotNull String label, final boolean output) {
+        this(uuid, new ImString(label), output, new ImBoolean());
+    }
+
     public boolean input() {
         return !output;
+    }
+
+    public @NotNull Attribute copy() {
+        return new Attribute(UUID.randomUUID(), new ImString(label.get()), output, new ImBoolean());
+    }
+
+    public void write(final @NotNull OutputStream stream) throws IOException {
+        writeUUID(stream, uuid);
+        writeString(stream, label.get());
+        writeBool(stream, output);
+    }
+
+    public static @NotNull Attribute read(final @NotNull InputStream stream) throws IOException {
+        final var uuid = readUUID(stream);
+        final var label = readString(stream);
+        final var output = readBool(stream);
+        return new Attribute(uuid, label, output);
     }
 
     @Override

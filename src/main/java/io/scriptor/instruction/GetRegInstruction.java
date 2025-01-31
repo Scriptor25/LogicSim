@@ -31,10 +31,10 @@ import static io.scriptor.util.IO.*;
 
 public record GetRegInstruction(@NotNull UUID uuid, @NotNull UUID reg, int index) implements Instruction {
 
-    public static void read(final @NotNull InputStream inputStream, final @NotNull Function function) throws IOException {
-        final var uuid = readUUID(inputStream);
-        final var reg = readUUID(inputStream);
-        final var index = readInt(inputStream);
+    public static void read(final @NotNull InputStream stream, final @NotNull Function function) throws IOException {
+        final var uuid = readUUID(stream);
+        final var reg = readUUID(stream);
+        final var index = readInt(stream);
         function.add(new GetRegInstruction(uuid, reg, index));
     }
 
@@ -43,10 +43,10 @@ public record GetRegInstruction(@NotNull UUID uuid, @NotNull UUID reg, int index
     }
 
     @Override
-    public void write(final @NotNull OutputStream outputStream) throws IOException {
-        Instruction.super.write(outputStream);
-        writeUUID(outputStream, reg);
-        writeInt(outputStream, index);
+    public void write(final @NotNull OutputStream stream) throws IOException {
+        Instruction.super.write(stream);
+        writeUUID(stream, reg);
+        writeInt(stream, index);
     }
 
     @Override

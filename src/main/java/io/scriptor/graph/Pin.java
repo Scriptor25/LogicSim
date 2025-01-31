@@ -21,10 +21,15 @@ package io.scriptor.graph;
 import io.scriptor.util.RTException;
 import org.jetbrains.annotations.NotNull;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-public record Pin(@NotNull INode node, int index, boolean output) {
+import static io.scriptor.util.IO.*;
+
+public record Pin(@NotNull Node node, int index, boolean output) {
 
     public int id() {
         return hashCode();
@@ -34,7 +39,7 @@ public record Pin(@NotNull INode node, int index, boolean output) {
         return node.powered(graph, output, index);
     }
 
-    public boolean uses(final @NotNull INode node) {
+    public boolean uses(final @NotNull Node node) {
         return node == this.node;
     }
 
@@ -52,5 +57,23 @@ public record Pin(@NotNull INode node, int index, boolean output) {
         return graph
                 .findLinks(this)
                 .map(Link::target);
+    }
+
+    public void write(final @NotNull OutputStream stream) throws IOException {
+        writeUUID(stream, node.uuid());
+        writeInt(stream, index);
+        writeBool(stream, output);
+    }
+
+    public static @NotNull Pin read(final @NotNull Graph graph, final @NotNull InputStream stream) throws IOException {
+        final var node = readUUID(stream);
+        final var index = readInt(stream);
+        final var output = readBool(stream);
+        return graph
+                .findNode(node)
+                .map(x -> output
+                        ? x.output(index)
+                        : x.input(index))
+                .orElseThrow();
     }
 }

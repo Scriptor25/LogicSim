@@ -19,27 +19,58 @@
 package io.scriptor.graph;
 
 import imgui.ImGui;
+import imgui.ImVec2;
 import imgui.extension.imnodes.ImNodes;
 import io.scriptor.instruction.Instruction;
 import io.scriptor.util.RTException;
 import org.jetbrains.annotations.NotNull;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.*;
 import java.util.stream.Stream;
 
-public class InvalidNode implements INode {
+import static io.scriptor.util.Constants.NODE_ID_INVALID;
+import static io.scriptor.util.IO.*;
 
-    public static @NotNull Optional<INode> parse() {
-        return Optional.of(new InvalidNode());
+public class InvalidNode extends Node {
+
+    public static @NotNull Node asNode(final @NotNull Graph graph, final @NotNull String string) {
+        final var split = string.split(",");
+        final var node = new InvalidNode();
+        final var posX = Integer.parseInt(split[1]);
+        final var posY = Integer.parseInt(split[2]);
+        node.editorPosition(new ImVec2(posX, posY));
+        return node;
     }
 
-    private final UUID uuid = UUID.randomUUID();
+    public static @NotNull InvalidNode read(final @NotNull InputStream stream) throws IOException {
+        final var uuid = readUUID(stream);
+        final var inputCount = readInt(stream);
+        final var outputCount = readInt(stream);
+        final var node = new InvalidNode(uuid, inputCount, outputCount);
+        final var posX = readInt(stream);
+        final var posY = readInt(stream);
+        node.position(posX, posY);
+        return node;
+    }
+
     private final List<Pin> inputs = new ArrayList<>();
     private final List<Pin> outputs = new ArrayList<>();
 
-    @Override
-    public @NotNull UUID uuid() {
-        return uuid;
+    private boolean running = false;
+
+    public InvalidNode() {
+        this(UUID.randomUUID(), 0, 0);
+    }
+
+    public InvalidNode(final @NotNull UUID uuid, final int inputCount, final int outputCount) {
+        super(uuid);
+        for (int i = 0; i < inputCount; ++i)
+            inputs.add(new Pin(this, i, false));
+        for (int i = 0; i < outputCount; ++i)
+            outputs.add(new Pin(this, i, true));
     }
 
     @Override
@@ -89,7 +120,7 @@ public class InvalidNode implements INode {
     }
 
     @Override
-    public boolean isBegin(final @NotNull Graph graph) {
+    public boolean front(final @NotNull Graph graph) {
         return inputs
                 .stream()
                 .allMatch(x -> x
@@ -98,7 +129,7 @@ public class InvalidNode implements INode {
     }
 
     @Override
-    public boolean isEnd(final @NotNull Graph graph) {
+    public boolean back(final @NotNull Graph graph) {
         return outputs
                 .stream()
                 .allMatch(x -> x
@@ -108,14 +139,13 @@ public class InvalidNode implements INode {
     }
 
     @Override
-    public @NotNull List<INode> successors(final @NotNull Graph graph) {
+    public @NotNull Stream<Node> successors(final @NotNull Graph graph) {
         return outputs
                 .stream()
-                .<INode>mapMulti((pin, consumer) -> graph
+                .<Node>mapMulti((pin, consumer) -> graph
                         .findLinks(pin)
                         .map(link -> link.target().node())
-                        .forEach(consumer))
-                .toList();
+                        .forEach(consumer));
     }
 
     @Override
@@ -152,21 +182,58 @@ public class InvalidNode implements INode {
     }
 
     @Override
-    public @NotNull INode copy() {
-        return new InvalidNode();
+    public @NotNull Node copy(final @NotNull Map<Attribute, Attribute> copies) {
+        final var node = new InvalidNode();
+        node.position(posX(), posY());
+        return node;
     }
 
     @Override
-    public void compile(final @NotNull Graph graph, final @NotNull Collection<Instruction> instructions, final @NotNull Set<INode> compiling) {
+    public void compile(final @NotNull Graph graph, final @NotNull Collection<Instruction> instructions) {
+        if (running)
+            return;
+        running = true;
+
+        for (final var input : inputs)
+            input
+                    .predecessor(graph)
+                    .ifPresent(pre -> pre
+                            .node()
+                            .compile(graph, instructions));
+
+        running = false;
     }
 
     @Override
-    public boolean @NotNull [] exec(final @NotNull Graph graph, final @NotNull Set<INode> executing) {
-        return new boolean[]{false};
+    public boolean @NotNull [] exec(final @NotNull Graph graph) {
+        if (running)
+            return new boolean[outputs.size()];
+        running = true;
+
+        for (final var input : inputs)
+            input
+                    .predecessor(graph)
+                    .ifPresent(pin -> pin
+                            .node()
+                            .exec(graph));
+
+        running = false;
+        return new boolean[outputs.size()];
     }
 
     @Override
-    public @NotNull String getPvtString() {
-        return "-1,none";
+    public @NotNull String asString() {
+        final var pos = editorPosition();
+        return "%d,%d,%d".formatted(NODE_ID_INVALID, (int) pos.x, (int) pos.y);
+    }
+
+    @Override
+    public void write(final @NotNull OutputStream stream) throws IOException {
+        writeByte(stream, NODE_ID_INVALID);
+        writeUUID(stream, uuid());
+        writeInt(stream, inputs.size());
+        writeInt(stream, outputs.size());
+        writeInt(stream, posX());
+        writeInt(stream, posY());
     }
 }
