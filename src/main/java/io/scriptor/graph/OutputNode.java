@@ -188,7 +188,7 @@ public class OutputNode extends Node {
     }
 
     @Override
-    public @NotNull String asString() {
+    public @NotNull String string() {
         final var pos = editorPosition();
         return "%d,%s,%d,%d".formatted(NODE_ID_OUTPUT, attribute.uuid(), (int) pos.x, (int) pos.y);
     }

@@ -128,8 +128,8 @@ public record Blueprint(
         source.write(stream);
     }
 
-    public boolean uses(final @NotNull Blueprint blueprint) {
-        return source.uses(blueprint);
+    public boolean usesRecursive(final @NotNull Blueprint blueprint) {
+        return source.usesRecursive(blueprint);
     }
 
     public @NotNull String input(final int index) {

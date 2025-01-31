@@ -3,15 +3,18 @@ package io.scriptor.view;
 import imgui.ImGui;
 import io.scriptor.context.Context;
 import io.scriptor.event.EventManager;
+import io.scriptor.event.IPayload;
 import io.scriptor.graph.Blueprint;
 import io.scriptor.graph.Graph;
 import io.scriptor.util.Range;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Comparator;
-import java.util.function.Consumer;
 
 public class BlueprintView extends View {
+
+    public record Payload(@NotNull Blueprint value) implements IPayload {
+    }
 
     private final ListView<Blueprint> blueprintListView;
     private final TextInputView labelTextInputView;
@@ -22,18 +25,13 @@ public class BlueprintView extends View {
     private final PopupView colorPopupView;
 
     private final Context context;
-    private final Consumer<Blueprint> create;
 
     private Blueprint selectedBlueprint;
 
-    public BlueprintView(final @NotNull EventManager events,
-                         final @NotNull Context context,
-                         final @NotNull Consumer<Blueprint> create,
-                         final @NotNull Consumer<Blueprint> edit) {
+    public BlueprintView(final @NotNull EventManager events, final @NotNull Context context) {
         super(events);
 
         this.context = context;
-        this.create = create;
 
         labelTextInputView = new TextInputView(events, label -> {
             if (!label.isEmpty())
@@ -54,9 +52,9 @@ public class BlueprintView extends View {
             }
             if (selectedBlueprint.editable()) {
                 if (ImGui.selectable("Edit"))
-                    edit.accept(selectedBlueprint);
+                    events.callVoidService("blueprint.edit", new Payload(selectedBlueprint));
                 if (ImGui.selectable("Delete"))
-                    events.scheduleTask(() -> context.remove(selectedBlueprint));
+                    events.callVoidService("blueprint.delete", new Payload(selectedBlueprint));
             }
         });
         blueprintListView = new ListView<>(
@@ -78,10 +76,12 @@ public class BlueprintView extends View {
         }
 
         if (ImGui.button("Add Blueprint"))
-            create.accept(new Blueprint.Builder()
-                    .label("New Blueprint")
-                    .source(new Graph(context))
-                    .build());
+            events.callVoidService(
+                    "blueprint.new",
+                    new Payload(new Blueprint.Builder()
+                            .label("New Blueprint")
+                            .source(new Graph(context))
+                            .build()));
 
         blueprintListView.show();
         events.runTasks(this);

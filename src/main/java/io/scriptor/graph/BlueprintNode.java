@@ -167,7 +167,12 @@ public class BlueprintNode extends Node {
 
     @Override
     public boolean uses(final @NotNull Blueprint blueprint) {
-        return this.blueprint == blueprint || this.blueprint.uses(blueprint);
+        return this.blueprint == blueprint;
+    }
+
+    @Override
+    public boolean usesRecursive(final @NotNull Blueprint blueprint) {
+        return this.blueprint == blueprint || this.blueprint.usesRecursive(blueprint);
     }
 
     @Override
@@ -236,9 +241,9 @@ public class BlueprintNode extends Node {
     }
 
     @Override
-    public @NotNull String asString() {
+    public @NotNull String string() {
         final var pos = editorPosition();
-        return "%d,%s,%d,%d".formatted(NODE_ID_BLUEPRINT, blueprint, (int) pos.x, (int) pos.y);
+        return "%d,%s,%d,%d".formatted(NODE_ID_BLUEPRINT, blueprint.uuid(), (int) pos.x, (int) pos.y);
     }
 
     @Override

@@ -170,27 +170,31 @@ public class Main {
         events.registerEvent("key.s.press+control", this::save);
         events.offerService(ID_CLIPBOARD_GET, () -> requireNonNullElse(glfwGetClipboardString(window), ""));
         events.<StringPayload>offerService(ID_CLIPBOARD_SET, payload -> glfwSetClipboardString(window, payload.value()));
+        events.<BlueprintView.Payload>offerService("blueprint.new", payload -> {
+            final var blueprint = payload.value();
+            final var editor = new EditorView(events, context, blueprint);
+            events.scheduleTask(() -> editors.put(blueprint, editor));
+        });
+        events.<BlueprintView.Payload>offerService("blueprint.edit", payload -> {
+            final var blueprint = payload.value();
+            if (editors.containsKey(blueprint))
+                return;
+            final var editor = new EditorView(events, context, blueprint);
+            events.scheduleTask(() -> editors.put(blueprint, editor));
+        });
+        events.<BlueprintView.Payload>offerService("blueprint.close", payload -> {
+            final var blueprint = payload.value();
+            events.scheduleTask(() -> editors.remove(blueprint));
+        });
+        events.<BlueprintView.Payload>offerService("blueprint.delete", payload -> {
+            final var blueprint = payload.value();
+            events.scheduleTask(() -> {
+                editors.remove(blueprint);
+                context.remove(blueprint);
+            });
+        });
 
-        blueprints = new BlueprintView(
-                events,
-                context,
-                blueprint -> {
-                    context.add(blueprint);
-                    editors.put(
-                            blueprint,
-                            new EditorView(
-                                    events,
-                                    context,
-                                    blueprint,
-                                    () -> editors.remove(blueprint)));
-                },
-                blueprint -> editors.computeIfAbsent(
-                        blueprint,
-                        key -> new EditorView(
-                                events,
-                                context,
-                                blueprint,
-                                () -> editors.remove(blueprint))));
+        blueprints = new BlueprintView(events, context);
     }
 
     private void onFrame() {

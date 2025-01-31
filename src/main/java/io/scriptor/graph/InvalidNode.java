@@ -231,7 +231,7 @@ public class InvalidNode extends Node {
     }
 
     @Override
-    public @NotNull String asString() {
+    public @NotNull String string() {
         final var pos = editorPosition();
         return "%d,%d,%d".formatted(NODE_ID_INVALID, (int) pos.x, (int) pos.y);
     }

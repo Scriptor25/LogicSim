@@ -175,6 +175,10 @@ public abstract class Node implements IUnique {
         return false;
     }
 
+    public boolean usesRecursive(final @NotNull Blueprint blueprint) {
+        return false;
+    }
+
     public abstract void show(final @NotNull Graph graph);
 
     public abstract @NotNull Node copy(final @NotNull Map<Attribute, Attribute> copies);
@@ -183,7 +187,7 @@ public abstract class Node implements IUnique {
 
     public abstract boolean @NotNull [] exec(final @NotNull Graph graph);
 
-    public abstract @NotNull String asString();
+    public abstract @NotNull String string();
 
     public abstract void write(final @NotNull OutputStream stream) throws IOException;
 

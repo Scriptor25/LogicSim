@@ -248,10 +248,10 @@ public class Graph {
                 .filter(node -> node.back(this));
     }
 
-    public boolean uses(final @NotNull Blueprint blueprint) {
+    public boolean usesRecursive(final @NotNull Blueprint blueprint) {
         return nodes
                 .stream()
-                .anyMatch(node -> node.uses(blueprint));
+                .anyMatch(node -> node.usesRecursive(blueprint));
     }
 
     public @NotNull Graph copy() {

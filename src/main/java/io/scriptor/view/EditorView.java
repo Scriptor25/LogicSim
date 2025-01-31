@@ -84,7 +84,6 @@ public class EditorView extends View {
 
     private final Context context;
     private final Blueprint instance;
-    private final Runnable close;
     private final Graph graph;
 
     private final ImNodesEditorContext imEditorContext;
@@ -100,13 +99,11 @@ public class EditorView extends View {
 
     public EditorView(final @NotNull EventManager events,
                       final @NotNull Context context,
-                      final @NotNull Blueprint instance,
-                      final @NotNull Runnable close) {
+                      final @NotNull Blueprint instance) {
         super(events);
 
         this.context = context;
         this.instance = instance;
-        this.close = close;
         this.graph = instance.source();
 
         labelTextInputView = new TextInputView(events, this::onLabelEnter);
@@ -127,7 +124,7 @@ public class EditorView extends View {
                 events,
                 new Range<>(graph.context().blueprints())
                         .filter(blueprint -> blueprint != instance)
-                        .filter(blueprint -> !blueprint.uses(instance))
+                        .filter(blueprint -> !blueprint.usesRecursive(instance))
                         .sorted(Comparator.comparing(Blueprint::label)),
                 this::onAddBlueprint,
                 EditorView::showBlueprint);
@@ -145,7 +142,7 @@ public class EditorView extends View {
                 new Range<>(graph.context().blueprints())
                         .filter(blueprint -> sourcePin != null)
                         .filter(blueprint -> blueprint != instance)
-                        .filter(blueprint -> !blueprint.uses(instance))
+                        .filter(blueprint -> !blueprint.usesRecursive(instance))
                         .filter(blueprint -> sourcePin.output()
                                 ? blueprint.numInputs() > 0
                                 : blueprint.numOutputs() > 0)
@@ -166,7 +163,7 @@ public class EditorView extends View {
                 new Range<>(graph.context().blueprints())
                         .filter(blueprint -> selectedNode != null)
                         .filter(blueprint -> blueprint != instance)
-                        .filter(blueprint -> !blueprint.uses(instance))
+                        .filter(blueprint -> !blueprint.usesRecursive(instance))
                         .filter(blueprint -> !selectedNode.uses(blueprint))
                         .sorted(Comparator.comparing(Blueprint::label)),
                 this::onReplaceBlueprint,
@@ -195,7 +192,7 @@ public class EditorView extends View {
     @Override
     public void show() {
         if (!open.get()) {
-            events.scheduleTask(close);
+            events.callVoidService("blueprint.close", new BlueprintView.Payload(instance));
             return;
         }
 
@@ -399,7 +396,7 @@ public class EditorView extends View {
                 .append('\n');
         for (final var node : nodeArray)
             data
-                    .append(node.asString())
+                    .append(node.string())
                     .append('\n');
         data
                 .append(linkArray.length)
