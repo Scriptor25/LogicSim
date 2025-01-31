@@ -18,8 +18,6 @@
  */
 package io.scriptor.context;
 
-import io.scriptor.function.AndFunction;
-import io.scriptor.function.NotFunction;
 import io.scriptor.graph.Attribute;
 import io.scriptor.graph.Blueprint;
 import io.scriptor.graph.Graph;
@@ -36,23 +34,30 @@ import static io.scriptor.util.Constants.UUID_AND;
 import static io.scriptor.util.Constants.UUID_NOT;
 import static io.scriptor.util.IO.readInt;
 import static io.scriptor.util.IO.writeInt;
+import static io.scriptor.util.Task.handleVoid;
 
 /**
  * The context manages the function registry and blueprint storage.
  */
 public class Context {
 
-    private final Registry registry;
-    private final List<Blueprint> blueprints = new ArrayList<>();
+    public static @NotNull Context read(final @NotNull File file) throws IOException {
+        try (final var stream = Files.newInputStream(file.toPath())) {
+            return read(stream);
+        }
+    }
+
+    public static @NotNull Context read(final @NotNull InputStream stream) throws IOException {
+        final var context = new Context(false);
+        final var blueprintCount = readInt(stream);
+        for (int i = 0; i < blueprintCount; ++i)
+            context.add(Blueprint.read(context, stream));
+        return context;
+    }
+
+    private final Map<UUID, Blueprint> blueprints = new HashMap<>();
 
     public Context(final boolean addDefaults) {
-        final var notFunction = new NotFunction(UUID_NOT);
-        final var andFunction = new AndFunction(UUID_AND);
-
-        registry = new Registry(this);
-        registry.add(notFunction);
-        registry.add(andFunction);
-
         if (!addDefaults)
             return;
 
@@ -66,7 +71,7 @@ public class Context {
                 .baseColor(0x3f579a)
                 .source(notGraph)
                 .editable(false)
-                .build(this);
+                .build();
         add(notBlueprint);
 
         final var andGraph = new Graph(this);
@@ -80,7 +85,7 @@ public class Context {
                 .baseColor(0x3f579a)
                 .source(andGraph)
                 .editable(false)
-                .build(this);
+                .build();
         add(andBlueprint);
     }
 
@@ -114,34 +119,12 @@ public class Context {
      */
     public void write(final @NotNull OutputStream stream) throws IOException {
         writeInt(stream, blueprints.size());
-        for (final var blueprint : blueprints)
-            blueprint.write(stream);
-    }
-
-    public static @NotNull Context read(final @NotNull File file) throws IOException {
-        try (final var stream = Files.newInputStream(file.toPath())) {
-            return read(stream);
-        }
-    }
-
-    public static @NotNull Context read(final @NotNull InputStream stream) throws IOException {
-        final var context = new Context(false);
-        final var blueprintCount = readInt(stream);
-        for (int i = 0; i < blueprintCount; ++i) {
-            final var blueprint = Blueprint.read(context, stream);
-            context.registry.add(blueprint.function());
-            context.add(blueprint);
-        }
-        return context;
-    }
-
-    /**
-     * Get the registry used by this context.
-     *
-     * @return the registry
-     */
-    public @NotNull Registry registry() {
-        return registry;
+        final var list = blueprints
+                .values()
+                .stream()
+                .sorted((a, b) -> a.uses(b) ? 1 : b.uses(a) ? -1 : 0)
+                .toList();
+        list.forEach(blueprint -> handleVoid(() -> blueprint.write(stream)));
     }
 
     /**
@@ -150,14 +133,13 @@ public class Context {
      * @return the blueprints
      */
     public @NotNull Collection<Blueprint> blueprints() {
-        return Collections.unmodifiableCollection(blueprints);
+        return Collections.unmodifiableCollection(blueprints.values());
     }
 
-    public @NotNull Optional<Blueprint> findBlueprint(final @NotNull UUID uuid) {
-        return blueprints
-                .stream()
-                .filter(blueprint -> blueprint.uuid().equals(uuid))
-                .findAny();
+    public @NotNull Optional<Blueprint> get(final @NotNull UUID uuid) {
+        if (blueprints.containsKey(uuid))
+            return Optional.of(blueprints.get(uuid));
+        return Optional.empty();
     }
 
     /**
@@ -166,7 +148,7 @@ public class Context {
      * @param blueprint the blueprint
      */
     public void add(final @NotNull Blueprint blueprint) {
-        blueprints.add(blueprint);
+        blueprints.put(blueprint.uuid(), blueprint);
     }
 
     /**
@@ -175,6 +157,6 @@ public class Context {
      * @param blueprint the blueprint
      */
     public void remove(final @NotNull Blueprint blueprint) {
-        blueprints.remove(blueprint);
+        blueprints.remove(blueprint.uuid());
     }
 }

@@ -47,7 +47,7 @@ public class InputNode extends Node {
         final var split = string.split(",");
         final var node = graph
                 .findAttribute(UUID.fromString(split[1]))
-                .<Node>map(attribute -> new InputNode(UUID.randomUUID(), attribute))
+                .<Node>map(InputNode::new)
                 .orElseGet(InvalidNode::new);
         final var posX = Integer.parseInt(split[2]);
         final var posY = Integer.parseInt(split[3]);
@@ -55,13 +55,13 @@ public class InputNode extends Node {
         return node;
     }
 
-    public static @NotNull InputNode read(final @NotNull Graph graph, final @NotNull InputStream stream) throws IOException {
+    public static @NotNull Node read(final @NotNull Graph graph, final @NotNull InputStream stream) throws IOException {
         final var uuid = readUUID(stream);
-        final var attribute = readUUID(stream);
+        final var attributeUUID = readUUID(stream);
         final var node = graph
-                .findAttribute(attribute)
-                .map(x -> new InputNode(uuid, x))
-                .orElseThrow();
+                .findAttribute(attributeUUID)
+                .<Node>map(attribute -> new InputNode(uuid, attribute))
+                .orElseGet(() -> new InvalidNode(uuid));
         final var posX = readInt(stream);
         final var posY = readInt(stream);
         node.position(posX, posY);
@@ -74,6 +74,10 @@ public class InputNode extends Node {
     public InputNode(final @NotNull UUID uuid, final @NotNull Attribute attribute) {
         super(uuid);
         this.attribute = attribute;
+    }
+
+    public InputNode(final @NotNull Attribute attribute) {
+        this(UUID.randomUUID(), attribute);
     }
 
     public @NotNull String label() {
@@ -162,7 +166,7 @@ public class InputNode extends Node {
 
     @Override
     public @NotNull Node copy(final @NotNull Map<Attribute, Attribute> copies) {
-        final var node = new InputNode(UUID.randomUUID(), copies.get(attribute));
+        final var node = new InputNode(copies.get(attribute));
         node.position(posX(), posY());
         return node;
     }

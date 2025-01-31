@@ -106,12 +106,11 @@ public class State {
      */
     public boolean call(final @NotNull UUID caller, final @NotNull UUID callee, final boolean @NotNull [] args) {
         return context
-                .registry()
                 .get(callee)
-                .map(function -> {
-                    resultMap.put(caller, new boolean[function.numOutputs()]);
+                .map(blueprint -> {
+                    resultMap.put(caller, new boolean[blueprint.numOutputs()]);
                     final var substate = substateMap.computeIfAbsent(caller, key -> new State(this));
-                    function.exec(substate, args, resultMap.get(caller));
+                    blueprint.exec(substate, args, resultMap.get(caller));
                     return false;
                 })
                 .orElse(true);

@@ -48,7 +48,7 @@ public class OutputNode extends Node {
         final var split = string.split(",");
         final var node = graph
                 .findAttribute(UUID.fromString(split[1]))
-                .<Node>map(attribute -> new OutputNode(UUID.randomUUID(), attribute))
+                .<Node>map(OutputNode::new)
                 .orElseGet(InvalidNode::new);
         final var posX = Integer.parseInt(split[2]);
         final var posY = Integer.parseInt(split[3]);
@@ -56,13 +56,13 @@ public class OutputNode extends Node {
         return node;
     }
 
-    public static @NotNull OutputNode read(final @NotNull Graph graph, final @NotNull InputStream stream) throws IOException {
+    public static @NotNull Node read(final @NotNull Graph graph, final @NotNull InputStream stream) throws IOException {
         final var uuid = readUUID(stream);
-        final var attribute = readUUID(stream);
+        final var attributeUUID = readUUID(stream);
         final var node = graph
-                .findAttribute(attribute)
-                .map(x -> new OutputNode(uuid, x))
-                .orElseThrow();
+                .findAttribute(attributeUUID)
+                .<Node>map(attribute -> new OutputNode(uuid, attribute))
+                .orElseGet(() -> new InvalidNode(uuid));
         final var posX = readInt(stream);
         final var posY = readInt(stream);
         node.position(posX, posY);
@@ -75,6 +75,10 @@ public class OutputNode extends Node {
     public OutputNode(final @NotNull UUID uuid, final @NotNull Attribute attribute) {
         super(uuid);
         this.attribute = attribute;
+    }
+
+    public OutputNode(final @NotNull Attribute attribute) {
+        this(UUID.randomUUID(), attribute);
     }
 
     public boolean powered() {
@@ -157,7 +161,7 @@ public class OutputNode extends Node {
 
     @Override
     public @NotNull Node copy(final @NotNull Map<Attribute, Attribute> copies) {
-        final var node = new OutputNode(UUID.randomUUID(), copies.get(attribute));
+        final var node = new OutputNode(copies.get(attribute));
         node.position(posX(), posY());
         return node;
     }

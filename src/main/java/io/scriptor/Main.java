@@ -167,7 +167,7 @@ public class Main {
         load();
 
         events = new EventManager();
-        events.<KeyPayload>registerEvent("key.s.press+control", payload -> save());
+        events.registerEvent("key.s.press+control", this::save);
         events.offerService(ID_CLIPBOARD_GET, () -> requireNonNullElse(glfwGetClipboardString(window), ""));
         events.<StringPayload>offerService(ID_CLIPBOARD_SET, payload -> glfwSetClipboardString(window, payload.value()));
 
@@ -180,6 +180,7 @@ public class Main {
                             blueprint,
                             new EditorView(
                                     events,
+                                    context,
                                     blueprint,
                                     () -> editors.remove(blueprint)));
                 },
@@ -187,6 +188,7 @@ public class Main {
                         blueprint,
                         key -> new EditorView(
                                 events,
+                                context,
                                 blueprint,
                                 () -> editors.remove(blueprint))));
     }
@@ -332,7 +334,7 @@ public class Main {
             id.append("+caps");
         if (payload.num())
             id.append("+num");
-        events.invokeEvent(id.toString(), payload);
+        events.invokeEvent(id.toString());
     }
 
     private void onSize(final long window, final int width, final int height) {

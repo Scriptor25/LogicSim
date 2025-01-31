@@ -31,6 +31,18 @@ import static io.scriptor.util.IO.*;
 
 public record Pin(@NotNull Node node, int index, boolean output) {
 
+    public static @NotNull Pin read(final @NotNull Graph graph, final @NotNull InputStream stream) throws IOException {
+        final var nodeUUID = readUUID(stream);
+        final var index = readInt(stream);
+        final var output = readBool(stream);
+        return graph
+                .findNode(nodeUUID)
+                .map(node -> output
+                        ? node.output(index)
+                        : node.input(index))
+                .orElseThrow();
+    }
+
     public int id() {
         return hashCode();
     }
@@ -63,17 +75,5 @@ public record Pin(@NotNull Node node, int index, boolean output) {
         writeUUID(stream, node.uuid());
         writeInt(stream, index);
         writeBool(stream, output);
-    }
-
-    public static @NotNull Pin read(final @NotNull Graph graph, final @NotNull InputStream stream) throws IOException {
-        final var node = readUUID(stream);
-        final var index = readInt(stream);
-        final var output = readBool(stream);
-        return graph
-                .findNode(node)
-                .map(x -> output
-                        ? x.output(index)
-                        : x.input(index))
-                .orElseThrow();
     }
 }

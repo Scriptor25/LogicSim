@@ -20,7 +20,6 @@ package io.scriptor.instruction;
 
 import io.scriptor.context.State;
 import io.scriptor.function.Function;
-import io.scriptor.util.RTException;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
@@ -39,13 +38,13 @@ public record SetRegInstruction(
 
     public static void read(final @NotNull InputStream stream, final @NotNull Function function) throws IOException {
         final var uuid = readUUID(stream);
-        final var reg = readUUID(stream);
+        final var register = readUUID(stream);
         final var index = readInt(stream);
-        final var value = readUUID(stream);
-        final var valueInstruction = function.find(value);
-        if (valueInstruction == null)
-            throw new RTException("invalid value instruction id %s", value);
-        function.add(new SetRegInstruction(uuid, reg, index, valueInstruction));
+        final var valueUUID = readUUID(stream);
+        final var value = function
+                .get(valueUUID)
+                .orElseGet(() -> new ConstInstruction(valueUUID, false));
+        function.add(new SetRegInstruction(uuid, register, index, value));
     }
 
     public SetRegInstruction(final @NotNull UUID reg, final int index, final @NotNull Instruction value) {

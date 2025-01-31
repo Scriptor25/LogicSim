@@ -37,10 +37,11 @@ public class BlueprintNode extends Node {
 
     public static @NotNull Node asNode(final @NotNull Graph graph, final @NotNull String string) {
         final var split = string.split(",");
+        final var blueprintUUID = UUID.fromString(split[1]);
         final var node = graph
                 .context()
-                .findBlueprint(UUID.fromString(split[1]))
-                .<Node>map(blueprint -> new BlueprintNode(UUID.randomUUID(), blueprint))
+                .get(blueprintUUID)
+                .<Node>map(BlueprintNode::new)
                 .orElseGet(InvalidNode::new);
         final var posX = Integer.parseInt(split[2]);
         final var posY = Integer.parseInt(split[3]);
@@ -48,14 +49,14 @@ public class BlueprintNode extends Node {
         return node;
     }
 
-    public static @NotNull BlueprintNode read(final @NotNull Graph graph, final @NotNull InputStream stream) throws IOException {
+    public static @NotNull Node read(final @NotNull Graph graph, final @NotNull InputStream stream) throws IOException {
         final var uuid = readUUID(stream);
-        final var blueprint = readUUID(stream);
+        final var blueprintUUID = readUUID(stream);
         final var node = graph
                 .context()
-                .findBlueprint(blueprint)
-                .map(x -> new BlueprintNode(uuid, x))
-                .orElseThrow();
+                .get(blueprintUUID)
+                .<Node>map(blueprint -> new BlueprintNode(uuid, blueprint))
+                .orElseGet(() -> new InvalidNode(uuid));
         final var posX = readInt(stream);
         final var posY = readInt(stream);
         node.position(posX, posY);
@@ -70,6 +71,10 @@ public class BlueprintNode extends Node {
     private boolean running = false;
     private boolean[] output;
     private State state;
+
+    public BlueprintNode(final @NotNull Blueprint blueprint) {
+        this(UUID.randomUUID(), blueprint);
+    }
 
     public BlueprintNode(final @NotNull UUID uuid, final @NotNull Blueprint blueprint) {
         super(uuid);
@@ -92,12 +97,12 @@ public class BlueprintNode extends Node {
 
     @Override
     public int numInputs() {
-        return blueprint.function().numInputs();
+        return blueprint.numInputs();
     }
 
     @Override
     public int numOutputs() {
-        return blueprint.function().numOutputs();
+        return blueprint.numOutputs();
     }
 
     @Override
@@ -162,7 +167,7 @@ public class BlueprintNode extends Node {
 
     @Override
     public boolean uses(final @NotNull Blueprint blueprint) {
-        return this.blueprint == blueprint;
+        return this.blueprint == blueprint || this.blueprint.uses(blueprint);
     }
 
     @Override
@@ -172,7 +177,7 @@ public class BlueprintNode extends Node {
 
     @Override
     public @NotNull Node copy(final @NotNull Map<Attribute, Attribute> copies) {
-        final var node = new BlueprintNode(UUID.randomUUID(), blueprint);
+        final var node = new BlueprintNode(blueprint);
         node.position(posX(), posY());
         return node;
     }
@@ -195,7 +200,7 @@ public class BlueprintNode extends Node {
                     })
                     .orElseGet(() -> new ConstInstruction(false));
 
-        final var call = new CallInstruction(blueprint.function().uuid(), input);
+        final var call = new CallInstruction(blueprint.uuid(), input);
         instructions.add(call);
 
         final var outputCount = numOutputs();
@@ -233,7 +238,7 @@ public class BlueprintNode extends Node {
     @Override
     public @NotNull String asString() {
         final var pos = editorPosition();
-        return "%d,%s,%d,%d".formatted(NODE_ID_BLUEPRINT, blueprint.uuid(), (int) pos.x, (int) pos.y);
+        return "%d,%s,%d,%d".formatted(NODE_ID_BLUEPRINT, blueprint, (int) pos.x, (int) pos.y);
     }
 
     @Override

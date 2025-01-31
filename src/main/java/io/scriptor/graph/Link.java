@@ -34,7 +34,7 @@ import static io.scriptor.util.IO.readUUID;
 import static io.scriptor.util.IO.writeUUID;
 import static io.scriptor.util.Util.indexOf;
 
-public record Link(UUID uuid, Pin source, Pin target) implements IUnique {
+public record Link(@NotNull UUID uuid, @NotNull Pin source, @NotNull Pin target) implements IUnique {
 
     public static @NotNull Link parseString(final @NotNull Node @NotNull [] nodes, final @NotNull String string) {
         final var split = string.split(",");
@@ -46,6 +46,17 @@ public record Link(UUID uuid, Pin source, Pin target) implements IUnique {
                 UUID.randomUUID(),
                 nodes[sourceNode].output(sourceIndex),
                 nodes[targetNode].input(targetIndex));
+    }
+
+    public static @NotNull Link read(final @NotNull Graph graph, final @NotNull InputStream stream) throws IOException {
+        final var uuid = readUUID(stream);
+        final var source = Pin.read(graph, stream);
+        final var target = Pin.read(graph, stream);
+        return new Link(uuid, source, target);
+    }
+
+    public Link(final @NotNull Pin source, final @NotNull Pin target) {
+        this(UUID.randomUUID(), source, target);
     }
 
     public int id() {
@@ -110,12 +121,5 @@ public record Link(UUID uuid, Pin source, Pin target) implements IUnique {
         writeUUID(stream, uuid);
         source.write(stream);
         target.write(stream);
-    }
-
-    public static @NotNull Link read(final @NotNull Graph graph, final @NotNull InputStream stream) throws IOException {
-        final var uuid = readUUID(stream);
-        final var source = Pin.read(graph, stream);
-        final var target = Pin.read(graph, stream);
-        return new Link(uuid, source, target);
     }
 }

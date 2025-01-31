@@ -13,17 +13,16 @@ import java.util.function.Consumer;
 
 public class BlueprintView extends View {
 
-    private final ListView<Blueprint> blueprintView;
-    private final TextInputView setLabelView;
-    private final ColorInputView setColorView;
+    private final ListView<Blueprint> blueprintListView;
+    private final TextInputView labelTextInputView;
+    private final ColorInputView colorInputView;
 
-    private final PopupView blueprintContext;
-    private final PopupView setLabelContext;
-    private final PopupView setColorContext;
+    private final PopupView blueprintPopupView;
+    private final PopupView labelPopupView;
+    private final PopupView colorPopupView;
 
     private final Context context;
     private final Consumer<Blueprint> create;
-    private final Consumer<Blueprint> edit;
 
     private Blueprint selectedBlueprint;
 
@@ -35,24 +34,23 @@ public class BlueprintView extends View {
 
         this.context = context;
         this.create = create;
-        this.edit = edit;
 
-        setLabelView = new TextInputView(events, label -> {
+        labelTextInputView = new TextInputView(events, label -> {
             if (!label.isEmpty())
                 selectedBlueprint.label().set(label, true);
             ImGui.closeCurrentPopup();
         });
-        setLabelContext = new PopupView(events, setLabelView::show);
-        setColorView = new ColorInputView(events, color -> selectedBlueprint.baseColor().set(color));
-        setColorContext = new PopupView(events, setColorView::show);
-        blueprintContext = new PopupView(events, () -> {
+        labelPopupView = new PopupView(events, labelTextInputView::show);
+        colorInputView = new ColorInputView(events, color -> selectedBlueprint.baseColor().set(color));
+        colorPopupView = new PopupView(events, colorInputView::show);
+        blueprintPopupView = new PopupView(events, () -> {
             if (ImGui.selectable("Set Label")) {
-                setLabelView.value(selectedBlueprint.label().get());
-                events.scheduleTask(setLabelContext::open);
+                labelTextInputView.value(selectedBlueprint.label().get());
+                events.scheduleTask(labelPopupView::open);
             }
             if (ImGui.selectable("Set Color")) {
-                setColorView.value(selectedBlueprint.baseColor());
-                events.scheduleTask(setColorContext::open);
+                colorInputView.value(selectedBlueprint.baseColor());
+                events.scheduleTask(colorPopupView::open);
             }
             if (selectedBlueprint.editable()) {
                 if (ImGui.selectable("Edit"))
@@ -61,13 +59,13 @@ public class BlueprintView extends View {
                     events.scheduleTask(() -> context.remove(selectedBlueprint));
             }
         });
-        blueprintView = new ListView<>(
+        blueprintListView = new ListView<>(
                 events,
                 new Range<>(context.blueprints())
                         .sorted(Comparator.comparing(Blueprint::label)),
                 blueprint -> {
                     selectedBlueprint = blueprint;
-                    events.scheduleTask(blueprintContext::open);
+                    events.scheduleTask(blueprintPopupView::open);
                 },
                 blueprint -> ImGui.selectable(blueprint.label().get()));
     }
@@ -83,14 +81,14 @@ public class BlueprintView extends View {
             create.accept(new Blueprint.Builder()
                     .label("New Blueprint")
                     .source(new Graph(context))
-                    .build(context));
+                    .build());
 
-        blueprintView.show();
+        blueprintListView.show();
         events.runTasks(this);
         ImGui.end();
 
-        blueprintContext.show();
-        setLabelContext.show();
-        setColorContext.show();
+        blueprintPopupView.show();
+        labelPopupView.show();
+        colorPopupView.show();
     }
 }

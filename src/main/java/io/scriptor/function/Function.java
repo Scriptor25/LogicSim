@@ -23,7 +23,6 @@ import io.scriptor.graph.Attribute;
 import io.scriptor.graph.Graph;
 import io.scriptor.instruction.Instruction;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Array;
 import java.util.*;
@@ -39,6 +38,10 @@ public class Function implements IFunction, Collection<Instruction> {
     private Instruction[] data = new Instruction[8];
     private int size = 0;
 
+    public Function(final @NotNull Graph source) {
+        this(UUID.randomUUID(), source);
+    }
+
     public Function(final @NotNull UUID uuid, final @NotNull Graph source) {
         this.uuid = uuid;
         this.source = source;
@@ -52,11 +55,11 @@ public class Function implements IFunction, Collection<Instruction> {
      * @param <T>  the type
      * @return the instruction, or null if not found
      */
-    public <T extends Instruction> @Nullable T find(final @NotNull UUID uuid, final @NotNull Class<T> type) {
+    public <T extends Instruction> @NotNull Optional<T> get(final @NotNull UUID uuid, final @NotNull Class<T> type) {
         for (final var instruction : data)
             if (instruction.same(uuid))
-                return type.cast(instruction);
-        return null;
+                return Optional.of(type.cast(instruction));
+        return Optional.empty();
     }
 
     /**
@@ -65,11 +68,11 @@ public class Function implements IFunction, Collection<Instruction> {
      * @param uuid the uuid
      * @return the instruction, or null if not found
      */
-    public @Nullable Instruction find(final @NotNull UUID uuid) {
+    public @NotNull Optional<Instruction> get(final @NotNull UUID uuid) {
         for (final var instruction : data)
             if (instruction.same(uuid))
-                return instruction;
-        return null;
+                return Optional.of(instruction);
+        return Optional.empty();
     }
 
     @Override
@@ -79,28 +82,24 @@ public class Function implements IFunction, Collection<Instruction> {
 
     @Override
     public int numInputs() {
-        return (int) source.inputs().count();
+        return source.numInputs();
     }
 
     @Override
     public int numOutputs() {
-        return (int) source.outputs().count();
+        return source.numOutputs();
     }
 
     private @NotNull UUID input(final int i) {
         return source
-                .inputs()
-                .skip(i)
-                .findFirst()
+                .input(i)
                 .map(Attribute::uuid)
                 .orElseThrow();
     }
 
     private @NotNull UUID output(final int i) {
         return source
-                .outputs()
-                .skip(i)
-                .findFirst()
+                .output(i)
                 .map(Attribute::uuid)
                 .orElseThrow();
     }
@@ -108,11 +107,13 @@ public class Function implements IFunction, Collection<Instruction> {
     @Override
     public void exec(final @NotNull State state, final boolean @NotNull [] inputs, final boolean @NotNull [] outputs) {
         final var inputCount = numInputs();
-        final var outputCount = numOutputs();
         for (int i = 0; i < inputCount; ++i)
             state.setAttribute(input(i), inputs[i]);
+
         for (final var instruction : this)
             instruction.exec(state);
+
+        final var outputCount = numOutputs();
         for (int i = 0; i < outputCount; ++i)
             outputs[i] = state.getAttribute(output(i));
     }
@@ -148,7 +149,8 @@ public class Function implements IFunction, Collection<Instruction> {
 
             @Override
             public Instruction next() {
-                if (i >= size) throw new NoSuchElementException();
+                if (i >= size)
+                    throw new NoSuchElementException();
                 return data[i++];
             }
         };

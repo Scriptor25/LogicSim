@@ -20,7 +20,6 @@ package io.scriptor.instruction;
 
 import io.scriptor.context.State;
 import io.scriptor.function.Function;
-import io.scriptor.util.RTException;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
@@ -33,33 +32,33 @@ import static io.scriptor.util.IO.writeUUID;
 
 public record SetAttribInstruction(
         @NotNull UUID uuid,
-        @NotNull UUID attrib,
+        @NotNull UUID attribute,
         @NotNull Instruction value
 ) implements Instruction {
 
     public static void read(final @NotNull InputStream stream, final @NotNull Function function) throws IOException {
         final var uuid = readUUID(stream);
-        final var attrib = readUUID(stream);
-        final var value = readUUID(stream);
-        final var valueInstruction = function.find(value);
-        if (valueInstruction == null)
-            throw new RTException("invalid value instruction id %s", value);
-        function.add(new SetAttribInstruction(uuid, attrib, valueInstruction));
+        final var attribute = readUUID(stream);
+        final var valueUUID = readUUID(stream);
+        final var value = function
+                .get(valueUUID)
+                .orElseGet(() -> new ConstInstruction(valueUUID, false));
+        function.add(new SetAttribInstruction(uuid, attribute, value));
     }
 
-    public SetAttribInstruction(final @NotNull UUID attrib, final @NotNull Instruction value) {
-        this(UUID.randomUUID(), attrib, value);
+    public SetAttribInstruction(final @NotNull UUID attribute, final @NotNull Instruction value) {
+        this(UUID.randomUUID(), attribute, value);
     }
 
     @Override
     public void write(final @NotNull OutputStream stream) throws IOException {
         Instruction.super.write(stream);
-        writeUUID(stream, attrib);
+        writeUUID(stream, attribute);
         writeUUID(stream, value.uuid());
     }
 
     @Override
     public void exec(final @NotNull State state) {
-        state.setAttribute(attrib, value.get(state));
+        state.setAttribute(attribute, value.get(state));
     }
 }

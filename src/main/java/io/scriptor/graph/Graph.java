@@ -22,7 +22,6 @@ import io.scriptor.context.Context;
 import io.scriptor.context.State;
 import io.scriptor.function.Function;
 import io.scriptor.function.IFunction;
-import io.scriptor.util.IUnique;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
@@ -31,13 +30,13 @@ import java.io.OutputStream;
 import java.util.*;
 import java.util.stream.Stream;
 
-import static io.scriptor.util.IO.*;
+import static io.scriptor.util.IO.readInt;
+import static io.scriptor.util.IO.writeInt;
 
-public class Graph implements IUnique {
+public class Graph {
 
     public static @NotNull Graph read(final @NotNull Context context, final @NotNull InputStream stream) throws IOException {
-        final var uuid = readUUID(stream);
-        final var graph = new Graph(context, uuid);
+        final var graph = new Graph(context);
 
         final var attributeCount = readInt(stream);
         for (int i = 0; i < attributeCount; ++i)
@@ -56,7 +55,6 @@ public class Graph implements IUnique {
 
     private final Context context;
 
-    private final UUID uuid;
     private final List<Attribute> attributes;
     private final List<Node> nodes;
     private final List<Link> links;
@@ -66,34 +64,24 @@ public class Graph implements IUnique {
     private boolean dirty;
 
     public Graph(final @NotNull Context context) {
-        this(context, UUID.randomUUID(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>());
-    }
-
-    public Graph(final @NotNull Context context, final @NotNull UUID uuid) {
-        this(context, uuid, new ArrayList<>(), new ArrayList<>(), new ArrayList<>());
+        this(context, new ArrayList<>(), new ArrayList<>(), new ArrayList<>());
     }
 
     public Graph(final @NotNull Context context,
-                 final @NotNull UUID uuid,
                  final @NotNull List<Attribute> attributes,
                  final @NotNull List<Node> nodes,
                  final @NotNull List<Link> links) {
         this.context = context;
-        this.uuid = uuid;
         this.attributes = attributes;
         this.nodes = nodes;
         this.links = links;
 
         this.state = new State(context);
-        this.function = new Function(uuid, this);
+        this.function = new Function(this);
     }
 
     public @NotNull Context context() {
         return context;
-    }
-
-    public @NotNull UUID uuid() {
-        return uuid;
     }
 
     public @NotNull Collection<Attribute> attributes() {
@@ -120,6 +108,10 @@ public class Graph implements IUnique {
                 .findFirst();
     }
 
+    public int numInputs() {
+        return (int) inputs().count();
+    }
+
     public @NotNull Stream<Attribute> outputs() {
         return attributes
                 .stream()
@@ -130,6 +122,10 @@ public class Graph implements IUnique {
         return outputs()
                 .skip(index)
                 .findFirst();
+    }
+
+    public int numOutputs() {
+        return (int) outputs().count();
     }
 
     public @NotNull State state() {
@@ -252,6 +248,12 @@ public class Graph implements IUnique {
                 .filter(node -> node.back(this));
     }
 
+    public boolean uses(final @NotNull Blueprint blueprint) {
+        return nodes
+                .stream()
+                .anyMatch(node -> node.uses(blueprint));
+    }
+
     public @NotNull Graph copy() {
         final var graph = new Graph(context);
 
@@ -289,7 +291,6 @@ public class Graph implements IUnique {
     }
 
     public void write(final @NotNull OutputStream stream) throws IOException {
-        writeUUID(stream, uuid);
         writeInt(stream, attributes.size());
         for (final var attribute : attributes)
             attribute.write(stream);

@@ -68,6 +68,13 @@ public class EventManager {
                 .forEach(callback -> ((IEventListener<T>) callback).invoke(payload));
     }
 
+    public void invokeEvent(final @NotNull Object id) {
+        eventMap
+                .computeIfAbsent(id, key -> new ArrayList<>())
+                .forEach(callback -> ((IEventListener<IPayload>) callback).invoke(new IPayload() {
+                }));
+    }
+
     /**
      * Offer a service callback. Service ids are unique, and overriding one is illegal and will throw an exception at runtime.
      *

@@ -39,10 +39,11 @@ import static io.scriptor.util.IO.readByte;
 
 public abstract class Node implements IUnique {
 
-    public static @NotNull Node asNode(final @NotNull Graph graph, final @NotNull String string) {
+    public static @NotNull Node asNode(final @NotNull Graph graph,
+                                       final @NotNull String string) {
         final var split = string.split(",");
         return switch (Byte.parseByte(split[0])) {
-            case NODE_ID_INVALID -> InvalidNode.asNode(graph, string);
+            case NODE_ID_INVALID -> InvalidNode.asNode(string);
             case NODE_ID_INPUT -> InputNode.asNode(graph, string);
             case NODE_ID_OUTPUT -> OutputNode.asNode(graph, string);
             case NODE_ID_BLUEPRINT -> BlueprintNode.asNode(graph, string);
@@ -50,14 +51,15 @@ public abstract class Node implements IUnique {
         };
     }
 
-    static @NotNull Node read(final @NotNull Graph graph, final @NotNull InputStream stream) throws IOException {
+    static @NotNull Node read(final @NotNull Graph graph,
+                              final @NotNull InputStream stream) throws IOException {
         final var type = readByte(stream);
         return switch (type) {
             case NODE_ID_INVALID -> InvalidNode.read(stream);
             case NODE_ID_INPUT -> InputNode.read(graph, stream);
             case NODE_ID_OUTPUT -> OutputNode.read(graph, stream);
             case NODE_ID_BLUEPRINT -> BlueprintNode.read(graph, stream);
-            default -> throw new RTException("invalid node type '%d'", type);
+            default -> throw new RTException("undefined node type '%d'", type);
         };
     }
 

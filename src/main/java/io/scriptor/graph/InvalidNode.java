@@ -36,7 +36,7 @@ import static io.scriptor.util.IO.*;
 
 public class InvalidNode extends Node {
 
-    public static @NotNull Node asNode(final @NotNull Graph graph, final @NotNull String string) {
+    public static @NotNull Node asNode(final @NotNull String string) {
         final var split = string.split(",");
         final var node = new InvalidNode();
         final var posX = Integer.parseInt(split[1]);
@@ -63,6 +63,10 @@ public class InvalidNode extends Node {
 
     public InvalidNode() {
         this(UUID.randomUUID(), 0, 0);
+    }
+
+    public InvalidNode(final @NotNull UUID uuid) {
+        this(uuid, 0, 0);
     }
 
     public InvalidNode(final @NotNull UUID uuid, final int inputCount, final int outputCount) {
@@ -159,22 +163,27 @@ public class InvalidNode extends Node {
         int i = 0;
         for (; i < Math.min(inputs.size(), outputs.size()); ++i) {
             ImNodes.beginInputAttribute(inputs.get(i).id());
+            ImGui.newLine();
             ImNodes.endInputAttribute();
             ImGui.sameLine();
             ImNodes.beginOutputAttribute(outputs.get(i).id());
+            ImGui.newLine();
             ImNodes.endOutputAttribute();
         }
         for (; i < inputs.size(); ++i) {
             ImNodes.beginInputAttribute(inputs.get(i).id());
+            ImGui.newLine();
             ImNodes.endInputAttribute();
         }
         for (; i < outputs.size(); ++i) {
             if (!inputs.isEmpty()) {
                 ImNodes.beginStaticAttribute(i);
+                ImGui.newLine();
                 ImNodes.endStaticAttribute();
                 ImGui.sameLine();
             }
             ImNodes.beginOutputAttribute(outputs.get(i).id());
+            ImGui.newLine();
             ImNodes.endOutputAttribute();
         }
 

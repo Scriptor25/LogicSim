@@ -26,7 +26,9 @@ import imgui.type.ImInt;
 import imgui.type.ImString;
 import io.scriptor.context.Context;
 import io.scriptor.context.State;
+import io.scriptor.function.AndFunction;
 import io.scriptor.function.IFunction;
+import io.scriptor.function.NotFunction;
 import io.scriptor.util.Constants;
 import io.scriptor.util.IUnique;
 import org.jetbrains.annotations.NotNull;
@@ -36,6 +38,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.UUID;
 
+import static io.scriptor.util.Constants.UUID_AND;
+import static io.scriptor.util.Constants.UUID_NOT;
 import static io.scriptor.util.IO.*;
 
 public record Blueprint(
@@ -86,12 +90,15 @@ public record Blueprint(
             return this;
         }
 
-        public @NotNull Blueprint build(final @NotNull Context context) {
-            if (function == null)
-                function = context
-                        .registry()
-                        .get(uuid)
-                        .orElseGet(() -> source.compile());
+        public @NotNull Blueprint build() {
+            if (function == null) {
+                if (uuid.equals(UUID_NOT))
+                    function = new NotFunction(UUID_NOT);
+                else if (uuid.equals(UUID_AND))
+                    function = new AndFunction(UUID_AND);
+                else
+                    function = source.compile();
+            }
 
             return new Blueprint(
                     uuid,
@@ -110,7 +117,7 @@ public record Blueprint(
                 .baseColor(readInt(stream))
                 .editable(readBool(stream))
                 .source(Graph.read(context, stream))
-                .build(context);
+                .build();
     }
 
     public void write(final @NotNull OutputStream stream) throws IOException {
@@ -119,6 +126,10 @@ public record Blueprint(
         writeInt(stream, baseColor.get());
         writeBool(stream, editable);
         source.write(stream);
+    }
+
+    public boolean uses(final @NotNull Blueprint blueprint) {
+        return source.uses(blueprint);
     }
 
     public @NotNull String input(final int index) {
@@ -135,6 +146,14 @@ public record Blueprint(
                 .map(Attribute::label)
                 .map(ImString::get)
                 .orElseThrow();
+    }
+
+    public int numInputs() {
+        return function.numInputs();
+    }
+
+    public int numOutputs() {
+        return function.numOutputs();
     }
 
     public void exec(final @NotNull State state, final boolean @NotNull [] inputs, final boolean @NotNull [] outputs) {

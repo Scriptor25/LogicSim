@@ -38,12 +38,12 @@ public record GetResultInstruction(
 
     public static void read(final @NotNull InputStream stream, final @NotNull Function function) throws IOException {
         final var uuid = readUUID(stream);
-        final var call = readUUID(stream);
+        final var callUUID = readUUID(stream);
         final var index = readInt(stream);
-        final var callInstruction = function.find(call, CallInstruction.class);
-        if (callInstruction == null)
-            throw new RTException("invalid call instruction id %s", call);
-        function.add(new GetResultInstruction(uuid, callInstruction, index));
+        final var call = function
+                .get(callUUID, CallInstruction.class)
+                .orElseThrow(() -> new RTException("no call instruction with uuid '%s'", callUUID));
+        function.add(new GetResultInstruction(uuid, call, index));
     }
 
     public GetResultInstruction(final @NotNull CallInstruction call, final int index) {
