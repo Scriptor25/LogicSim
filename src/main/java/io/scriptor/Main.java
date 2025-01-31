@@ -27,7 +27,6 @@ import io.scriptor.context.Context;
 import io.scriptor.event.EventManager;
 import io.scriptor.event.KeyPayload;
 import io.scriptor.event.StringPayload;
-import io.scriptor.graph.Blueprint;
 import io.scriptor.util.RTException;
 import io.scriptor.view.BlueprintView;
 import io.scriptor.view.EditorView;
@@ -41,6 +40,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 import static io.scriptor.util.Constants.*;
 import static io.scriptor.util.Task.handle;
@@ -89,7 +89,7 @@ public class Main {
     private Context context;
     private EventManager events;
 
-    private final Map<Blueprint, EditorView> editors = new HashMap<>();
+    private final Map<UUID, EditorView> editors = new HashMap<>();
     private BlueprintView blueprints;
 
     private Main() {
@@ -173,21 +173,21 @@ public class Main {
             final var blueprint = payload.value();
             context.add(blueprint);
             final var editor = new EditorView(events, context, blueprint);
-            editors.put(blueprint, editor);
+            editors.put(blueprint.uuid(), editor);
         }));
         events.<BlueprintView.Payload>offerService(ID_BLUEPRINT_EDIT, payload -> events.scheduleTask(() -> {
             final var blueprint = payload.value();
             final var editor = new EditorView(events, context, blueprint);
-            editors.putIfAbsent(blueprint, editor);
+            editors.putIfAbsent(blueprint.uuid(), editor);
         }));
         events.<BlueprintView.Payload>offerService(ID_BLUEPRINT_CLOSE, payload -> events.scheduleTask(() -> {
             final var blueprint = payload.value();
-            editors.remove(blueprint);
+            editors.remove(blueprint.uuid());
         }));
         events.<BlueprintView.Payload>offerService(ID_BLUEPRINT_DELETE, payload -> {
             events.scheduleTask(() -> {
                 final var blueprint = payload.value();
-                editors.remove(blueprint);
+                editors.remove(blueprint.uuid());
                 context.remove(blueprint);
             });
         });
