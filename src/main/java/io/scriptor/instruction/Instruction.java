@@ -19,18 +19,16 @@
 package io.scriptor.instruction;
 
 import io.scriptor.context.State;
+import io.scriptor.util.IUnique;
 import io.scriptor.util.RTException;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.UUID;
 
 import static io.scriptor.util.IO.writeUUID;
 
-public interface Instruction {
-
-    @NotNull UUID uuid();
+public interface Instruction extends IUnique {
 
     default void write(final @NotNull OutputStream stream) throws IOException {
         writeUUID(stream, uuid());

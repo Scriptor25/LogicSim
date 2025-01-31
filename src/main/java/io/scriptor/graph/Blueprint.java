@@ -43,7 +43,8 @@ public record Blueprint(
         @NotNull ImString label,
         @NotNull ImInt baseColor,
         @NotNull Graph source,
-        @NotNull IFunction function
+        @NotNull IFunction function,
+        boolean editable
 ) implements IUnique {
 
     public static class Builder {
@@ -53,6 +54,7 @@ public record Blueprint(
         private int baseColor = 0x212121;
         private IFunction function;
         private Graph source;
+        private boolean editable = true;
 
         public @NotNull Builder uuid(final @NotNull UUID uuid) {
             this.uuid = uuid;
@@ -79,6 +81,11 @@ public record Blueprint(
             return this;
         }
 
+        public @NotNull Builder editable(final boolean editable) {
+            this.editable = editable;
+            return this;
+        }
+
         public @NotNull Blueprint build(final @NotNull Context context) {
             if (function == null)
                 function = context
@@ -91,7 +98,8 @@ public record Blueprint(
                     new ImString(label),
                     new ImInt(baseColor),
                     source,
-                    function);
+                    function,
+                    editable);
         }
     }
 
@@ -100,6 +108,7 @@ public record Blueprint(
                 .uuid(readUUID(stream))
                 .label(readString(stream))
                 .baseColor(readInt(stream))
+                .editable(readBool(stream))
                 .source(Graph.read(context, stream))
                 .build(context);
     }
@@ -108,6 +117,7 @@ public record Blueprint(
         writeUUID(stream, uuid);
         writeString(stream, label.get());
         writeInt(stream, baseColor.get());
+        writeBool(stream, editable);
         source.write(stream);
     }
 

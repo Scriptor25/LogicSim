@@ -27,6 +27,7 @@ import io.scriptor.context.Context;
 import io.scriptor.event.EventManager;
 import io.scriptor.event.KeyPayload;
 import io.scriptor.event.StringPayload;
+import io.scriptor.graph.Blueprint;
 import io.scriptor.util.RTException;
 import io.scriptor.view.BlueprintView;
 import io.scriptor.view.EditorView;
@@ -38,9 +39,7 @@ import org.lwjgl.system.MemoryStack;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import static io.scriptor.util.Constants.ID_CLIPBOARD_GET;
@@ -91,7 +90,7 @@ public class Main {
     private Context context;
     private EventManager events;
 
-    private final List<EditorView> editors = new ArrayList<>();
+    private final Map<Blueprint, EditorView> editors = new HashMap<>();
     private BlueprintView blueprints;
 
     private Main() {
@@ -105,11 +104,9 @@ public class Main {
 
     private void load() {
         final var file = new File("project.bff");
-        if (file.exists()) {
-            context = handle(() -> Context.read(file));
-        } else {
-            context = new Context(true);
-        }
+        context = file.exists()
+                ? handle(() -> Context.read(file))
+                : new Context(true);
     }
 
     private void save() {
@@ -174,10 +171,24 @@ public class Main {
         events.offerService(ID_CLIPBOARD_GET, () -> requireNonNullElse(glfwGetClipboardString(window), ""));
         events.<StringPayload>offerService(ID_CLIPBOARD_SET, payload -> glfwSetClipboardString(window, payload.value()));
 
-        blueprints = new BlueprintView(events, context, blueprint -> {
-            context.add(blueprint);
-            editors.add(new EditorView(events, blueprint));
-        });
+        blueprints = new BlueprintView(
+                events,
+                context,
+                blueprint -> {
+                    context.add(blueprint);
+                    editors.put(
+                            blueprint,
+                            new EditorView(
+                                    events,
+                                    blueprint,
+                                    () -> editors.remove(blueprint)));
+                },
+                blueprint -> editors.computeIfAbsent(
+                        blueprint,
+                        key -> new EditorView(
+                                events,
+                                blueprint,
+                                () -> editors.remove(blueprint))));
     }
 
     private void onFrame() {
@@ -199,7 +210,9 @@ public class Main {
         events.runTasks();
 
         ImGui.dockSpaceOverViewport();
-        editors.forEach(EditorView::show);
+        editors
+                .values()
+                .forEach(EditorView::show);
 
         blueprints.show();
     }

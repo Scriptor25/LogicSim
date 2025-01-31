@@ -65,6 +65,7 @@ public class Context {
                 .label("Not")
                 .baseColor(0x3f579a)
                 .source(notGraph)
+                .editable(false)
                 .build(this);
         add(notBlueprint);
 
@@ -78,6 +79,7 @@ public class Context {
                 .label("And")
                 .baseColor(0x3f579a)
                 .source(andGraph)
+                .editable(false)
                 .build(this);
         add(andBlueprint);
     }

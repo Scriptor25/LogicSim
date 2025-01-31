@@ -61,8 +61,9 @@ public class Graph implements IUnique {
     private final List<Node> nodes;
     private final List<Link> links;
 
-    private IFunction function;
-    private State state;
+    private final State state;
+    private final Function function;
+    private boolean dirty;
 
     public Graph(final @NotNull Context context) {
         this(context, UUID.randomUUID(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>());
@@ -84,6 +85,7 @@ public class Graph implements IUnique {
         this.links = links;
 
         this.state = new State(context);
+        this.function = new Function(uuid, this);
     }
 
     public @NotNull Context context() {
@@ -145,47 +147,47 @@ public class Graph implements IUnique {
         nodes.clear();
         links.clear();
         attributes.clear();
-        function = null;
+        dirty = true;
     }
 
     public void add(final @NotNull Node node) {
         if (nodes.contains(node))
             return;
         nodes.add(node);
-        function = null;
+        dirty = true;
     }
 
     public void add(final @NotNull Link link) {
         if (links.contains(link))
             return;
         links.add(link);
-        function = null;
+        dirty = true;
     }
 
     public void add(final @NotNull Attribute attribute) {
         if (attributes.contains(attribute))
             return;
         attributes.add(attribute);
-        function = null;
+        dirty = true;
     }
 
     public void remove(final @NotNull Node node) {
         if (!nodes.remove(node))
             return;
         links.removeIf(link -> link.uses(node));
-        function = null;
+        dirty = true;
     }
 
     public void remove(final @NotNull Link link) {
         if (!links.remove(link))
             return;
-        function = null;
+        dirty = true;
     }
 
     public void remove(final @NotNull Attribute attribute) {
         if (!attributes.remove(attribute))
             return;
-        function = null;
+        dirty = true;
     }
 
     public @NotNull Optional<Node> findNode(final int id) {
@@ -273,61 +275,13 @@ public class Graph implements IUnique {
         return graph;
     }
 
-    public void paste(final @NotNull Graph graph) {
-        final var copy = graph.copy();
-        copy
-                .attributes
-                .forEach(this::add);
-        copy
-                .nodes
-                .forEach(this::add);
-        copy
-                .links
-                .forEach(this::add);
-    }
-
     public @NotNull IFunction compile() {
-        final var fn = new Function(
-                uuid,
-                inputs()
-                        .map(Attribute::uuid)
-                        .toArray(UUID[]::new),
-                outputs()
-                        .map(Attribute::uuid)
-                        .toArray(UUID[]::new));
-
-        findExitPoints().forEach(node -> node.compile(this, fn));
-        return fn;
-    }
-
-    public void execFn() {
-        if (function == null) {
-            function = compile();
-            state = new State(context);
-        }
-
-        final var inputs = attributes
-                .stream()
-                .filter(Attribute::input)
-                .toArray(Attribute[]::new);
-        final var outputs = attributes
-                .stream()
-                .filter(Attribute::output)
-                .toArray(Attribute[]::new);
-
-        final var in = new boolean[inputs.length];
-        for (int i = 0; i < inputs.length; i++)
-            in[i] = inputs[i]
-                    .powered()
-                    .get();
-
-        final var out = new boolean[outputs.length];
-        function.exec(state, in, out);
-
-        for (int i = 0; i < outputs.length; i++)
-            outputs[i]
-                    .powered()
-                    .set(out[i]);
+        if (!dirty)
+            return function;
+        dirty = false;
+        function.clear();
+        findExitPoints().forEach(node -> node.compile(this, function));
+        return function;
     }
 
     public void exec() {

@@ -23,7 +23,9 @@ import imgui.ImVec2;
 import imgui.extension.imnodes.ImNodes;
 import imgui.extension.imnodes.ImNodesEditorContext;
 import imgui.extension.imnodes.flag.ImNodesMiniMapLocation;
+import imgui.flag.ImGuiCond;
 import imgui.flag.ImGuiMouseButton;
+import imgui.type.ImBoolean;
 import imgui.type.ImInt;
 import io.scriptor.event.EventManager;
 import io.scriptor.event.KeyPayload;
@@ -49,10 +51,10 @@ public class EditorView extends View {
     private final ListView<Blueprint> addDirectBlueprintView;
     private final ListView<Attribute> replaceAttributeView;
     private final ListView<Blueprint> replaceBlueprintView;
-    private final TextInputView editLabelView;
+    private final TextInputView setLabelView;
 
     private final PopupView attributeContext;
-    private final PopupView renameContext;
+    private final PopupView setLabelContext;
     private final PopupView nodeContext;
     private final PopupView linkContext;
     private final PopupView editorContext;
@@ -61,7 +63,10 @@ public class EditorView extends View {
     private final PopupView replaceContext;
     private final PopupView deleteContext;
 
+    private final ImBoolean open = new ImBoolean(true);
+
     private final Blueprint instance;
+    private final Runnable close;
     private final Graph source;
 
     private final ImNodesEditorContext imEditorContext;
@@ -75,22 +80,25 @@ public class EditorView extends View {
     private float mouseY;
     private boolean first = true;
 
-    public EditorView(final @NotNull EventManager events, final @NotNull Blueprint instance) {
+    public EditorView(final @NotNull EventManager events,
+                      final @NotNull Blueprint instance,
+                      final @NotNull Runnable close) {
         super(events);
 
         this.instance = instance;
+        this.close = close;
         this.source = instance.source();
 
-        editLabelView = new TextInputView(events, label -> {
+        setLabelView = new TextInputView(events, label -> {
             if (!label.isEmpty())
                 selectedAttribute.label().set(label, true);
             ImGui.closeCurrentPopup();
         });
-        renameContext = new PopupView(events, editLabelView::show);
+        setLabelContext = new PopupView(events, setLabelView::show);
         attributeContext = new PopupView(events, () -> {
-            if (ImGui.selectable("Rename")) {
-                editLabelView.hint(selectedAttribute.label().get());
-                events.scheduleTask(renameContext::open);
+            if (ImGui.selectable("Set Label")) {
+                setLabelView.value(selectedAttribute.label().get());
+                events.scheduleTask(setLabelContext::open);
             }
             if (ImGui.selectable("Delete"))
                 events.scheduleTask(this, this::onAttributeDelete);
@@ -204,9 +212,9 @@ public class EditorView extends View {
         });
         deleteContext = new PopupView(events, () -> {
             if (ImGui.selectable("Nodes"))
-                events.scheduleTask(this::deleteSelectedNodes);
+                events.scheduleTask(this::onNodeDelete);
             if (ImGui.selectable("Links"))
-                events.scheduleTask(this::deleteSelectedLinks);
+                events.scheduleTask(this::onLinkDelete);
         });
 
         events.<KeyPayload>registerEvent("key.delete.press", payload -> events.scheduleTask(this, this::deleteSelection));
@@ -221,7 +229,13 @@ public class EditorView extends View {
 
     @Override
     public void show() {
-        if (!ImGui.begin("%s##%s".formatted(instance.label(), instance.uuid()))) {
+        if (!open.get()) {
+            events.scheduleTask(close);
+            return;
+        }
+
+        ImGui.setNextWindowSize(400, 300, ImGuiCond.FirstUseEver);
+        if (!ImGui.begin("%s###%s".formatted(instance.label(), instance.uuid()), open)) {
             ImGui.end();
             return;
         }
@@ -245,6 +259,7 @@ public class EditorView extends View {
             source.loadNodePositions();
         }
 
+        source.compile();
         source.exec();
         source.show();
 
@@ -263,7 +278,7 @@ public class EditorView extends View {
         ImGui.end();
 
         attributeContext.show();
-        renameContext.show();
+        setLabelContext.show();
         nodeContext.show();
         linkContext.show();
         editorContext.show();

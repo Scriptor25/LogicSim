@@ -32,7 +32,6 @@ import java.util.stream.Stream;
 
 import static io.scriptor.util.Constants.NODE_ID_BLUEPRINT;
 import static io.scriptor.util.IO.*;
-import static io.scriptor.util.Util.toBool;
 
 public class BlueprintNode extends Node {
 
@@ -65,54 +64,48 @@ public class BlueprintNode extends Node {
 
     private final Blueprint blueprint;
 
-    private final Pin[] inputs;
-    private final Pin[] outputs;
+    private final Map<Integer, Pin> inputs = new HashMap<>();
+    private final Map<Integer, Pin> outputs = new HashMap<>();
 
     private boolean running = false;
-    private final boolean[] pinOut;
+    private boolean[] output;
     private State state;
 
     public BlueprintNode(final @NotNull UUID uuid, final @NotNull Blueprint blueprint) {
         super(uuid);
         this.blueprint = blueprint;
-
-        inputs = new Pin[blueprint.function().numInputs()];
-        for (int i = 0; i < inputs.length; ++i)
-            inputs[i] = new Pin(this, i, false);
-
-        outputs = new Pin[blueprint.function().numOutputs()];
-        for (int i = 0; i < outputs.length; ++i)
-            outputs[i] = new Pin(this, i, true);
-
-        pinOut = new boolean[blueprint.function().numOutputs()];
     }
 
     @Override
     public @NotNull Pin input(final int i) {
-        return inputs[i];
+        if (i < 0 || i >= numInputs())
+            throw new RTException();
+        return inputs.computeIfAbsent(i, key -> new Pin(this, key, false));
     }
 
     @Override
     public @NotNull Pin output(final int i) {
-        return outputs[i];
+        if (i < 0 || i >= numOutputs())
+            throw new RTException();
+        return outputs.computeIfAbsent(i, key -> new Pin(this, key, true));
     }
 
     @Override
     public int numInputs() {
-        return inputs.length;
+        return blueprint.function().numInputs();
     }
 
     @Override
     public int numOutputs() {
-        return outputs.length;
+        return blueprint.function().numOutputs();
     }
 
     @Override
     public boolean powered(final @NotNull Graph graph, final boolean output, final int index) {
-        if (output && index < pinOut.length)
-            return pinOut[index];
-        if (!output && index < inputs.length)
-            return inputs[index]
+        if (output && index >= 0 && index < numOutputs())
+            return this.output != null && this.output[index];
+        if (!output && index >= 0 && index < numInputs())
+            return input(index)
                     .predecessor(graph)
                     .map(pin -> pin.powered(graph))
                     .orElse(false);
@@ -121,17 +114,23 @@ public class BlueprintNode extends Node {
 
     @Override
     public @NotNull Optional<Pin> pin(final int id) {
-        return Stream.concat(
-                        Arrays.stream(inputs),
-                        Arrays.stream(outputs))
+        return Stream
+                .concat(
+                        inputs
+                                .values()
+                                .stream(),
+                        outputs
+                                .values()
+                                .stream())
                 .filter(x -> x.id() == id)
                 .findFirst();
     }
 
     @Override
     public boolean front(final @NotNull Graph graph) {
-        return Arrays
-                .stream(inputs)
+        return inputs
+                .values()
+                .stream()
                 .allMatch(pin -> pin
                         .predecessor(graph)
                         .isEmpty());
@@ -139,8 +138,9 @@ public class BlueprintNode extends Node {
 
     @Override
     public boolean back(final @NotNull Graph graph) {
-        return Arrays
-                .stream(outputs)
+        return outputs
+                .values()
+                .stream()
                 .allMatch(x -> x
                         .successors(graph)
                         .findAny()
@@ -149,11 +149,14 @@ public class BlueprintNode extends Node {
 
     @Override
     public @NotNull Stream<Node> successors(final @NotNull Graph graph) {
-        return Arrays
-                .stream(outputs)
+        return outputs
+                .values()
+                .stream()
                 .mapMulti((pin, consumer) -> graph
                         .findLinks(pin)
-                        .map(link -> link.target().node())
+                        .map(link -> link
+                                .target()
+                                .node())
                         .forEach(consumer));
     }
 
@@ -180,26 +183,23 @@ public class BlueprintNode extends Node {
             return;
         running = true;
 
-        final var args = Arrays
-                .stream(inputs)
-                .map(x -> x.predecessor(graph))
-                .map(x -> x.<Instruction>map(pre -> {
-                            pre
-                                    .node()
-                                    .compile(graph, instructions);
-                            return new GetRegInstruction(
-                                    pre
-                                            .node()
-                                            .uuid(),
-                                    pre.index());
-                        })
-                        .orElseGet(() -> new ConstInstruction(false)))
-                .toArray(Instruction[]::new);
+        final var input = new Instruction[numInputs()];
+        for (int i = 0; i < input.length; ++i)
+            input[i] = input(i)
+                    .predecessor(graph)
+                    .<Instruction>map(pre -> {
+                        pre
+                                .node()
+                                .compile(graph, instructions);
+                        return new GetRegInstruction(pre.node().uuid(), pre.index());
+                    })
+                    .orElseGet(() -> new ConstInstruction(false));
 
-        final var call = new CallInstruction(blueprint.function().uuid(), args);
+        final var call = new CallInstruction(blueprint.function().uuid(), input);
         instructions.add(call);
 
-        for (int i = 0; i < outputs.length; ++i)
+        final var outputCount = numOutputs();
+        for (int i = 0; i < outputCount; ++i)
             instructions.add(new SetRegInstruction(uuid(), i, new GetResultInstruction(call, i)));
 
         running = false;
@@ -208,27 +208,26 @@ public class BlueprintNode extends Node {
     @Override
     public boolean @NotNull [] exec(final @NotNull Graph graph) {
         if (running)
-            return pinOut;
+            return output;
         running = true;
 
-        final var args = toBool(
-                Arrays
-                        .stream(inputs)
-                        .map(x -> x.predecessor(graph))
-                        .map(x -> x.map(pre -> pre
-                                        .node()
-                                        .exec(graph)[pre.index()])
-                                .orElse(false))
-                        .toArray(Boolean[]::new),
-                Boolean.TRUE::equals);
+        final var input = new boolean[numInputs()];
+        for (int i = 0; i < input.length; ++i)
+            input[i] = input(i)
+                    .predecessor(graph)
+                    .map(pre -> pre
+                            .node()
+                            .exec(graph)[pre.index()])
+                    .orElse(false);
 
         if (state == null)
             state = new State(graph.state());
 
-        blueprint.exec(state, args, pinOut);
+        output = new boolean[numOutputs()];
+        blueprint.exec(state, input, output);
 
         running = false;
-        return pinOut;
+        return output;
     }
 
     @Override

@@ -19,6 +19,8 @@
 package io.scriptor.function;
 
 import io.scriptor.context.State;
+import io.scriptor.graph.Attribute;
+import io.scriptor.graph.Graph;
 import io.scriptor.instruction.Instruction;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -32,25 +34,14 @@ import java.util.*;
 public class Function implements IFunction, Collection<Instruction> {
 
     private final UUID uuid;
-    private final UUID[] inputs;
-    private final UUID[] outputs;
+    private final Graph source;
 
     private Instruction[] data = new Instruction[8];
     private int size = 0;
 
-    /**
-     * Create a function using the given uuid, inputs and outputs.
-     *
-     * @param uuid    the uuid
-     * @param inputs  the input uuids
-     * @param outputs the output uuids
-     */
-    public Function(final @NotNull UUID uuid,
-                    final @NotNull UUID @NotNull [] inputs,
-                    final @NotNull UUID @NotNull [] outputs) {
+    public Function(final @NotNull UUID uuid, final @NotNull Graph source) {
         this.uuid = uuid;
-        this.inputs = inputs;
-        this.outputs = outputs;
+        this.source = source;
     }
 
     /**
@@ -63,7 +54,7 @@ public class Function implements IFunction, Collection<Instruction> {
      */
     public <T extends Instruction> @Nullable T find(final @NotNull UUID uuid, final @NotNull Class<T> type) {
         for (final var instruction : data)
-            if (Objects.equals(instruction.uuid(), uuid))
+            if (instruction.same(uuid))
                 return type.cast(instruction);
         return null;
     }
@@ -76,7 +67,7 @@ public class Function implements IFunction, Collection<Instruction> {
      */
     public @Nullable Instruction find(final @NotNull UUID uuid) {
         for (final var instruction : data)
-            if (Objects.equals(instruction.uuid(), uuid))
+            if (instruction.same(uuid))
                 return instruction;
         return null;
     }
@@ -88,22 +79,42 @@ public class Function implements IFunction, Collection<Instruction> {
 
     @Override
     public int numInputs() {
-        return inputs.length;
+        return (int) source.inputs().count();
     }
 
     @Override
     public int numOutputs() {
-        return outputs.length;
+        return (int) source.outputs().count();
+    }
+
+    private @NotNull UUID input(final int i) {
+        return source
+                .inputs()
+                .skip(i)
+                .findFirst()
+                .map(Attribute::uuid)
+                .orElseThrow();
+    }
+
+    private @NotNull UUID output(final int i) {
+        return source
+                .outputs()
+                .skip(i)
+                .findFirst()
+                .map(Attribute::uuid)
+                .orElseThrow();
     }
 
     @Override
     public void exec(final @NotNull State state, final boolean @NotNull [] inputs, final boolean @NotNull [] outputs) {
-        for (int i = 0; i < this.inputs.length; ++i)
-            state.setAttribute(this.inputs[i], inputs[i]);
+        final var inputCount = numInputs();
+        final var outputCount = numOutputs();
+        for (int i = 0; i < inputCount; ++i)
+            state.setAttribute(input(i), inputs[i]);
         for (final var instruction : this)
             instruction.exec(state);
-        for (int i = 0; i < this.outputs.length; ++i)
-            outputs[i] = state.getAttribute(this.outputs[i]);
+        for (int i = 0; i < outputCount; ++i)
+            outputs[i] = state.getAttribute(output(i));
     }
 
     @Override

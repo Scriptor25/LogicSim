@@ -13,15 +13,16 @@ public class TextInputView extends View {
     private final ImString temporary = new ImString();
     private final Consumer<String> enter;
 
-    private String hint;
+    private String value;
 
     public TextInputView(final @NotNull EventManager events, final @NotNull Consumer<String> enter) {
         super(events);
         this.enter = enter;
     }
 
-    public void hint(final @NotNull String hint) {
-        this.hint = hint;
+    public void value(final @NotNull String value) {
+        this.value = value;
+        this.temporary.clear();
     }
 
     @Override
@@ -29,7 +30,7 @@ public class TextInputView extends View {
         ImGui.setKeyboardFocusHere();
         if (ImGui.inputTextWithHint(
                 "##label",
-                hint,
+                value,
                 temporary,
                 ImGuiInputTextFlags.EnterReturnsTrue))
             enter.accept(temporary.get());
