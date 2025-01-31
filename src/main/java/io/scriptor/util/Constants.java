@@ -36,6 +36,11 @@ public class Constants {
     public static final String ID_CLIPBOARD_GET = "clipboard.get";
     public static final String ID_CLIPBOARD_SET = "clipboard.set";
 
+    public static final String ID_BLUEPRINT_NEW = "blueprint.new";
+    public static final String ID_BLUEPRINT_EDIT = "blueprint.edit";
+    public static final String ID_BLUEPRINT_CLOSE = "blueprint.close";
+    public static final String ID_BLUEPRINT_DELETE = "blueprint.delete";
+
     private Constants() {
     }
 }

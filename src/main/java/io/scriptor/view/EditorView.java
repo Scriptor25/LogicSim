@@ -40,8 +40,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
-import static io.scriptor.util.Constants.ID_CLIPBOARD_GET;
-import static io.scriptor.util.Constants.ID_CLIPBOARD_SET;
+import static io.scriptor.util.Constants.*;
 
 public class EditorView extends View {
 
@@ -192,7 +191,7 @@ public class EditorView extends View {
     @Override
     public void show() {
         if (!open.get()) {
-            events.callVoidService("blueprint.close", new BlueprintView.Payload(instance));
+            events.callVoidService(ID_BLUEPRINT_CLOSE, new BlueprintView.Payload(instance));
             return;
         }
 

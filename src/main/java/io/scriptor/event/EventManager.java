@@ -69,10 +69,8 @@ public class EventManager {
     }
 
     public void invokeEvent(final @NotNull Object id) {
-        eventMap
-                .computeIfAbsent(id, key -> new ArrayList<>())
-                .forEach(callback -> ((IEventListener<IPayload>) callback).invoke(new IPayload() {
-                }));
+        this.<IPayload>invokeEvent(id, new IPayload() {
+        });
     }
 
     /**
@@ -126,16 +124,16 @@ public class EventManager {
     }
 
     public <R> R callService(final @NotNull Object id) {
-        return callService(id, new IPayload() {
+        return this.<R, IPayload>callService(id, new IPayload() {
         });
     }
 
     public <T extends IPayload> void callVoidService(final @NotNull Object id, final @NotNull T payload) {
-        callService(id, payload);
+        this.<Void, T>callService(id, payload);
     }
 
     public void callVoidService(final @NotNull Object id) {
-        callService(id, new IPayload() {
+        this.<Void, IPayload>callService(id, new IPayload() {
         });
     }
 

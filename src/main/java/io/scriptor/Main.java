@@ -42,8 +42,7 @@ import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Map;
 
-import static io.scriptor.util.Constants.ID_CLIPBOARD_GET;
-import static io.scriptor.util.Constants.ID_CLIPBOARD_SET;
+import static io.scriptor.util.Constants.*;
 import static io.scriptor.util.Task.handle;
 import static io.scriptor.util.Task.handleVoid;
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
@@ -170,25 +169,24 @@ public class Main {
         events.registerEvent("key.s.press+control", this::save);
         events.offerService(ID_CLIPBOARD_GET, () -> requireNonNullElse(glfwGetClipboardString(window), ""));
         events.<StringPayload>offerService(ID_CLIPBOARD_SET, payload -> glfwSetClipboardString(window, payload.value()));
-        events.<BlueprintView.Payload>offerService("blueprint.new", payload -> {
+        events.<BlueprintView.Payload>offerService(ID_BLUEPRINT_NEW, payload -> events.scheduleTask(() -> {
+            final var blueprint = payload.value();
+            context.add(blueprint);
+            final var editor = new EditorView(events, context, blueprint);
+            editors.put(blueprint, editor);
+        }));
+        events.<BlueprintView.Payload>offerService(ID_BLUEPRINT_EDIT, payload -> events.scheduleTask(() -> {
             final var blueprint = payload.value();
             final var editor = new EditorView(events, context, blueprint);
-            events.scheduleTask(() -> editors.put(blueprint, editor));
-        });
-        events.<BlueprintView.Payload>offerService("blueprint.edit", payload -> {
+            editors.putIfAbsent(blueprint, editor);
+        }));
+        events.<BlueprintView.Payload>offerService(ID_BLUEPRINT_CLOSE, payload -> events.scheduleTask(() -> {
             final var blueprint = payload.value();
-            if (editors.containsKey(blueprint))
-                return;
-            final var editor = new EditorView(events, context, blueprint);
-            events.scheduleTask(() -> editors.put(blueprint, editor));
-        });
-        events.<BlueprintView.Payload>offerService("blueprint.close", payload -> {
-            final var blueprint = payload.value();
-            events.scheduleTask(() -> editors.remove(blueprint));
-        });
-        events.<BlueprintView.Payload>offerService("blueprint.delete", payload -> {
-            final var blueprint = payload.value();
+            editors.remove(blueprint);
+        }));
+        events.<BlueprintView.Payload>offerService(ID_BLUEPRINT_DELETE, payload -> {
             events.scheduleTask(() -> {
+                final var blueprint = payload.value();
                 editors.remove(blueprint);
                 context.remove(blueprint);
             });

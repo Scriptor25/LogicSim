@@ -11,6 +11,8 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.Comparator;
 
+import static io.scriptor.util.Constants.*;
+
 public class BlueprintView extends View {
 
     public record Payload(@NotNull Blueprint value) implements IPayload {
@@ -52,9 +54,9 @@ public class BlueprintView extends View {
             }
             if (selectedBlueprint.editable()) {
                 if (ImGui.selectable("Edit"))
-                    events.callVoidService("blueprint.edit", new Payload(selectedBlueprint));
+                    events.callVoidService(ID_BLUEPRINT_EDIT, new Payload(selectedBlueprint));
                 if (ImGui.selectable("Delete"))
-                    events.callVoidService("blueprint.delete", new Payload(selectedBlueprint));
+                    events.callVoidService(ID_BLUEPRINT_DELETE, new Payload(selectedBlueprint));
             }
         });
         blueprintListView = new ListView<>(
@@ -77,7 +79,7 @@ public class BlueprintView extends View {
 
         if (ImGui.button("Add Blueprint"))
             events.callVoidService(
-                    "blueprint.new",
+                    ID_BLUEPRINT_NEW,
                     new Payload(new Blueprint.Builder()
                             .label("New Blueprint")
                             .source(new Graph(context))
