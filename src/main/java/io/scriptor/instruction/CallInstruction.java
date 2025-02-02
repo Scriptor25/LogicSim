@@ -81,7 +81,7 @@ public class CallInstruction implements Instruction {
     }
 
     @Override
-    public void exec(final @NotNull State state) {
+    public void execute(final @NotNull State state) {
         if (error) return;
 
         final var values = new boolean[args.length];

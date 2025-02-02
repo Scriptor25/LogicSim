@@ -26,7 +26,7 @@ import imgui.glfw.ImGuiImplGlfw;
 import io.scriptor.context.Context;
 import io.scriptor.event.EventManager;
 import io.scriptor.event.KeyPayload;
-import io.scriptor.event.StringPayload;
+import io.scriptor.graph.Blueprint;
 import io.scriptor.util.RTException;
 import io.scriptor.view.BlueprintView;
 import io.scriptor.view.EditorView;
@@ -167,30 +167,28 @@ public class Main {
 
         events = new EventManager();
         events.registerEvent("key.s.press+control", this::save);
+        events.registerTimer(this, 5 * 60 * 1000, true, this::save);
         events.offerService(ID_CLIPBOARD_GET, () -> requireNonNullElse(glfwGetClipboardString(window), ""));
-        events.<StringPayload>offerService(ID_CLIPBOARD_SET, payload -> glfwSetClipboardString(window, payload.value()));
-        events.<BlueprintView.Payload>offerService(ID_BLUEPRINT_NEW, payload -> events.scheduleTask(() -> {
-            final var blueprint = payload.value();
+        events.<String>offerService(ID_CLIPBOARD_SET, clipboard -> glfwSetClipboardString(window, clipboard));
+        events.<Blueprint>offerService(ID_BLUEPRINT_NEW, blueprint -> events.scheduleTask(() -> {
             context.add(blueprint);
-            final var editor = new EditorView(events, context, blueprint);
-            editors.put(blueprint.uuid(), editor);
+            editors.put(blueprint.uuid(), new EditorView(events, blueprint));
         }));
-        events.<BlueprintView.Payload>offerService(ID_BLUEPRINT_EDIT, payload -> events.scheduleTask(() -> {
-            final var blueprint = payload.value();
-            final var editor = new EditorView(events, context, blueprint);
-            editors.putIfAbsent(blueprint.uuid(), editor);
-        }));
-        events.<BlueprintView.Payload>offerService(ID_BLUEPRINT_CLOSE, payload -> events.scheduleTask(() -> {
-            final var blueprint = payload.value();
+        events.<Blueprint>offerService(
+                ID_BLUEPRINT_EDIT,
+                blueprint -> events.scheduleTask(() -> editors
+                        .computeIfAbsent(blueprint.uuid(), key -> new EditorView(events, blueprint))
+                        .focus()));
+        events.<Blueprint>offerService(
+                ID_BLUEPRINT_CLOSE,
+                blueprint -> events.scheduleTask(() -> editors.remove(blueprint.uuid())));
+        events.<Blueprint>offerService(ID_BLUEPRINT_DELETE, blueprint -> events.scheduleTask(() -> {
             editors.remove(blueprint.uuid());
+            context.remove(blueprint);
         }));
-        events.<BlueprintView.Payload>offerService(ID_BLUEPRINT_DELETE, payload -> {
-            events.scheduleTask(() -> {
-                final var blueprint = payload.value();
-                editors.remove(blueprint.uuid());
-                context.remove(blueprint);
-            });
-        });
+        events.<Boolean, Blueprint>offerService(
+                ID_BLUEPRINT_IS_OPEN,
+                blueprint -> editors.containsKey(blueprint.uuid()));
 
         blueprints = new BlueprintView(events, context);
     }
@@ -231,6 +229,7 @@ public class Main {
     }
 
     private void onStop() {
+        events.removeTimer(this);
         save();
     }
 

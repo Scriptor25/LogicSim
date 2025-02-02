@@ -44,7 +44,7 @@ import static io.scriptor.util.IO.*;
 
 public class OutputNode extends Node {
 
-    public static @NotNull Node asNode(final @NotNull Graph graph, final @NotNull String string) {
+    public static @NotNull Node parse(final @NotNull Graph graph, final @NotNull String string) {
         final var split = string.split(",");
         final var node = graph
                 .findAttribute(UUID.fromString(split[1]))
@@ -137,7 +137,7 @@ public class OutputNode extends Node {
     }
 
     @Override
-    public boolean uses(final @NotNull Attribute attribute) {
+    public boolean same(final @NotNull Attribute attribute) {
         return this.attribute == attribute;
     }
 
@@ -179,10 +179,10 @@ public class OutputNode extends Node {
     }
 
     @Override
-    public boolean @NotNull [] exec(final @NotNull Graph graph) {
+    public boolean @NotNull [] execute(final @NotNull Graph graph) {
         attribute.powered().set(pin
                 .predecessor(graph)
-                .map(pre -> pre.node().exec(graph)[pre.index()])
+                .map(pre -> pre.node().execute(graph)[pre.index()])
                 .orElse(false));
         return new boolean[]{};
     }

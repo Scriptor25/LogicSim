@@ -36,7 +36,7 @@ import static io.scriptor.util.IO.*;
 
 public class InvalidNode extends Node {
 
-    public static @NotNull Node asNode(final @NotNull String string) {
+    public static @NotNull Node parse(final @NotNull String string) {
         final var split = string.split(",");
         final var node = new InvalidNode();
         final var posX = Integer.parseInt(split[1]);
@@ -214,7 +214,7 @@ public class InvalidNode extends Node {
     }
 
     @Override
-    public boolean @NotNull [] exec(final @NotNull Graph graph) {
+    public boolean @NotNull [] execute(final @NotNull Graph graph) {
         if (running)
             return new boolean[outputs.size()];
         running = true;
@@ -224,7 +224,7 @@ public class InvalidNode extends Node {
                     .predecessor(graph)
                     .ifPresent(pin -> pin
                             .node()
-                            .exec(graph));
+                            .execute(graph));
 
         running = false;
         return new boolean[outputs.size()];

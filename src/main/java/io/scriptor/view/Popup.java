@@ -4,11 +4,11 @@ import imgui.ImGui;
 import io.scriptor.event.EventManager;
 import org.jetbrains.annotations.NotNull;
 
-public class PopupView extends View {
+public class Popup extends View {
 
     private final Runnable content;
 
-    public PopupView(final @NotNull EventManager events, final @NotNull Runnable content) {
+    public Popup(final @NotNull EventManager events, final @NotNull Runnable content) {
         super(events);
         this.content = content;
     }

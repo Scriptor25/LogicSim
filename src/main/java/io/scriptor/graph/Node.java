@@ -39,14 +39,14 @@ import static io.scriptor.util.IO.readByte;
 
 public abstract class Node implements IUnique {
 
-    public static @NotNull Node asNode(final @NotNull Graph graph,
-                                       final @NotNull String string) {
+    public static @NotNull Node parse(final @NotNull Graph graph,
+                                      final @NotNull String string) {
         final var split = string.split(",");
         return switch (Byte.parseByte(split[0])) {
-            case NODE_ID_INVALID -> InvalidNode.asNode(string);
-            case NODE_ID_INPUT -> InputNode.asNode(graph, string);
-            case NODE_ID_OUTPUT -> OutputNode.asNode(graph, string);
-            case NODE_ID_BLUEPRINT -> BlueprintNode.asNode(graph, string);
+            case NODE_ID_INVALID -> InvalidNode.parse(string);
+            case NODE_ID_INPUT -> InputNode.parse(graph, string);
+            case NODE_ID_OUTPUT -> OutputNode.parse(graph, string);
+            case NODE_ID_BLUEPRINT -> BlueprintNode.parse(graph, string);
             default -> throw new RTException("undefined node type in '%s'", string);
         };
     }
@@ -98,7 +98,8 @@ public abstract class Node implements IUnique {
     }
 
     public void select() {
-        ImNodes.selectNode(id());
+        if (notSelected())
+            ImNodes.selectNode(id());
     }
 
     public @NotNull ImVec2 editorPosition() {
@@ -161,21 +162,15 @@ public abstract class Node implements IUnique {
      * @param attribute some attribute
      * @return if used
      */
-    public boolean uses(final @NotNull Attribute attribute) {
+    public boolean same(final @NotNull Attribute attribute) {
         return false;
     }
 
-    /**
-     * Check if this node uses given blueprint.
-     *
-     * @param blueprint some blueprint
-     * @return if used
-     */
+    public boolean same(final @NotNull Blueprint blueprint) {
+        return false;
+    }
+
     public boolean uses(final @NotNull Blueprint blueprint) {
-        return false;
-    }
-
-    public boolean usesRecursive(final @NotNull Blueprint blueprint) {
         return false;
     }
 
@@ -185,7 +180,7 @@ public abstract class Node implements IUnique {
 
     public abstract void compile(final @NotNull Graph graph, final @NotNull Collection<Instruction> instructions);
 
-    public abstract boolean @NotNull [] exec(final @NotNull Graph graph);
+    public abstract boolean @NotNull [] execute(final @NotNull Graph graph);
 
     public abstract @NotNull String string();
 

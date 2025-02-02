@@ -58,7 +58,7 @@ public record SetAttribInstruction(
     }
 
     @Override
-    public void exec(final @NotNull State state) {
+    public void execute(final @NotNull State state) {
         state.setAttribute(attribute, value.get(state));
     }
 }

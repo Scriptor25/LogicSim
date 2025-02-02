@@ -60,7 +60,7 @@ public record SetRegInstruction(
     }
 
     @Override
-    public void exec(final @NotNull State state) {
+    public void execute(final @NotNull State state) {
         state.setRegister(reg, index, value.get(state));
     }
 }

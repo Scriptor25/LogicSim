@@ -38,6 +38,6 @@ public interface Instruction extends IUnique {
         throw new RTException();
     }
 
-    default void exec(final @NotNull State state) {
+    default void execute(final @NotNull State state) {
     }
 }

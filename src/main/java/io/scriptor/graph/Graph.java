@@ -248,10 +248,10 @@ public class Graph {
                 .filter(node -> node.back(this));
     }
 
-    public boolean usesRecursive(final @NotNull Blueprint blueprint) {
+    public boolean uses(final @NotNull Blueprint blueprint) {
         return nodes
                 .stream()
-                .anyMatch(node -> node.usesRecursive(blueprint));
+                .anyMatch(node -> node.uses(blueprint));
     }
 
     public @NotNull Graph copy() {
@@ -286,8 +286,8 @@ public class Graph {
         return function;
     }
 
-    public void exec() {
-        findExitPoints().forEach(node -> node.exec(this));
+    public void execute() {
+        findExitPoints().forEach(node -> node.execute(this));
     }
 
     public void write(final @NotNull OutputStream stream) throws IOException {

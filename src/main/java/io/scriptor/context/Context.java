@@ -71,7 +71,7 @@ public class Context {
                 .baseColor(0x3f579a)
                 .source(notGraph)
                 .editable(false)
-                .build();
+                .build(this);
         add(notBlueprint);
 
         final var andGraph = new Graph(this);
@@ -85,7 +85,7 @@ public class Context {
                 .baseColor(0x3f579a)
                 .source(andGraph)
                 .editable(false)
-                .build();
+                .build(this);
         add(andBlueprint);
     }
 
@@ -122,7 +122,7 @@ public class Context {
         final var list = blueprints
                 .values()
                 .stream()
-                .sorted((a, b) -> a.usesRecursive(b) ? 1 : b.usesRecursive(a) ? -1 : 0)
+                .sorted((a, b) -> a.uses(b) ? 1 : b.uses(a) ? -1 : 0)
                 .toList();
         list.forEach(blueprint -> handleVoid(() -> blueprint.write(stream)));
     }
@@ -158,5 +158,12 @@ public class Context {
      */
     public void remove(final @NotNull Blueprint blueprint) {
         blueprints.remove(blueprint.uuid());
+    }
+
+    public boolean uses(final @NotNull Blueprint blueprint) {
+        return blueprints
+                .values()
+                .stream()
+                .anyMatch(b -> b.uses(blueprint));
     }
 }

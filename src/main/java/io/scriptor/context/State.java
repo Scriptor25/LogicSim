@@ -110,7 +110,7 @@ public class State {
                 .map(blueprint -> {
                     resultMap.put(caller, new boolean[blueprint.numOutputs()]);
                     final var substate = substateMap.computeIfAbsent(caller, key -> new State(this));
-                    blueprint.exec(substate, args, resultMap.get(caller));
+                    blueprint.execute(substate, args, resultMap.get(caller));
                     return false;
                 })
                 .orElse(true);

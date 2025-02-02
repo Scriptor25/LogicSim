@@ -28,9 +28,7 @@ import imgui.flag.ImGuiFocusedFlags;
 import imgui.flag.ImGuiMouseButton;
 import imgui.type.ImBoolean;
 import imgui.type.ImInt;
-import io.scriptor.context.Context;
 import io.scriptor.event.EventManager;
-import io.scriptor.event.StringPayload;
 import io.scriptor.graph.*;
 import io.scriptor.util.RTException;
 import io.scriptor.util.Range;
@@ -49,7 +47,8 @@ public class EditorView extends View {
         ImGui.checkbox("##powered", attribute.powered());
         ImGui.endDisabled();
         ImGui.sameLine();
-        return ImGui.selectable(attribute.label().get());
+        ImGui.selectable(attribute.label().get());
+        return ImGui.isItemHovered() && ImGui.isMouseClicked(ImGuiMouseButton.Right);
     }
 
     private static boolean showAttribute(final @NotNull Attribute attribute) {
@@ -60,123 +59,118 @@ public class EditorView extends View {
         return ImGui.selectable(blueprint.label().get());
     }
 
-    private final ListView<Attribute> attributeListView;
-    private final ListView<Attribute> addAttributeListView;
-    private final ListView<Blueprint> addBlueprintListView;
-    private final ListView<Attribute> addDirectAttributeListView;
-    private final ListView<Blueprint> addDirectBlueprintListView;
-    private final ListView<Attribute> replaceAttributeListView;
-    private final ListView<Blueprint> replaceBlueprintListView;
-    private final TextInputView labelTextInputView;
+    private final ListView<Attribute> attributeView;
+    private final ListView<Attribute> addAttributeView;
+    private final ListView<Blueprint> addBlueprintView;
+    private final ListView<Attribute> addDirectAttributeView;
+    private final ListView<Blueprint> addDirectBlueprintView;
+    private final ListView<Attribute> replaceAttributeView;
+    private final ListView<Blueprint> replaceBlueprintView;
+    private final TextInputView labelView;
 
-    private final PopupView attributePopupView;
-    private final PopupView setLabelPopupView;
-    private final PopupView nodePopupView;
-    private final PopupView linkPopupView;
-    private final PopupView editorPopupView;
-    private final PopupView addPopupView;
-    private final PopupView addDirectPopupView;
-    private final PopupView replacePopupView;
-    private final PopupView deletePopupView;
+    private final Popup attributePopup;
+    private final Popup setLabelPopup;
+    private final Popup nodePopup;
+    private final Popup linkPopup;
+    private final Popup editorPopup;
+    private final Popup addPopup;
+    private final Popup addDirectPopup;
+    private final Popup replacePopup;
+    private final Popup deletePopup;
 
     private final ImBoolean open = new ImBoolean(true);
 
-    private final Context context;
     private final Blueprint instance;
-    private final Graph graph;
+    private final Graph source;
 
-    private final ImNodesEditorContext imEditorContext;
+    private final ImNodesEditorContext context;
 
     private Attribute selectedAttribute;
     private Node selectedNode;
-    private Link selectedLink;
     private Pin sourcePin;
     private Pin targetPin;
     private float mouseX;
     private float mouseY;
     private boolean first = true;
 
-    public EditorView(final @NotNull EventManager events,
-                      final @NotNull Context context,
-                      final @NotNull Blueprint instance) {
+    public EditorView(final @NotNull EventManager events, final @NotNull Blueprint instance) {
         super(events);
 
-        this.context = context;
         this.instance = instance;
-        this.graph = instance.source();
+        this.source = instance.source();
 
-        labelTextInputView = new TextInputView(events, this::onLabelEnter);
-        attributeListView = new ListView<>(
+        labelView = new TextInputView(events, this::onLabelEnter);
+        attributeView = new ListView<>(
                 events,
-                new Range<>(graph.attributes())
+                new Range<>(source.attributes())
                         .sorted(Comparator.comparing(Attribute::output)),
                 this::onAttributeSelect,
                 EditorView::showFullAttribute);
-        addAttributeListView = new ListView<>(
+        addAttributeView = new ListView<>(
                 events,
-                new Range<>(graph.attributes())
+                new Range<>(source.attributes())
                         .sorted(Comparator.comparing(Attribute::label))
                         .sorted(Comparator.comparing(Attribute::output)),
                 this::onAddAttribute,
                 EditorView::showAttribute);
-        addBlueprintListView = new ListView<>(
+        addBlueprintView = new ListView<>(
                 events,
-                new Range<>(graph.context().blueprints())
+                new Range<>(source.context().blueprints())
                         .filter(blueprint -> blueprint != instance)
-                        .filter(blueprint -> !blueprint.usesRecursive(instance))
+                        .filter(blueprint -> !blueprint.uses(instance))
                         .sorted(Comparator.comparing(Blueprint::label)),
                 this::onAddBlueprint,
                 EditorView::showBlueprint);
-        addDirectAttributeListView = new ListView<>(
+        addDirectAttributeView = new ListView<>(
                 events,
-                new Range<>(graph.attributes())
+                new Range<>(source.attributes())
                         .filter(attribute -> sourcePin != null)
                         .filter(attribute -> sourcePin.output() == attribute.output())
                         .sorted(Comparator.comparing(Attribute::label))
                         .sorted(Comparator.comparing(Attribute::output)),
                 this::onAddAttribute,
                 EditorView::showAttribute);
-        addDirectBlueprintListView = new ListView<>(
+        addDirectBlueprintView = new ListView<>(
                 events,
-                new Range<>(graph.context().blueprints())
+                new Range<>(source.context().blueprints())
                         .filter(blueprint -> sourcePin != null)
                         .filter(blueprint -> blueprint != instance)
-                        .filter(blueprint -> !blueprint.usesRecursive(instance))
+                        .filter(blueprint -> !blueprint.uses(instance))
                         .filter(blueprint -> sourcePin.output()
                                 ? blueprint.numInputs() > 0
                                 : blueprint.numOutputs() > 0)
                         .sorted(Comparator.comparing(Blueprint::label)),
                 this::onAddBlueprint,
                 EditorView::showBlueprint);
-        replaceAttributeListView = new ListView<>(
+        replaceAttributeView = new ListView<>(
                 events,
-                new Range<>(graph.attributes())
+                new Range<>(source.attributes())
                         .filter(attribute -> selectedNode != null)
-                        .filter(attribute -> !selectedNode.uses(attribute))
+                        .filter(attribute -> !selectedNode.same(attribute))
                         .sorted(Comparator.comparing(Attribute::label))
                         .sorted(Comparator.comparing(Attribute::output)),
                 this::onReplaceAttribute,
                 EditorView::showAttribute);
-        replaceBlueprintListView = new ListView<>(
+        replaceBlueprintView = new ListView<>(
                 events,
-                new Range<>(graph.context().blueprints())
+                new Range<>(source.context().blueprints())
                         .filter(blueprint -> selectedNode != null)
                         .filter(blueprint -> blueprint != instance)
-                        .filter(blueprint -> !blueprint.usesRecursive(instance))
-                        .filter(blueprint -> !selectedNode.uses(blueprint))
+                        .filter(blueprint -> !blueprint.uses(instance))
+                        .filter(blueprint -> !selectedNode.same(blueprint))
                         .sorted(Comparator.comparing(Blueprint::label)),
                 this::onReplaceBlueprint,
                 EditorView::showBlueprint);
 
-        attributePopupView = new PopupView(events, this::showAttributeContext);
-        setLabelPopupView = new PopupView(events, this::showLabelContext);
-        nodePopupView = new PopupView(events, this::showNodeContext);
-        linkPopupView = new PopupView(events, this::showLinkContext);
-        editorPopupView = new PopupView(events, this::showEditorContext);
-        addPopupView = new PopupView(events, this::showAddContext);
-        addDirectPopupView = new PopupView(events, this::showAddDirectContext);
-        replacePopupView = new PopupView(events, this::showReplaceContext);
-        deletePopupView = new PopupView(events, this::showDeleteContext);
+        attributePopup = new Popup(events, this::showAttributeContext);
+        setLabelPopup = new Popup(events, this::showLabelContext);
+        nodePopup = new Popup(events, this::showNodeContext);
+        linkPopup = new Popup(events, this::showLinkContext);
+        editorPopup = new Popup(events, this::showEditorContext);
+        addPopup = new Popup(events, this::showAddContext);
+        addDirectPopup = new Popup(events, this::showAddDirectContext);
+        replacePopup = new Popup(events, this::showReplaceContext);
+        deletePopup = new Popup(events, this::showDeleteContext);
 
         events.registerEvent("key.delete.press", this::onKeyDelete);
         events.registerEvent("key.a.press+control", this::onKeyCtrlA);
@@ -185,44 +179,53 @@ public class EditorView extends View {
         events.registerEvent("key.v.press+control", this::onKeyCtrlV);
         events.registerEvent("key.x.press+control", this::onKeyCtrlX);
 
-        imEditorContext = ImNodes.editorContextCreate();
+        context = ImNodes.editorContextCreate();
+    }
+
+    private @NotNull String id() {
+        return "%s###%s".formatted(instance.label(), instance.uuid());
+    }
+
+    public void focus() {
+        ImGui.setWindowFocus(id());
     }
 
     @Override
     public void show() {
         if (!open.get()) {
-            events.callVoidService(ID_BLUEPRINT_CLOSE, new BlueprintView.Payload(instance));
+            events.callService(ID_BLUEPRINT_CLOSE, instance);
             return;
         }
 
         ImGui.setNextWindowSize(400, 300, ImGuiCond.FirstUseEver);
-        if (!ImGui.begin("%s###%s".formatted(instance.label(), instance.uuid()), open)) {
+        if (!ImGui.begin(id(), open)) {
             ImGui.end();
             return;
         }
 
-        if (ImGui.beginChild("attributes", 200, 0)) {
-            if (ImGui.button("Add Input"))
-                events.scheduleTask(this, this::onAddInput);
-            ImGui.sameLine();
-            if (ImGui.button("Add Output"))
-                events.scheduleTask(this, this::onAddOutput);
-            attributeListView.show();
-        }
+        ImGui.beginGroup();
+        if (ImGui.button("Add Input"))
+            events.scheduleTask(this, this::onAddInput);
+        ImGui.sameLine();
+        if (ImGui.button("Add Output"))
+            events.scheduleTask(this, this::onAddOutput);
+        if (ImGui.beginChild("attributes", 200, 0))
+            attributeView.show();
         ImGui.endChild();
+        ImGui.endGroup();
         ImGui.sameLine();
 
-        ImNodes.editorContextSet(imEditorContext);
+        ImNodes.editorContextSet(context);
         ImNodes.beginNodeEditor();
 
         if (first) {
             first = false;
-            graph.loadNodePositions();
+            source.loadNodePositions();
         }
 
-        graph.compile();
-        graph.exec();
-        graph.show();
+        source.compile();
+        source.execute();
+        source.show();
 
         final var hovered = ImNodes.isEditorHovered();
 
@@ -238,15 +241,15 @@ public class EditorView extends View {
 
         ImGui.end();
 
-        attributePopupView.show();
-        setLabelPopupView.show();
-        nodePopupView.show();
-        linkPopupView.show();
-        editorPopupView.show();
-        addPopupView.show();
-        addDirectPopupView.show();
-        replacePopupView.show();
-        deletePopupView.show();
+        attributePopup.show();
+        setLabelPopup.show();
+        nodePopup.show();
+        linkPopup.show();
+        editorPopup.show();
+        addPopup.show();
+        addDirectPopup.show();
+        replacePopup.show();
+        deletePopup.show();
     }
 
     private void onLabelEnter(final @NotNull String label) {
@@ -257,20 +260,20 @@ public class EditorView extends View {
 
     private void onAttributeSelect(final @NotNull Attribute attribute) {
         selectedAttribute = attribute;
-        events.scheduleTask(attributePopupView::open);
+        events.scheduleTask(attributePopup::open);
     }
 
     private void showAttributeContext() {
         if (ImGui.selectable("Set Label")) {
-            labelTextInputView.value(selectedAttribute.label().get());
-            events.scheduleTask(setLabelPopupView::open);
+            labelView.value(selectedAttribute.label().get());
+            events.scheduleTask(setLabelPopup::open);
         }
         if (ImGui.selectable("Delete"))
             events.scheduleTask(this, this::onAttributeDelete);
     }
 
     private void showLabelContext() {
-        labelTextInputView.show();
+        labelView.show();
     }
 
     private void showNodeContext() {
@@ -284,6 +287,11 @@ public class EditorView extends View {
             events.scheduleTask(this, this::onNodeReplace);
         if (ImGui.selectable("Delete"))
             events.scheduleTask(this, this::onNodeDelete);
+        if (selectedNode instanceof BlueprintNode node && node.blueprint().editable()) {
+            ImGui.separator();
+            if (ImGui.selectable("Edit Blueprint"))
+                events.callService(ID_BLUEPRINT_EDIT, node.blueprint());
+        }
     }
 
     private void showLinkContext() {
@@ -301,21 +309,21 @@ public class EditorView extends View {
     }
 
     private void showAddContext() {
-        addAttributeListView.show();
+        addAttributeView.show();
         ImGui.separator();
-        addBlueprintListView.show();
+        addBlueprintView.show();
     }
 
     private void showAddDirectContext() {
-        addDirectAttributeListView.show();
+        addDirectAttributeView.show();
         ImGui.separator();
-        addDirectBlueprintListView.show();
+        addDirectBlueprintView.show();
     }
 
     private void showReplaceContext() {
-        replaceAttributeListView.show();
+        replaceAttributeView.show();
         ImGui.separator();
-        replaceBlueprintListView.show();
+        replaceBlueprintView.show();
     }
 
     private void showDeleteContext() {
@@ -342,7 +350,7 @@ public class EditorView extends View {
     private void onKeyCtrlC() {
         events.scheduleTask(this, () -> {
             if (ImGui.isWindowFocused(ImGuiFocusedFlags.RootAndChildWindows))
-                events.callService(ID_CLIPBOARD_SET, new StringPayload(copy()));
+                events.callService(ID_CLIPBOARD_SET, copy());
         });
     }
 
@@ -363,7 +371,7 @@ public class EditorView extends View {
     private void onKeyCtrlX() {
         events.scheduleTask(this, () -> {
             if (ImGui.isWindowFocused(ImGuiFocusedFlags.RootAndChildWindows))
-                events.callService(ID_CLIPBOARD_SET, new StringPayload(cut()));
+                events.callService(ID_CLIPBOARD_SET, cut());
         });
     }
 
@@ -372,37 +380,33 @@ public class EditorView extends View {
         ImNodes.getSelectedNodes(nodeIds);
 
         final List<Node> nodes = new ArrayList<>();
-        if (selectedNode != null && selectedNode.notSelected())
-            nodes.add(selectedNode);
         for (final var nodeId : nodeIds)
-            graph
+            source
                     .findNode(nodeId)
                     .ifPresent(nodes::add);
-        final var nodeArray = nodes.toArray(Node[]::new);
 
         final List<Link> links = new ArrayList<>();
-        graph
+        source
                 .links()
-                .filter(link -> !link.usesNoneOf(nodeArray))
+                .filter(link -> link.usesPairOf(nodes))
                 .forEach(links::add);
-        final var linkArray = links.toArray(Link[]::new);
 
         final var data = new StringBuilder();
         data
                 .append("JLS")
                 .append('\n')
-                .append(nodeArray.length)
+                .append(nodes.size())
                 .append('\n');
-        for (final var node : nodeArray)
+        for (final var node : nodes)
             data
                     .append(node.string())
                     .append('\n');
         data
-                .append(linkArray.length)
+                .append(links.size())
                 .append('\n');
-        for (final var link : linkArray)
+        for (final var link : links)
             data
-                    .append(link.string(nodeArray))
+                    .append(link.string(nodes))
                     .append('\n');
         return data.toString();
     }
@@ -413,11 +417,7 @@ public class EditorView extends View {
 
     private @NotNull String cut() {
         final var data = copy();
-
-        if (selectedNode != null && selectedNode.notSelected())
-            graph.remove(selectedNode);
         deleteSelectedNodes();
-
         return data;
     }
 
@@ -434,17 +434,17 @@ public class EditorView extends View {
         final var nodeArrayLength = Integer.parseInt(lines[i++], 10);
         final var nodeArray = new Node[nodeArrayLength];
         for (int j = 0; j < nodeArrayLength; ++j) {
-            final var node = Node.asNode(graph, lines[i++]);
+            final var node = Node.parse(source, lines[i++]);
             nodeArray[j] = node;
-            graph.add(node);
+            source.add(node);
         }
 
         final var linkArrayLength = Integer.parseInt(lines[i++], 10);
         final var linkArray = new Link[linkArrayLength];
         for (int j = 0; j < linkArrayLength; ++j) {
-            final var link = Link.parseString(nodeArray, lines[i++]);
+            final var link = Link.parse(nodeArray, lines[i++]);
             linkArray[j] = link;
-            graph.add(link);
+            source.add(link);
         }
 
         events.scheduleTask(this, () -> {
@@ -459,23 +459,23 @@ public class EditorView extends View {
     }
 
     private void onAddInput() {
-        graph.add(new Attribute("New Input", false));
+        source.add(new Attribute("New Input", false));
     }
 
     private void onAddOutput() {
-        graph.add(new Attribute("New Output", true));
+        source.add(new Attribute("New Output", true));
     }
 
     private void onAttributeDelete() {
-        graph.remove(selectedAttribute);
+        source.remove(selectedAttribute);
     }
 
     private void onNodeCopy() {
-        events.callService(ID_CLIPBOARD_SET, new StringPayload(copy()));
+        events.callService(ID_CLIPBOARD_SET, copy());
     }
 
     private void onNodeCut() {
-        events.callService(ID_CLIPBOARD_SET, new StringPayload(cut()));
+        events.callService(ID_CLIPBOARD_SET, cut());
     }
 
     private void onNodeDuplicate() {
@@ -483,21 +483,15 @@ public class EditorView extends View {
     }
 
     private void onNodeReplace() {
-        events.scheduleTask(replacePopupView::open);
+        events.scheduleTask(replacePopup::open);
     }
 
     private void onNodeDelete() {
         deleteSelectedNodes();
-
-        if (selectedNode != null && selectedNode.notSelected())
-            graph.remove(selectedNode);
     }
 
     private void onLinkDelete() {
         deleteSelectedLinks();
-
-        if (selectedLink != null && selectedLink.notSelected())
-            graph.remove(selectedLink);
     }
 
     private void onEditorPaste() {
@@ -505,11 +499,11 @@ public class EditorView extends View {
     }
 
     private void onEditorClear() {
-        graph.clear();
+        source.clear();
     }
 
     private void onEditorAdd() {
-        events.scheduleTask(addPopupView::open);
+        events.scheduleTask(addPopup::open);
     }
 
     private void onAddAttribute(final @NotNull Attribute attribute) {
@@ -523,7 +517,7 @@ public class EditorView extends View {
     }
 
     private void onAddNode(final @NotNull Node node) {
-        graph.add(node);
+        source.add(node);
         node.screenPosition(new ImVec2(mouseX, mouseY));
 
         if (sourcePin == null)
@@ -533,13 +527,13 @@ public class EditorView extends View {
                 ? node.input(0)
                 : node.output(0);
 
-        graph
+        source
                 .findLink(targetPin.output()
                         ? sourcePin
                         : targetPin)
-                .ifPresent(graph::remove);
+                .ifPresent(source::remove);
 
-        graph.add(sourcePin.output()
+        source.add(sourcePin.output()
                 ? new Link(sourcePin, targetPin)
                 : new Link(targetPin, sourcePin));
 
@@ -560,22 +554,22 @@ public class EditorView extends View {
     private void onReplaceNode(final @NotNull Node node) {
         node.screenPosition(selectedNode.screenPosition());
 
-        final var links = graph
+        final var links = source
                 .links()
                 .filter(link -> link.uses(selectedNode))
                 .map(link -> {
-                    if (link.source().node() == selectedNode && link.source().index() < node.numOutputs()) {
+                    if (link.source().uses(selectedNode) && link.source().index() < node.numOutputs()) {
                         return new Link(node.output(link.source().index()), link.target());
-                    } else if (link.target().node() == selectedNode && link.target().index() < node.numInputs()) {
+                    } else if (link.target().uses(selectedNode) && link.target().index() < node.numInputs()) {
                         return new Link(link.source(), node.input(link.target().index()));
                     }
                     throw new RTException();
                 })
                 .toList();
 
-        graph.remove(selectedNode);
-        graph.add(node);
-        links.forEach(graph::add);
+        source.remove(selectedNode);
+        source.add(node);
+        links.forEach(source::add);
     }
 
     private void deleteSelectedNodes() {
@@ -583,9 +577,9 @@ public class EditorView extends View {
         ImNodes.getSelectedNodes(nodeIds);
 
         for (final var nodeId : nodeIds)
-            graph
+            source
                     .findNode(nodeId)
-                    .ifPresent(graph::remove);
+                    .ifPresent(source::remove);
 
         ImNodes.clearNodeSelection();
     }
@@ -595,9 +589,9 @@ public class EditorView extends View {
         ImNodes.getSelectedLinks(linkIds);
 
         for (final var linkId : linkIds)
-            graph
+            source
                     .findLink(linkId)
-                    .ifPresent(graph::remove);
+                    .ifPresent(source::remove);
 
         ImNodes.clearLinkSelection();
     }
@@ -615,18 +609,24 @@ public class EditorView extends View {
         targetPin = null;
 
         if (hoveredNodeId != -1) {
-            events.scheduleTask(nodePopupView::open);
-            graph
+            events.scheduleTask(nodePopup::open);
+            source
                     .findNode(hoveredNodeId)
-                    .ifPresent(node -> selectedNode = node);
-        } else if (hoveredLinkId != -1) {
-            events.scheduleTask(linkPopupView::open);
-            graph
-                    .findLink(hoveredLinkId)
-                    .ifPresent(link -> selectedLink = link);
-        } else if (isEditorHovered) {
-            events.scheduleTask(editorPopupView::open);
+                    .ifPresent(node -> {
+                        selectedNode = node;
+                        selectedNode.select();
+                    });
+            return;
         }
+        if (hoveredLinkId != -1) {
+            events.scheduleTask(linkPopup::open);
+            source
+                    .findLink(hoveredLinkId)
+                    .ifPresent(Link::select);
+            return;
+        }
+        if (isEditorHovered)
+            events.scheduleTask(editorPopup::open);
     }
 
     private void handleLinkDropped() {
@@ -635,14 +635,14 @@ public class EditorView extends View {
         if (!ImNodes.isLinkDropped(pinId))
             return;
 
-        events.scheduleTask(addDirectPopupView::open);
+        events.scheduleTask(addDirectPopup::open);
 
         mouseX = ImGui.getMousePosX();
         mouseY = ImGui.getMousePosY();
         sourcePin = null;
         targetPin = null;
 
-        graph
+        source
                 .findPin(pinId.get())
                 .ifPresent(pin -> sourcePin = pin);
     }
@@ -654,20 +654,20 @@ public class EditorView extends View {
         if (!ImNodes.isLinkCreated(sourceId, targetId))
             return;
 
-        graph
+        source
                 .findPin(sourceId.get())
                 .ifPresent(pin -> sourcePin = pin);
-        graph
+        source
                 .findPin(targetId.get())
                 .ifPresent(pin -> targetPin = pin);
 
-        graph
+        source
                 .findLink(targetPin.output()
                         ? sourcePin
                         : targetPin)
-                .ifPresent(graph::remove);
+                .ifPresent(source::remove);
 
-        graph.add(sourcePin.output()
+        source.add(sourcePin.output()
                 ? new Link(sourcePin, targetPin)
                 : new Link(targetPin, sourcePin));
 
@@ -676,11 +676,11 @@ public class EditorView extends View {
     }
 
     private void selectAll() {
-        graph
+        source
                 .nodes()
                 .filter(Node::notSelected)
                 .forEach(Node::select);
-        graph
+        source
                 .links()
                 .filter(Link::notSelected)
                 .forEach(Link::select);
@@ -700,6 +700,6 @@ public class EditorView extends View {
             return;
         }
 
-        events.scheduleTask(deletePopupView::open);
+        events.scheduleTask(deletePopup::open);
     }
 }

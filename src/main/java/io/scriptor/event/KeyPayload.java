@@ -28,5 +28,5 @@ public record KeyPayload(
         boolean super_,
         boolean caps,
         boolean num
-) implements IPayload {
+) {
 }

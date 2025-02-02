@@ -35,7 +35,7 @@ import static io.scriptor.util.IO.*;
 
 public class BlueprintNode extends Node {
 
-    public static @NotNull Node asNode(final @NotNull Graph graph, final @NotNull String string) {
+    public static @NotNull Node parse(final @NotNull Graph graph, final @NotNull String string) {
         final var split = string.split(",");
         final var blueprintUUID = UUID.fromString(split[1]);
         final var node = graph
@@ -79,6 +79,10 @@ public class BlueprintNode extends Node {
     public BlueprintNode(final @NotNull UUID uuid, final @NotNull Blueprint blueprint) {
         super(uuid);
         this.blueprint = blueprint;
+    }
+
+    public @NotNull Blueprint blueprint() {
+        return blueprint;
     }
 
     @Override
@@ -166,13 +170,13 @@ public class BlueprintNode extends Node {
     }
 
     @Override
-    public boolean uses(final @NotNull Blueprint blueprint) {
+    public boolean same(final @NotNull Blueprint blueprint) {
         return this.blueprint == blueprint;
     }
 
     @Override
-    public boolean usesRecursive(final @NotNull Blueprint blueprint) {
-        return this.blueprint == blueprint || this.blueprint.usesRecursive(blueprint);
+    public boolean uses(final @NotNull Blueprint blueprint) {
+        return this.blueprint == blueprint || this.blueprint.uses(blueprint);
     }
 
     @Override
@@ -216,7 +220,7 @@ public class BlueprintNode extends Node {
     }
 
     @Override
-    public boolean @NotNull [] exec(final @NotNull Graph graph) {
+    public boolean @NotNull [] execute(final @NotNull Graph graph) {
         if (running)
             return output;
         running = true;
@@ -227,14 +231,14 @@ public class BlueprintNode extends Node {
                     .predecessor(graph)
                     .map(pre -> pre
                             .node()
-                            .exec(graph)[pre.index()])
+                            .execute(graph)[pre.index()])
                     .orElse(false);
 
         if (state == null)
             state = new State(graph.state());
 
         output = new boolean[numOutputs()];
-        blueprint.exec(state, input, output);
+        blueprint.execute(state, input, output);
 
         running = false;
         return output;

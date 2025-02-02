@@ -27,16 +27,17 @@ import org.jetbrains.annotations.NotNull;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 import static io.scriptor.util.IO.readUUID;
 import static io.scriptor.util.IO.writeUUID;
-import static io.scriptor.util.Util.indexOf;
 
 public record Link(@NotNull UUID uuid, @NotNull Pin source, @NotNull Pin target) implements IUnique {
 
-    public static @NotNull Link parseString(final @NotNull Node @NotNull [] nodes, final @NotNull String string) {
+    public static @NotNull Link parse(final @NotNull Node @NotNull [] nodes, final @NotNull String string) {
         final var split = string.split(",");
         final var sourceNode = Integer.parseInt(split[0], 10);
         final var sourceIndex = Integer.parseInt(split[1], 10);
@@ -68,7 +69,8 @@ public record Link(@NotNull UUID uuid, @NotNull Pin source, @NotNull Pin target)
     }
 
     public void select() {
-        ImNodes.selectLink(id());
+        if (notSelected())
+            ImNodes.selectLink(id());
     }
 
     public void show(final @NotNull Graph graph) {
@@ -84,16 +86,16 @@ public record Link(@NotNull UUID uuid, @NotNull Pin source, @NotNull Pin target)
         return source.uses(node) || target.uses(node);
     }
 
-    public boolean usesNoneOf(final @NotNull Node @NotNull [] nodes) {
+    public boolean usesPairOf(final @NotNull Collection<Node> nodes) {
         for (final var a : nodes)
             for (final var b : nodes) {
                 if (a == b)
                     continue;
-                if ((source.node() == a && target.node() == b)
-                        || (target.node() == a && source.node() == b))
-                    return false;
+                if ((source.uses(a) && target.uses(b))
+                        || (target.uses(a) && source.uses(b)))
+                    return true;
             }
-        return true;
+        return false;
     }
 
     public boolean uses(final @NotNull Pin pin) {
@@ -109,11 +111,11 @@ public record Link(@NotNull UUID uuid, @NotNull Pin source, @NotNull Pin target)
                 newTarget.input(target.index()));
     }
 
-    public @NotNull String string(final @NotNull Node @NotNull [] nodes) {
+    public @NotNull String string(final @NotNull List<Node> nodes) {
         return "%d,%d,%d,%d".formatted(
-                indexOf(nodes, source.node()),
+                nodes.indexOf(source.node()),
                 source.index(),
-                indexOf(nodes, target.node()),
+                nodes.indexOf(target.node()),
                 target.index());
     }
 

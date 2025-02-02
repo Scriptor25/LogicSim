@@ -43,6 +43,7 @@ import static io.scriptor.util.Constants.UUID_NOT;
 import static io.scriptor.util.IO.*;
 
 public record Blueprint(
+        @NotNull Context context,
         @NotNull UUID uuid,
         @NotNull ImString label,
         @NotNull ImInt baseColor,
@@ -90,7 +91,7 @@ public record Blueprint(
             return this;
         }
 
-        public @NotNull Blueprint build() {
+        public @NotNull Blueprint build(final @NotNull Context context) {
             if (function == null) {
                 if (uuid.equals(UUID_NOT))
                     function = new NotFunction(UUID_NOT);
@@ -101,6 +102,7 @@ public record Blueprint(
             }
 
             return new Blueprint(
+                    context,
                     uuid,
                     new ImString(label),
                     new ImInt(baseColor),
@@ -117,7 +119,7 @@ public record Blueprint(
                 .baseColor(readInt(stream))
                 .editable(readBool(stream))
                 .source(Graph.read(context, stream))
-                .build();
+                .build(context);
     }
 
     public void write(final @NotNull OutputStream stream) throws IOException {
@@ -126,10 +128,6 @@ public record Blueprint(
         writeInt(stream, baseColor.get());
         writeBool(stream, editable);
         source.write(stream);
-    }
-
-    public boolean usesRecursive(final @NotNull Blueprint blueprint) {
-        return source.usesRecursive(blueprint);
     }
 
     public @NotNull String input(final int index) {
@@ -156,8 +154,16 @@ public record Blueprint(
         return function.numOutputs();
     }
 
-    public void exec(final @NotNull State state, final boolean @NotNull [] inputs, final boolean @NotNull [] outputs) {
-        function.exec(state, inputs, outputs);
+    public void execute(final @NotNull State state, final boolean @NotNull [] inputs, final boolean @NotNull [] outputs) {
+        function.execute(state, inputs, outputs);
+    }
+
+    public boolean uses(final @NotNull Blueprint blueprint) {
+        return source.uses(blueprint);
+    }
+
+    public boolean used() {
+        return context.uses(this);
     }
 
     @Override

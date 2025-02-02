@@ -1,9 +1,9 @@
 package io.scriptor.view;
 
 import imgui.ImGui;
+import imgui.flag.ImGuiMouseButton;
 import io.scriptor.context.Context;
 import io.scriptor.event.EventManager;
-import io.scriptor.event.IPayload;
 import io.scriptor.graph.Blueprint;
 import io.scriptor.graph.Graph;
 import io.scriptor.util.Range;
@@ -15,16 +15,14 @@ import static io.scriptor.util.Constants.*;
 
 public class BlueprintView extends View {
 
-    public record Payload(@NotNull Blueprint value) implements IPayload {
-    }
 
-    private final ListView<Blueprint> blueprintListView;
-    private final TextInputView labelTextInputView;
-    private final ColorInputView colorInputView;
+    private final ListView<Blueprint> blueprintView;
+    private final TextInputView labelView;
+    private final ColorInputView colorView;
 
-    private final PopupView blueprintPopupView;
-    private final PopupView labelPopupView;
-    private final PopupView colorPopupView;
+    private final Popup blueprintPopup;
+    private final Popup labelPopup;
+    private final Popup colorPopup;
 
     private final Context context;
 
@@ -35,39 +33,53 @@ public class BlueprintView extends View {
 
         this.context = context;
 
-        labelTextInputView = new TextInputView(events, label -> {
-            if (!label.isEmpty())
-                selectedBlueprint.label().set(label, true);
-            ImGui.closeCurrentPopup();
-        });
-        labelPopupView = new PopupView(events, labelTextInputView::show);
-        colorInputView = new ColorInputView(events, color -> selectedBlueprint.baseColor().set(color));
-        colorPopupView = new PopupView(events, colorInputView::show);
-        blueprintPopupView = new PopupView(events, () -> {
-            if (ImGui.selectable("Set Label")) {
-                labelTextInputView.value(selectedBlueprint.label().get());
-                events.scheduleTask(labelPopupView::open);
-            }
-            if (ImGui.selectable("Set Color")) {
-                colorInputView.value(selectedBlueprint.baseColor());
-                events.scheduleTask(colorPopupView::open);
-            }
-            if (selectedBlueprint.editable()) {
-                if (ImGui.selectable("Edit"))
-                    events.callVoidService(ID_BLUEPRINT_EDIT, new Payload(selectedBlueprint));
-                if (ImGui.selectable("Delete"))
-                    events.callVoidService(ID_BLUEPRINT_DELETE, new Payload(selectedBlueprint));
-            }
-        });
-        blueprintListView = new ListView<>(
+        blueprintView = new ListView<>(
                 events,
                 new Range<>(context.blueprints())
                         .sorted(Comparator.comparing(Blueprint::label)),
+                this::onBlueprintSelected,
                 blueprint -> {
-                    selectedBlueprint = blueprint;
-                    events.scheduleTask(blueprintPopupView::open);
-                },
-                blueprint -> ImGui.selectable(blueprint.label().get()));
+                    ImGui.selectable(blueprint.label().get());
+                    return ImGui.isItemHovered();
+                });
+        labelView = new TextInputView(events, this::onLabelEnter);
+        colorView = new ColorInputView(events, color -> selectedBlueprint.baseColor().set(color));
+        blueprintPopup = new Popup(events, this::showBlueprintContext);
+        labelPopup = new Popup(events, labelView::show);
+        colorPopup = new Popup(events, colorView::show);
+    }
+
+    private void onBlueprintSelected(final @NotNull Blueprint blueprint) {
+        selectedBlueprint = blueprint;
+        if (ImGui.isMouseClicked(ImGuiMouseButton.Right))
+            events.scheduleTask(blueprintPopup::open);
+        if (blueprint.editable() && ImGui.isMouseClicked(ImGuiMouseButton.Left))
+            events.callService(ID_BLUEPRINT_EDIT, blueprint);
+    }
+
+    private void onLabelEnter(final @NotNull String label) {
+        if (!label.isEmpty())
+            selectedBlueprint.label().set(label, true);
+        ImGui.closeCurrentPopup();
+    }
+
+    private void showBlueprintContext() {
+        if (ImGui.selectable("Set Label")) {
+            labelView.value(selectedBlueprint.label().get());
+            events.scheduleTask(labelPopup::open);
+        }
+        if (ImGui.selectable("Set Color")) {
+            colorView.value(selectedBlueprint.baseColor());
+            events.scheduleTask(colorPopup::open);
+        }
+        ImGui.beginDisabled(!selectedBlueprint.editable());
+        if (ImGui.selectable("Edit"))
+            events.callService(ID_BLUEPRINT_EDIT, selectedBlueprint);
+        ImGui.beginDisabled(selectedBlueprint.used());
+        if (ImGui.selectable("Delete"))
+            events.callService(ID_BLUEPRINT_DELETE, selectedBlueprint);
+        ImGui.endDisabled();
+        ImGui.endDisabled();
     }
 
     @Override
@@ -78,19 +90,22 @@ public class BlueprintView extends View {
         }
 
         if (ImGui.button("Add Blueprint"))
-            events.callVoidService(
+            events.callService(
                     ID_BLUEPRINT_NEW,
-                    new Payload(new Blueprint.Builder()
+                    new Blueprint.Builder()
                             .label("New Blueprint")
                             .source(new Graph(context))
-                            .build()));
+                            .build(context));
 
-        blueprintListView.show();
+        if (ImGui.beginChild("blueprints"))
+            blueprintView.show();
+        ImGui.endChild();
+
         events.runTasks(this);
         ImGui.end();
 
-        blueprintPopupView.show();
-        labelPopupView.show();
-        colorPopupView.show();
+        blueprintPopup.show();
+        labelPopup.show();
+        colorPopup.show();
     }
 }

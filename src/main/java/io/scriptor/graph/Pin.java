@@ -52,7 +52,7 @@ public record Pin(@NotNull Node node, int index, boolean output) {
     }
 
     public boolean uses(final @NotNull Node node) {
-        return node == this.node;
+        return this.node == node;
     }
 
     public @NotNull Optional<Pin> predecessor(final @NotNull Graph graph) {

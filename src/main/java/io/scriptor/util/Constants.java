@@ -40,6 +40,7 @@ public class Constants {
     public static final String ID_BLUEPRINT_EDIT = "blueprint.edit";
     public static final String ID_BLUEPRINT_CLOSE = "blueprint.close";
     public static final String ID_BLUEPRINT_DELETE = "blueprint.delete";
+    public static final String ID_BLUEPRINT_IS_OPEN = "blueprint.is-open";
 
     private Constants() {
     }
