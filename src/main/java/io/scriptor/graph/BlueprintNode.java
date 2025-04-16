@@ -222,7 +222,7 @@ public class BlueprintNode extends Node {
     @Override
     public boolean @NotNull [] execute(final @NotNull Graph graph) {
         if (running)
-            return output;
+            return output != null ? output : new boolean[numOutputs()];
         running = true;
 
         final var input = new boolean[numInputs()];
