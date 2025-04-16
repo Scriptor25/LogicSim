@@ -39,14 +39,14 @@ public interface IYamlNode extends Iterable<IYamlNode> {
         return new ListNode(key, list.stream().map(IYamlNode::from).toList());
     }
 
+    @SuppressWarnings("java:S2637")
     static IYamlNode from(final @Nullable String key, final @Nullable Object value) {
-        if (value == null)
-            return new EmptyNode(key);
-        if (value instanceof Map<?, ?> map)
-            return from(key, map);
-        if (value instanceof List<?> list)
-            return from(key, list);
-        return new DataNode(key, value);
+        return switch (value) {
+            case null -> new EmptyNode(key);
+            case Map<?, ?> map -> from(key, map);
+            case List<?> list -> from(key, list);
+            default -> new DataNode(key, value);
+        };
     }
 
     record MapNode(@Nullable String key, @NotNull Map<String, IYamlNode> value) implements IYamlNode {

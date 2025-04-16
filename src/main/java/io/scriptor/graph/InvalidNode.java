@@ -146,7 +146,7 @@ public class InvalidNode extends Node {
     public @NotNull Stream<Node> successors(final @NotNull Graph graph) {
         return outputs
                 .stream()
-                .<Node>mapMulti((pin, consumer) -> graph
+                .mapMulti((pin, consumer) -> graph
                         .findLinks(pin)
                         .map(link -> link.target().node())
                         .forEach(consumer));
