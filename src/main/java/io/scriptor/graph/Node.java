@@ -154,6 +154,7 @@ public abstract class Node implements IUnique {
      */
     public abstract boolean back(final @NotNull Graph graph);
 
+    @SuppressWarnings("unused")
     public abstract @NotNull Stream<Node> successors(final @NotNull Graph graph);
 
     /**
@@ -166,10 +167,12 @@ public abstract class Node implements IUnique {
         return false;
     }
 
+    @SuppressWarnings("java:S1172")
     public boolean same(final @NotNull Blueprint blueprint) {
         return false;
     }
 
+    @SuppressWarnings("java:S1172")
     public boolean uses(final @NotNull Blueprint blueprint) {
         return false;
     }

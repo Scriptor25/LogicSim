@@ -167,7 +167,7 @@ public class Main {
 
         events = new EventManager();
         events.registerEvent("key.s.press+control", this::save);
-        events.registerTimer(this, 5 * 60 * 1000, true, this::save);
+        events.registerTimer(this, 5 * 60 * 1000L, true, this::save);
         events.offerService(ID_CLIPBOARD_GET, () -> requireNonNullElse(glfwGetClipboardString(window), ""));
         events.<String>offerService(ID_CLIPBOARD_SET, clipboard -> glfwSetClipboardString(window, clipboard));
         events.<Blueprint>offerService(ID_BLUEPRINT_NEW, blueprint -> events.scheduleTask(() -> {

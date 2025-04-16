@@ -122,7 +122,10 @@ public class Context {
         final var list = blueprints
                 .values()
                 .stream()
-                .sorted((a, b) -> a.uses(b) ? 1 : b.uses(a) ? -1 : 0)
+                .sorted((a, b) -> {
+                    final var x = b.uses(a) ? -1 : 0;
+                    return a.uses(b) ? 1 : x;
+                })
                 .toList();
         list.forEach(blueprint -> handleVoid(() -> blueprint.write(stream)));
     }

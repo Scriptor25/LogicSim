@@ -42,6 +42,8 @@ import static io.scriptor.util.Constants.*;
 
 public class EditorView extends View {
 
+    private static final String STRING_DELETE = "Delete";
+
     private static boolean showFullAttribute(final @NotNull Attribute attribute) {
         ImGui.beginDisabled(attribute.output());
         ImGui.checkbox("##powered", attribute.powered());
@@ -268,7 +270,7 @@ public class EditorView extends View {
             labelView.value(selectedAttribute.label().get());
             events.scheduleTask(setLabelPopup::open);
         }
-        if (ImGui.selectable("Delete"))
+        if (ImGui.selectable(STRING_DELETE))
             events.scheduleTask(this, this::onAttributeDelete);
     }
 
@@ -285,7 +287,7 @@ public class EditorView extends View {
             events.scheduleTask(this, this::onNodeDuplicate);
         if (ImGui.selectable("Replace"))
             events.scheduleTask(this, this::onNodeReplace);
-        if (ImGui.selectable("Delete"))
+        if (ImGui.selectable(STRING_DELETE))
             events.scheduleTask(this, this::onNodeDelete);
         if (selectedNode instanceof BlueprintNode node && node.blueprint().editable()) {
             ImGui.separator();
@@ -295,7 +297,7 @@ public class EditorView extends View {
     }
 
     private void showLinkContext() {
-        if (ImGui.selectable("Delete"))
+        if (ImGui.selectable(STRING_DELETE))
             events.scheduleTask(this, this::onLinkDelete);
     }
 

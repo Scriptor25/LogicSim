@@ -16,7 +16,7 @@ import static io.scriptor.util.Constants.*;
 public class BlueprintView extends View {
 
 
-    private final ListView<Blueprint> blueprintView;
+    private final ListView<Blueprint> blueprintListView;
     private final TextInputView labelView;
     private final ColorInputView colorView;
 
@@ -33,7 +33,7 @@ public class BlueprintView extends View {
 
         this.context = context;
 
-        blueprintView = new ListView<>(
+        blueprintListView = new ListView<>(
                 events,
                 new Range<>(context.blueprints())
                         .sorted(Comparator.comparing(Blueprint::label)),
@@ -98,7 +98,7 @@ public class BlueprintView extends View {
                             .build(context));
 
         if (ImGui.beginChild("blueprints"))
-            blueprintView.show();
+            blueprintListView.show();
         ImGui.endChild();
 
         events.runTasks(this);
