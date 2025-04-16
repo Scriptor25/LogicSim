@@ -203,12 +203,11 @@ public class InvalidNode extends Node {
             return;
         running = true;
 
-        for (final var input : inputs)
-            input
-                    .predecessor(graph)
-                    .ifPresent(pre -> pre
-                            .node()
-                            .compile(graph, instructions));
+        inputs.forEach(input -> input
+                .predecessor(graph)
+                .ifPresent(pre -> pre
+                        .node()
+                        .compile(graph, instructions)));
 
         running = false;
     }
@@ -219,12 +218,11 @@ public class InvalidNode extends Node {
             return new boolean[outputs.size()];
         running = true;
 
-        for (final var input : inputs)
-            input
-                    .predecessor(graph)
-                    .ifPresent(pin -> pin
-                            .node()
-                            .execute(graph));
+        inputs.forEach(input -> input
+                .predecessor(graph)
+                .ifPresent(pin -> pin
+                        .node()
+                        .execute(graph)));
 
         running = false;
         return new boolean[outputs.size()];

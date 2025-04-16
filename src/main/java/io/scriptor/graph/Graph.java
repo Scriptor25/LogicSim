@@ -258,21 +258,20 @@ public class Graph {
         final var graph = new Graph(context);
 
         final Map<Attribute, Attribute> attributeCopies = new HashMap<>();
-        for (final var attribute : attributes) {
+        attributes.forEach(attribute -> {
             final var copy = attribute.copy();
             graph.add(copy);
             attributeCopies.put(attribute, copy);
-        }
+        });
 
         final Map<Node, Node> nodeCopies = new HashMap<>();
-        for (final var node : nodes) {
+        nodes.forEach(node -> {
             final var copy = node.copy(attributeCopies);
             graph.add(copy);
             nodeCopies.put(node, copy);
-        }
+        });
 
-        for (final var link : links)
-            graph.add(link.copy(nodeCopies));
+        links.forEach(link -> graph.add(link.copy(nodeCopies)));
 
         return graph;
     }
