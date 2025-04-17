@@ -1,4 +1,0 @@
-type: component
-id: separator
-class: io.scriptor.imgui.Separator
-fields: [ ]

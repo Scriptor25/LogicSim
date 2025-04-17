@@ -37,6 +37,6 @@ build/
 ### Mac OS ###
 .DS_Store
 
-/project.bff
-/backup.bff
-/imgui.ini
+*.bff
+imgui.ini
+.idea/

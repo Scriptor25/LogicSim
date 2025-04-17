@@ -19,25 +19,14 @@
 package io.scriptor.function;
 
 import io.scriptor.context.State;
-import io.scriptor.util.IO;
 import io.scriptor.util.IUnique;
 import org.jetbrains.annotations.NotNull;
-
-import java.io.IOException;
-import java.io.OutputStream;
 
 /**
  * The function interface specifies that every function has to provide a type id, the number of inputs and outputs,
  * an endpoint to execute the function as well as one to write the function to an output stream.
  */
 public interface IFunction extends IUnique {
-
-    /**
-     * Get the function type id.
-     *
-     * @return the type id
-     */
-    byte typeId();
 
     /**
      * Get the number of inputs.
@@ -60,16 +49,5 @@ public interface IFunction extends IUnique {
      * @param inputs  the inputs
      * @param outputs the outputs
      */
-    void exec(final @NotNull State state, final boolean @NotNull [] inputs, final boolean @NotNull [] outputs);
-
-    /**
-     * Write this function to an output stream.
-     *
-     * @param outputStream the output stream
-     * @throws IOException if any
-     */
-    default void write(final @NotNull OutputStream outputStream) throws IOException {
-        IO.writeByte(outputStream, typeId());
-        IO.writeUUID(outputStream, uuid());
-    }
+    void execute(final @NotNull State state, final boolean @NotNull [] inputs, final boolean @NotNull [] outputs);
 }

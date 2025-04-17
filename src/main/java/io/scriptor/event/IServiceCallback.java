@@ -3,7 +3,7 @@ package io.scriptor.event;
 import org.jetbrains.annotations.NotNull;
 
 @FunctionalInterface
-public interface IServiceCallback<R, T extends IPayload> {
+public interface IServiceCallback<R, T> {
 
-    R call(final @NotNull T payload);
+    @NotNull R call(final @NotNull T payload);
 }

@@ -31,12 +31,16 @@ import static io.scriptor.util.IO.*;
 
 public class CallInstruction implements Instruction {
 
-    public static void read(final @NotNull InputStream inputStream, final @NotNull Function function) throws IOException {
-        final var uuid = readUUID(inputStream);
-        final var callee = readUUID(inputStream);
-        final var args = new Instruction[readInt(inputStream)];
-        for (int i = 0; i < args.length; ++i)
-            args[i] = function.find(readUUID(inputStream));
+    public static void read(final @NotNull InputStream stream, final @NotNull Function function) throws IOException {
+        final var uuid = readUUID(stream);
+        final var callee = readUUID(stream);
+        final var args = new Instruction[readInt(stream)];
+        for (int i = 0; i < args.length; ++i) {
+            final var argUUID = readUUID(stream);
+            args[i] = function
+                    .get(argUUID)
+                    .orElseGet(() -> new ConstInstruction(argUUID, false));
+        }
         function.add(new CallInstruction(uuid, callee, args));
     }
 
@@ -68,16 +72,16 @@ public class CallInstruction implements Instruction {
     }
 
     @Override
-    public void write(final @NotNull OutputStream outputStream) throws IOException {
-        Instruction.super.write(outputStream);
-        writeUUID(outputStream, callee);
-        writeInt(outputStream, args.length);
+    public void write(final @NotNull OutputStream stream) throws IOException {
+        Instruction.super.write(stream);
+        writeUUID(stream, callee);
+        writeInt(stream, args.length);
         for (final var arg : args)
-            writeUUID(outputStream, arg.uuid());
+            writeUUID(stream, arg.uuid());
     }
 
     @Override
-    public void exec(final @NotNull State state) {
+    public void execute(final @NotNull State state) {
         if (error) return;
 
         final var values = new boolean[args.length];

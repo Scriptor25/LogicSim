@@ -24,13 +24,20 @@ import io.scriptor.util.Constants;
 import io.scriptor.util.IUnique;
 import org.jetbrains.annotations.NotNull;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
-import static io.scriptor.util.Util.indexOf;
+import static io.scriptor.util.IO.readUUID;
+import static io.scriptor.util.IO.writeUUID;
 
-public record Link(UUID uuid, Pin source, Pin target) implements IUnique {
+public record Link(@NotNull UUID uuid, @NotNull Pin source, @NotNull Pin target) implements IUnique {
 
-    public static @NotNull Link parse(final @NotNull INode @NotNull [] nodes, final @NotNull String string) {
+    public static @NotNull Link parse(final @NotNull Node @NotNull [] nodes, final @NotNull String string) {
         final var split = string.split(",");
         final var sourceNode = Integer.parseInt(split[0], 10);
         final var sourceIndex = Integer.parseInt(split[1], 10);
@@ -42,6 +49,17 @@ public record Link(UUID uuid, Pin source, Pin target) implements IUnique {
                 nodes[targetNode].input(targetIndex));
     }
 
+    public static @NotNull Link read(final @NotNull Graph graph, final @NotNull InputStream stream) throws IOException {
+        final var uuid = readUUID(stream);
+        final var source = Pin.read(graph, stream);
+        final var target = Pin.read(graph, stream);
+        return new Link(uuid, source, target);
+    }
+
+    public Link(final @NotNull Pin source, final @NotNull Pin target) {
+        this(UUID.randomUUID(), source, target);
+    }
+
     public int id() {
         return uuid.hashCode();
     }
@@ -51,41 +69,59 @@ public record Link(UUID uuid, Pin source, Pin target) implements IUnique {
     }
 
     public void select() {
-        ImNodes.selectLink(id());
+        if (notSelected())
+            ImNodes.selectLink(id());
     }
 
     public void show(final @NotNull Graph graph) {
         final var powered = source.powered(graph);
-        if (powered) ImNodes.pushColorStyle(ImNodesCol.Link, Constants.COLOR_POWERED);
+        if (powered)
+            ImNodes.pushColorStyle(ImNodesCol.Link, Constants.COLOR_POWERED);
         ImNodes.link(id(), source.id(), target.id());
-        if (powered) ImNodes.popColorStyle();
+        if (powered)
+            ImNodes.popColorStyle();
     }
 
-    public boolean uses(final @NotNull INode node) {
+    public boolean uses(final @NotNull Node node) {
         return source.uses(node) || target.uses(node);
     }
 
-    public boolean usesNoneOf(final @NotNull INode @NotNull [] nodes) {
+    public boolean usesPairOf(final @NotNull Collection<Node> nodes) {
         for (final var a : nodes)
             for (final var b : nodes) {
                 if (a == b)
                     continue;
-                if ((source.node() == a && target.node() == b)
-                        || (target.node() == a && source.node() == b))
-                    return false;
+                if ((source.uses(a) && target.uses(b))
+                        || (target.uses(a) && source.uses(b)))
+                    return true;
             }
-        return true;
+        return false;
     }
 
     public boolean uses(final @NotNull Pin pin) {
         return source == pin || target == pin;
     }
 
-    public @NotNull String getString(final @NotNull INode @NotNull [] nodes) {
+    public @NotNull Link copy(final @NotNull Map<Node, Node> copies) {
+        final var newSource = copies.get(source.node());
+        final var newTarget = copies.get(target.node());
+        return new Link(
+                UUID.randomUUID(),
+                newSource.output(source.index()),
+                newTarget.input(target.index()));
+    }
+
+    public @NotNull String string(final @NotNull List<Node> nodes) {
         return "%d,%d,%d,%d".formatted(
-                indexOf(nodes, source.node()),
+                nodes.indexOf(source.node()),
                 source.index(),
-                indexOf(nodes, target.node()),
+                nodes.indexOf(target.node()),
                 target.index());
+    }
+
+    public void write(final @NotNull OutputStream stream) throws IOException {
+        writeUUID(stream, uuid);
+        source.write(stream);
+        target.write(stream);
     }
 }

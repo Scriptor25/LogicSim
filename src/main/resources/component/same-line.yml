@@ -1,4 +1,0 @@
-type: component
-id: same-line
-class: io.scriptor.imgui.SameLine
-fields: [ ]

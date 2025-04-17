@@ -29,6 +29,18 @@ public class Util {
         return -1;
     }
 
+    @FunctionalInterface
+    public interface BoolPredicate<T> {
+        boolean convert(final @NotNull T value);
+    }
+
+    public static <T> boolean @NotNull [] toBool(final @NotNull T @NotNull [] array, final @NotNull BoolPredicate<T> predicate) {
+        final var result = new boolean[array.length];
+        for (int i = 0; i < array.length; ++i)
+            result[i] = predicate.convert(array[i]);
+        return result;
+    }
+
     private Util() {
     }
 }

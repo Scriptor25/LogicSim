@@ -20,7 +20,6 @@ package io.scriptor.instruction;
 
 import io.scriptor.context.State;
 import io.scriptor.function.Function;
-import io.scriptor.util.RTException;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
@@ -37,15 +36,15 @@ public record SetRegInstruction(
         @NotNull Instruction value
 ) implements Instruction {
 
-    public static void read(final @NotNull InputStream inputStream, final @NotNull Function function) throws IOException {
-        final var uuid = readUUID(inputStream);
-        final var reg = readUUID(inputStream);
-        final var index = readInt(inputStream);
-        final var value = readUUID(inputStream);
-        final var valueInstruction = function.find(value);
-        if (valueInstruction == null)
-            throw new RTException("invalid value instruction id %s", value);
-        function.add(new SetRegInstruction(uuid, reg, index, valueInstruction));
+    public static void read(final @NotNull InputStream stream, final @NotNull Function function) throws IOException {
+        final var uuid = readUUID(stream);
+        final var register = readUUID(stream);
+        final var index = readInt(stream);
+        final var valueUUID = readUUID(stream);
+        final var value = function
+                .get(valueUUID)
+                .orElseGet(() -> new ConstInstruction(valueUUID, false));
+        function.add(new SetRegInstruction(uuid, register, index, value));
     }
 
     public SetRegInstruction(final @NotNull UUID reg, final int index, final @NotNull Instruction value) {
@@ -53,15 +52,15 @@ public record SetRegInstruction(
     }
 
     @Override
-    public void write(final @NotNull OutputStream outputStream) throws IOException {
-        Instruction.super.write(outputStream);
-        writeUUID(outputStream, reg);
-        writeInt(outputStream, index);
-        writeUUID(outputStream, value.uuid());
+    public void write(final @NotNull OutputStream stream) throws IOException {
+        Instruction.super.write(stream);
+        writeUUID(stream, reg);
+        writeInt(stream, index);
+        writeUUID(stream, value.uuid());
     }
 
     @Override
-    public void exec(final @NotNull State state) {
+    public void execute(final @NotNull State state) {
         state.setRegister(reg, index, value.get(state));
     }
 }

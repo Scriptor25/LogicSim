@@ -33,4 +33,8 @@ public interface IUnique {
      * @return the uuid
      */
     @NotNull UUID uuid();
+
+    default boolean same(@NotNull UUID uuid) {
+        return this.uuid().equals(uuid);
+    }
 }

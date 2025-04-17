@@ -25,26 +25,31 @@ import imgui.extension.imnodes.flag.ImNodesCol;
 import imgui.type.ImInt;
 import imgui.type.ImString;
 import io.scriptor.context.Context;
+import io.scriptor.context.State;
+import io.scriptor.function.AndFunction;
 import io.scriptor.function.IFunction;
+import io.scriptor.function.NotFunction;
 import io.scriptor.util.Constants;
 import io.scriptor.util.IUnique;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.*;
+import java.util.UUID;
 
+import static io.scriptor.util.Constants.UUID_AND;
+import static io.scriptor.util.Constants.UUID_NOT;
 import static io.scriptor.util.IO.*;
 
 public record Blueprint(
+        @NotNull Context context,
         @NotNull UUID uuid,
         @NotNull ImString label,
         @NotNull ImInt baseColor,
-        @NotNull String @NotNull [] inputs,
-        @NotNull String @NotNull [] outputs,
-        @NotNull IFunction function
+        @NotNull Graph source,
+        @NotNull IFunction function,
+        boolean editable
 ) implements IUnique {
 
     public static class Builder {
@@ -52,9 +57,9 @@ public record Blueprint(
         private UUID uuid = UUID.randomUUID();
         private String label = "";
         private int baseColor = 0x212121;
-        private final List<String> inputs = new ArrayList<>();
-        private final List<String> outputs = new ArrayList<>();
         private IFunction function;
+        private Graph source;
+        private boolean editable = true;
 
         public @NotNull Builder uuid(final @NotNull UUID uuid) {
             this.uuid = uuid;
@@ -71,87 +76,94 @@ public record Blueprint(
             return this;
         }
 
-        public @NotNull Builder inputs(final @NotNull String @NotNull ... inputs) {
-            this.inputs.addAll(List.of(inputs));
-            return this;
-        }
-
-        public @NotNull Builder outputs(final @NotNull String @NotNull ... outputs) {
-            this.outputs.addAll(List.of(outputs));
-            return this;
-        }
-
         public @NotNull Builder function(final @NotNull IFunction function) {
             this.function = function;
             return this;
         }
 
-        public @NotNull Blueprint build() {
+        public @NotNull Builder source(final @NotNull Graph source) {
+            this.source = source;
+            return this;
+        }
+
+        public @NotNull Builder editable(final boolean editable) {
+            this.editable = editable;
+            return this;
+        }
+
+        public @NotNull Blueprint build(final @NotNull Context context) {
+            if (function == null) {
+                if (uuid.equals(UUID_NOT))
+                    function = new NotFunction(UUID_NOT);
+                else if (uuid.equals(UUID_AND))
+                    function = new AndFunction(UUID_AND);
+                else
+                    function = source.compile();
+            }
+
             return new Blueprint(
+                    context,
                     uuid,
                     new ImString(label),
                     new ImInt(baseColor),
-                    inputs.toArray(String[]::new),
-                    outputs.toArray(String[]::new),
-                    function);
+                    source,
+                    function,
+                    editable);
         }
     }
 
-    public static void read(final @NotNull InputStream in, final @NotNull Context context) throws IOException {
-        final var uuid = readUUID(in);
-
-        final var builder = new Builder()
-                .uuid(uuid)
-                .label(readString(in))
-                .baseColor(readInt(in));
-
-        final var inputs = new String[readInt(in)];
-        for (int i = 0; i < inputs.length; ++i)
-            inputs[i] = readString(in);
-        builder.inputs(inputs);
-
-        final var outputs = new String[readInt(in)];
-        for (int i = 0; i < outputs.length; ++i)
-            outputs[i] = readString(in);
-        builder.outputs(outputs);
-
-        context.registry()
-                .get(readUUID(in))
-                .ifPresent(fn -> context.add(
-                        builder
-                                .function(fn)
-                                .build()));
+    public static @NotNull Blueprint read(final @NotNull Context context, final @NotNull InputStream stream) throws IOException {
+        return new Builder()
+                .uuid(readUUID(stream))
+                .label(readString(stream))
+                .baseColor(readInt(stream))
+                .editable(readBool(stream))
+                .source(Graph.read(context, stream))
+                .build(context);
     }
 
-    public void write(final @NotNull OutputStream outputStream) throws IOException {
-        writeUUID(outputStream, uuid);
-        writeString(outputStream, label.get());
-        writeInt(outputStream, baseColor.get());
-        writeInt(outputStream, inputs.length);
-        for (final var input : inputs)
-            writeString(outputStream, input);
-        writeInt(outputStream, outputs.length);
-        for (final var output : outputs)
-            writeString(outputStream, output);
-        writeUUID(outputStream, function.uuid());
+    public void write(final @NotNull OutputStream stream) throws IOException {
+        writeUUID(stream, uuid);
+        writeString(stream, label.get());
+        writeInt(stream, baseColor.get());
+        writeBool(stream, editable);
+        source.write(stream);
     }
 
-    @Override
-    public boolean equals(final @Nullable Object object) {
-        if (this == object) return true;
-        if (null == object) return false;
-        if (!(object instanceof Blueprint blueprint)) return false;
-        return Objects.equals(uuid, blueprint.uuid)
-                && Objects.equals(label, blueprint.label)
-                && Objects.equals(baseColor, blueprint.baseColor)
-                && Objects.deepEquals(inputs, blueprint.inputs)
-                && Objects.deepEquals(outputs, blueprint.outputs)
-                && Objects.equals(function, blueprint.function);
+    public @NotNull String input(final int index) {
+        return source
+                .input(index)
+                .map(Attribute::label)
+                .map(ImString::get)
+                .orElseThrow();
     }
 
-    @Override
-    public int hashCode() {
-        return Objects.hash(uuid, label, baseColor, Arrays.hashCode(inputs), Arrays.hashCode(outputs), function);
+    public @NotNull String output(final int index) {
+        return source
+                .output(index)
+                .map(Attribute::label)
+                .map(ImString::get)
+                .orElseThrow();
+    }
+
+    public int numInputs() {
+        return function.numInputs();
+    }
+
+    public int numOutputs() {
+        return function.numOutputs();
+    }
+
+    public void execute(final @NotNull State state, final boolean @NotNull [] inputs, final boolean @NotNull [] outputs) {
+        function.execute(state, inputs, outputs);
+    }
+
+    public boolean uses(final @NotNull Blueprint blueprint) {
+        return source.uses(blueprint);
+    }
+
+    public boolean used() {
+        return context.uses(this);
     }
 
     @Override
@@ -159,13 +171,24 @@ public record Blueprint(
         return label.get();
     }
 
-    public void show(final @NotNull Graph graph, final @NotNull Node node) {
+    public void show(final @NotNull Graph graph, final @NotNull BlueprintNode node) {
         pushColorStyle();
         ImNodes.beginNode(node.id());
 
         ImNodes.beginNodeTitleBar();
         ImGui.textUnformatted(label.get());
         ImNodes.endNodeTitleBar();
+
+        final var inputs = source
+                .inputs()
+                .map(Attribute::label)
+                .map(ImString::get)
+                .toArray(String[]::new);
+        final var outputs = source
+                .outputs()
+                .map(Attribute::label)
+                .map(ImString::get)
+                .toArray(String[]::new);
 
         int maxInputWidth = 0;
         for (final var input : inputs)
@@ -188,8 +211,8 @@ public record Blueprint(
             }
         }
 
-        final var inputFormat = "%-" + maxInputWidth + "s";
-        final var outputFormat = "%" + maxOutputWidth + "s";
+        final var inputFormat = "%%-%ds".formatted(maxInputWidth);
+        final var outputFormat = "%%%ds".formatted(maxOutputWidth);
 
         int i = 0;
         for (; i < Math.min(inputs.length, outputs.length); ++i) {
@@ -239,7 +262,7 @@ public record Blueprint(
         if (powered)
             ImNodes.pushColorStyle(ImNodesCol.Pin, Constants.COLOR_POWERED);
         ImNodes.beginInputAttribute(pin.id());
-        ImGui.textUnformatted(format.formatted(inputs[pin.index()]));
+        ImGui.textUnformatted(format.formatted(input(pin.index())));
         ImNodes.endInputAttribute();
         if (powered)
             ImNodes.popColorStyle();
@@ -250,7 +273,7 @@ public record Blueprint(
         if (powered)
             ImNodes.pushColorStyle(ImNodesCol.Pin, Constants.COLOR_POWERED);
         ImNodes.beginOutputAttribute(pin.id());
-        ImGui.textUnformatted(format.formatted(outputs[pin.index()]));
+        ImGui.textUnformatted(format.formatted(output(pin.index())));
         ImNodes.endOutputAttribute();
         if (powered)
             ImNodes.popColorStyle();

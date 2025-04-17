@@ -1,7 +1,0 @@
-type: component
-id: child
-class: io.scriptor.imgui.Child
-fields:
-  - name: elements
-    type: element
-    array: on

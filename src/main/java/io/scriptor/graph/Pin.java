@@ -21,10 +21,27 @@ package io.scriptor.graph;
 import io.scriptor.util.RTException;
 import org.jetbrains.annotations.NotNull;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-public record Pin(@NotNull INode node, int index, boolean output) {
+import static io.scriptor.util.IO.*;
+
+public record Pin(@NotNull Node node, int index, boolean output) {
+
+    public static @NotNull Pin read(final @NotNull Graph graph, final @NotNull InputStream stream) throws IOException {
+        final var nodeUUID = readUUID(stream);
+        final var index = readInt(stream);
+        final var output = readBool(stream);
+        return graph
+                .findNode(nodeUUID)
+                .map(node -> output
+                        ? node.output(index)
+                        : node.input(index))
+                .orElseThrow();
+    }
 
     public int id() {
         return hashCode();
@@ -34,8 +51,8 @@ public record Pin(@NotNull INode node, int index, boolean output) {
         return node.powered(graph, output, index);
     }
 
-    public boolean uses(final @NotNull INode node) {
-        return node == this.node;
+    public boolean uses(final @NotNull Node node) {
+        return this.node == node;
     }
 
     public @NotNull Optional<Pin> predecessor(final @NotNull Graph graph) {
@@ -52,5 +69,11 @@ public record Pin(@NotNull INode node, int index, boolean output) {
         return graph
                 .findLinks(this)
                 .map(Link::target);
+    }
+
+    public void write(final @NotNull OutputStream stream) throws IOException {
+        writeUUID(stream, node.uuid());
+        writeInt(stream, index);
+        writeBool(stream, output);
     }
 }

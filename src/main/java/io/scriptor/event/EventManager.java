@@ -21,10 +21,7 @@ package io.scriptor.event;
 import io.scriptor.util.RTException;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -33,9 +30,10 @@ import java.util.function.Supplier;
  */
 public class EventManager {
 
-    private final Map<Object, List<IEventListener<? extends IPayload>>> eventMap = new HashMap<>();
-    private final Map<Object, IServiceCallback<?, ? extends IPayload>> serviceMap = new HashMap<>();
+    private final Map<Object, List<IEventListener<?>>> eventMap = new HashMap<>();
+    private final Map<Object, IServiceCallback<?, ?>> serviceMap = new HashMap<>();
     private final Map<Object, List<Runnable>> taskMap = new HashMap<>();
+    private final Map<Object, Timer> timerMap = new HashMap<>();
 
     /**
      * Register an event listener. Multiple different listeners can be registered to a single event id.
@@ -44,7 +42,7 @@ public class EventManager {
      * @param listener the event listener
      * @param <T>      the payload type
      */
-    public <T extends IPayload> void registerEvent(final @NotNull Object id, final @NotNull IEventListener<T> listener) {
+    public <T> void registerEvent(final @NotNull Object id, final @NotNull IEventListener<T> listener) {
         eventMap
                 .computeIfAbsent(id, key -> new ArrayList<>())
                 .add(listener);
@@ -62,10 +60,14 @@ public class EventManager {
      * @param <T>     the payload type
      */
     @SuppressWarnings("unchecked")
-    public <T extends IPayload> void invokeEvent(final @NotNull Object id, final @NotNull T payload) {
+    public <T> void invokeEvent(final @NotNull Object id, final @NotNull T payload) {
         eventMap
                 .computeIfAbsent(id, key -> new ArrayList<>())
                 .forEach(callback -> ((IEventListener<T>) callback).invoke(payload));
+    }
+
+    public void invokeEvent(final @NotNull Object id) {
+        this.invokeEvent(id, new Object());
     }
 
     /**
@@ -77,27 +79,27 @@ public class EventManager {
      * @param <T>      the payload type
      * @throws RTException if a service is already registered for the id
      */
-    public <R, T extends IPayload> void offerService(final @NotNull Object id, final @NotNull IServiceCallback<R, T> callback) {
+    public <R, T> void offerService(final @NotNull Object id, final @NotNull IServiceCallback<R, T> callback) {
         if (serviceMap.containsKey(id))
             throw new RTException("overriding already existing services with id '%s'", id);
         serviceMap.put(id, callback);
     }
 
-    public <T extends IPayload> void offerService(final @NotNull Object id, final @NotNull Consumer<T> callback) {
-        this.<Void, T>offerService(id, payload -> {
+    public <T> void offerService(final @NotNull Object id, final @NotNull Consumer<T> callback) {
+        this.<Object, T>offerService(id, payload -> {
             callback.accept(payload);
-            return null;
+            return new Object();
         });
     }
 
     public <R> void offerService(final @NotNull Object id, final @NotNull Supplier<R> callback) {
-        this.<R, IPayload>offerService(id, payload -> callback.get());
+        this.<R, Object>offerService(id, payload -> callback.get());
     }
 
     public void offerService(final @NotNull Object id, final @NotNull Runnable callback) {
-        this.<Void, IPayload>offerService(id, payload -> {
+        offerService(id, payload -> {
             callback.run();
-            return null;
+            return new Object();
         });
     }
 
@@ -112,24 +114,22 @@ public class EventManager {
      * @throws RTException if no service is registered for the id
      */
     @SuppressWarnings("unchecked")
-    public <R, T extends IPayload> R callService(final @NotNull Object id, final @NotNull T payload) {
+    public <R, T> R callService(final @NotNull Object id, final @NotNull T payload) {
         if (!serviceMap.containsKey(id))
             throw new RTException("service for id '%s' does not exist", id);
         return ((IServiceCallback<R, T>) serviceMap.get(id)).call(payload);
     }
 
     public <R> R callService(final @NotNull Object id) {
-        return callService(id, new IPayload() {
-        });
+        return callService(id, new Object());
     }
 
-    public <T extends IPayload> void callVoidService(final @NotNull Object id, final @NotNull T payload) {
+    public <T> void callVoidService(final @NotNull Object id, final @NotNull T payload) {
         callService(id, payload);
     }
 
     public void callVoidService(final @NotNull Object id) {
-        callService(id, new IPayload() {
-        });
+        callService(id, new Object());
     }
 
     /**
@@ -147,10 +147,11 @@ public class EventManager {
      * Run all scheduled unscoped tasks.
      */
     public void runTasks() {
-        final var taskList = taskMap.computeIfAbsent(null, key -> new ArrayList<>());
-        for (final var task : taskList)
+        final var tasks = taskMap.computeIfAbsent(null, key -> new ArrayList<>());
+        final var copy = new ArrayList<>(tasks);
+        tasks.clear();
+        for (final var task : copy)
             task.run();
-        taskList.clear();
     }
 
     /**
@@ -171,9 +172,32 @@ public class EventManager {
      * @param id the frame id
      */
     public void runTasks(final @NotNull Object id) {
-        final var taskList = taskMap.computeIfAbsent(id, key -> new ArrayList<>());
-        for (final var task : taskList)
+        final var tasks = taskMap.computeIfAbsent(id, key -> new ArrayList<>());
+        final var copy = new ArrayList<>(tasks);
+        tasks.clear();
+        for (final var task : copy)
             task.run();
-        taskList.clear();
+    }
+
+    public void registerTimer(final @NotNull Object id,
+                              final long interval,
+                              final boolean wait,
+                              final @NotNull Runnable task) {
+        final var timer = timerMap.computeIfAbsent(id, key -> new Timer());
+        timer.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                task.run();
+            }
+        }, wait ? interval : 0, interval);
+    }
+
+    public void removeTimer(final @NotNull Object id) {
+        if (!timerMap.containsKey(id))
+            return;
+        final var timer = timerMap.get(id);
+        timer.cancel();
+        timer.purge();
+        timerMap.remove(id);
     }
 }

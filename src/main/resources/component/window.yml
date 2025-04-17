@@ -1,9 +1,0 @@
-type: component
-id: window
-class: io.scriptor.imgui.Window
-fields:
-  - name: title
-    type: string
-  - name: elements
-    type: element
-    array: on
