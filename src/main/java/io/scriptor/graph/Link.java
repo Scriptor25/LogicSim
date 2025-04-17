@@ -45,8 +45,8 @@ public record Link(@NotNull UUID uuid, @NotNull Pin source, @NotNull Pin target)
         final var targetIndex = Integer.parseInt(split[3], 10);
         return new Link(
                 UUID.randomUUID(),
-                nodes[sourceNode].output(sourceIndex),
-                nodes[targetNode].input(targetIndex));
+                nodes[sourceNode].output(sourceIndex).orElseThrow(),
+                nodes[targetNode].input(targetIndex).orElseThrow());
     }
 
     public static @NotNull Link read(final @NotNull Graph graph, final @NotNull InputStream stream) throws IOException {
@@ -74,12 +74,10 @@ public record Link(@NotNull UUID uuid, @NotNull Pin source, @NotNull Pin target)
     }
 
     public void show(final @NotNull Graph graph) {
-        final var powered = source.powered(graph);
-        if (powered)
-            ImNodes.pushColorStyle(ImNodesCol.Link, Constants.COLOR_POWERED);
+        final var powered = source.data(graph) != 0;
+        if (powered) ImNodes.pushColorStyle(ImNodesCol.Link, Constants.COLOR_POWERED);
         ImNodes.link(id(), source.id(), target.id());
-        if (powered)
-            ImNodes.popColorStyle();
+        if (powered) ImNodes.popColorStyle();
     }
 
     public boolean uses(final @NotNull Node node) {
@@ -107,8 +105,8 @@ public record Link(@NotNull UUID uuid, @NotNull Pin source, @NotNull Pin target)
         final var newTarget = copies.get(target.node());
         return new Link(
                 UUID.randomUUID(),
-                newSource.output(source.index()),
-                newTarget.input(target.index()));
+                newSource.output(source.index()).orElseThrow(),
+                newTarget.input(target.index()).orElseThrow());
     }
 
     public @NotNull String string(final @NotNull List<Node> nodes) {

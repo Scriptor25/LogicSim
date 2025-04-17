@@ -39,7 +39,7 @@ public class CallInstruction implements Instruction {
             final var argUUID = readUUID(stream);
             args[i] = function
                     .get(argUUID)
-                    .orElseGet(() -> new ConstInstruction(argUUID, false));
+                    .orElseGet(() -> new ConstInstruction(argUUID, 0));
         }
         function.add(new CallInstruction(uuid, callee, args));
     }
@@ -62,8 +62,8 @@ public class CallInstruction implements Instruction {
         this(UUID.randomUUID(), callee, args);
     }
 
-    public boolean get(final @NotNull State state, final int index) {
-        return !error && state.getResult(uuid, index);
+    public int get(final @NotNull State state, final int index) {
+        return error ? 0 : state.getResult(uuid, index);
     }
 
     @Override
@@ -84,7 +84,7 @@ public class CallInstruction implements Instruction {
     public void execute(final @NotNull State state) {
         if (error) return;
 
-        final var values = new boolean[args.length];
+        final var values = new int[args.length];
         for (int i = 0; i < args.length; ++i)
             values[i] = args[i].get(state);
 

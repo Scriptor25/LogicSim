@@ -105,7 +105,7 @@ public class Function implements IFunction, Collection<Instruction> {
     }
 
     @Override
-    public void execute(final @NotNull State state, final boolean @NotNull [] inputs, final boolean @NotNull [] outputs) {
+    public void execute(final @NotNull State state, final int @NotNull [] inputs, final int @NotNull [] outputs) {
         final var inputCount = numInputs();
         for (int i = 0; i < inputCount; ++i)
             state.setAttribute(input(i), inputs[i]);

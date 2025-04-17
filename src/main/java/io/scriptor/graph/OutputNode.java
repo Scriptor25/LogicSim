@@ -70,31 +70,42 @@ public class OutputNode extends Node {
     }
 
     private final Attribute attribute;
-    private final Pin pin = new Pin(this, 0, false);
+    private final Pin pin;
 
     public OutputNode(final @NotNull UUID uuid, final @NotNull Attribute attribute) {
         super(uuid);
         this.attribute = attribute;
+        this.pin = new Pin(this, 0, false, (byte) 1); // TODO: bitwidth
     }
 
     public OutputNode(final @NotNull Attribute attribute) {
         this(UUID.randomUUID(), attribute);
     }
 
-    public boolean powered() {
-        return attribute.powered().get();
+    public int data() {
+        return attribute.data().get();
     }
 
     @Override
-    public @NotNull Pin input(final int i) {
-        if (i == 0)
-            return pin;
+    public @NotNull Pin input(final int i, final byte bitwidth) {
+        if (i == 0) return pin;
         throw new RTException("no input pin at index '%d'", i);
     }
 
     @Override
-    public @NotNull Pin output(final int i) {
+    public @NotNull Pin output(final int i, final byte bitwidth) {
         throw new RTException("no output pin at index '%d'", i);
+    }
+
+    @Override
+    public @NotNull Optional<Pin> input(final int i) {
+        if (i == 0) return Optional.of(pin);
+        return Optional.empty();
+    }
+
+    @Override
+    public @NotNull Optional<Pin> output(final int i) {
+        return Optional.empty();
     }
 
     @Override
@@ -108,10 +119,10 @@ public class OutputNode extends Node {
     }
 
     @Override
-    public boolean powered(final @NotNull Graph graph, final boolean output, final int index) {
+    public int data(final @NotNull Graph graph, final boolean output, final int index) {
         if (!output && index == 0)
-            return powered();
-        throw new RTException("cannot get powered state of %s pin at index '%d'", output ? "output" : "input", index);
+            return data();
+        throw new RTException("cannot get data state of %s pin at index '%d'", output ? "output" : "input", index);
     }
 
     @Override
@@ -145,14 +156,13 @@ public class OutputNode extends Node {
     public void show(final @NotNull Graph graph) {
         ImNodes.beginNode(id());
 
-        final var powered = powered();
+        final var d = data();
+        final var powered = d != 0;
         if (powered) ImNodes.pushColorStyle(ImNodesCol.Pin, Constants.COLOR_POWERED);
         ImNodes.beginInputAttribute(pin.id());
         ImGui.textUnformatted(attribute.label().get());
         ImGui.sameLine();
-        ImGui.beginDisabled();
-        ImGui.checkbox("##powered", powered);
-        ImGui.endDisabled();
+        ImGui.textUnformatted("%08X".formatted(d));
         ImNodes.endInputAttribute();
         if (powered) ImNodes.popColorStyle();
 
@@ -174,17 +184,17 @@ public class OutputNode extends Node {
                     pre.node().compile(graph, instructions);
                     return new GetRegInstruction(pre.node().uuid(), pre.index());
                 })
-                .orElseGet(() -> new ConstInstruction(false));
+                .orElseGet(() -> new ConstInstruction(0));
         instructions.add(new SetAttribInstruction(attribute.uuid(), get));
     }
 
     @Override
-    public boolean @NotNull [] execute(final @NotNull Graph graph) {
-        attribute.powered().set(pin
+    public int @NotNull [] execute(final @NotNull Graph graph) {
+        attribute.data().set(pin
                 .predecessor(graph)
                 .map(pre -> pre.node().execute(graph)[pre.index()])
-                .orElse(false));
-        return new boolean[]{};
+                .orElse(0));
+        return new int[]{};
     }
 
     @Override

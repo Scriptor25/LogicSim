@@ -62,8 +62,8 @@ public class Context {
             return;
 
         final var notGraph = new Graph(this);
-        notGraph.add(new Attribute("In", false));
-        notGraph.add(new Attribute("Out", true));
+        notGraph.add(new Attribute("In", false, (byte) 1));
+        notGraph.add(new Attribute("Out", true, (byte) 1));
 
         final var notBlueprint = new Blueprint.Builder()
                 .uuid(UUID_NOT)
@@ -75,9 +75,9 @@ public class Context {
         add(notBlueprint);
 
         final var andGraph = new Graph(this);
-        andGraph.add(new Attribute("In A", false));
-        andGraph.add(new Attribute("In B", false));
-        andGraph.add(new Attribute("Out", true));
+        andGraph.add(new Attribute("In A", false, (byte) 1));
+        andGraph.add(new Attribute("In B", false, (byte) 1));
+        andGraph.add(new Attribute("Out", true, (byte) 1));
 
         final var andBlueprint = new Blueprint.Builder()
                 .uuid(UUID_AND)
@@ -119,15 +119,14 @@ public class Context {
      */
     public void write(final @NotNull OutputStream stream) throws IOException {
         writeInt(stream, blueprints.size());
-        final var list = blueprints
+        blueprints
                 .values()
                 .stream()
                 .sorted((a, b) -> {
                     final var x = b.uses(a) ? -1 : 0;
                     return a.uses(b) ? 1 : x;
                 })
-                .toList();
-        list.forEach(blueprint -> handleVoid(() -> blueprint.write(stream)));
+                .forEach(blueprint -> handleVoid(() -> blueprint.write(stream)));
     }
 
     /**

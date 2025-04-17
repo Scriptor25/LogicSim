@@ -72,23 +72,37 @@ public class InvalidNode extends Node {
     public InvalidNode(final @NotNull UUID uuid, final int inputCount, final int outputCount) {
         super(uuid);
         for (int i = 0; i < inputCount; ++i)
-            inputs.add(new Pin(this, i, false));
+            inputs.add(new Pin(this, i, false, (byte) 1)); // TODO: bitwidth
         for (int i = 0; i < outputCount; ++i)
-            outputs.add(new Pin(this, i, true));
+            outputs.add(new Pin(this, i, true, (byte) 1)); // TODO: bitwidth
     }
 
     @Override
-    public @NotNull Pin input(final int i) {
+    public @NotNull Pin input(final int i, final byte bitwidth) {
         while (i >= inputs.size())
-            inputs.add(new Pin(this, inputs.size(), false));
+            inputs.add(new Pin(this, inputs.size(), false, bitwidth));
         return inputs.get(i);
     }
 
     @Override
-    public @NotNull Pin output(final int i) {
+    public @NotNull Pin output(final int i, final byte bitwidth) {
         while (i >= outputs.size())
-            outputs.add(new Pin(this, outputs.size(), true));
+            outputs.add(new Pin(this, outputs.size(), true, bitwidth));
         return outputs.get(i);
+    }
+
+    @Override
+    public @NotNull Optional<Pin> input(final int i) {
+        if (i >= inputs.size())
+            return Optional.empty();
+        return Optional.ofNullable(inputs.get(i));
+    }
+
+    @Override
+    public @NotNull Optional<Pin> output(final int i) {
+        if (i >= outputs.size())
+            return Optional.empty();
+        return Optional.ofNullable(outputs.get(i));
     }
 
     @Override
@@ -102,16 +116,16 @@ public class InvalidNode extends Node {
     }
 
     @Override
-    public boolean powered(final @NotNull Graph graph, final boolean output, final int index) {
+    public int data(final @NotNull Graph graph, final boolean output, final int index) {
         if (output)
-            return false;
+            return 0;
         if (index < inputs.size())
             return inputs
                     .get(index)
                     .predecessor(graph)
-                    .map(pin -> pin.powered(graph))
-                    .orElse(false);
-        throw new RTException("cannot get powered state of input pin at index '%d'", index);
+                    .map(pin -> pin.data(graph))
+                    .orElse(0);
+        throw new RTException("cannot get data state of input pin at index '%d'", index);
     }
 
     @Override
@@ -213,9 +227,9 @@ public class InvalidNode extends Node {
     }
 
     @Override
-    public boolean @NotNull [] execute(final @NotNull Graph graph) {
+    public int @NotNull [] execute(final @NotNull Graph graph) {
         if (running)
-            return new boolean[outputs.size()];
+            return new int[outputs.size()];
         running = true;
 
         inputs.forEach(input -> input
@@ -225,7 +239,7 @@ public class InvalidNode extends Node {
                         .execute(graph)));
 
         running = false;
-        return new boolean[outputs.size()];
+        return new int[outputs.size()];
     }
 
     @Override

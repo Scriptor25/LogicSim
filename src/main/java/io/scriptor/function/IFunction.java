@@ -49,5 +49,5 @@ public interface IFunction extends IUnique {
      * @param inputs  the inputs
      * @param outputs the outputs
      */
-    void execute(final @NotNull State state, final boolean @NotNull [] inputs, final boolean @NotNull [] outputs);
+    void execute(final @NotNull State state, final int @NotNull [] inputs, final int @NotNull [] outputs);
 }

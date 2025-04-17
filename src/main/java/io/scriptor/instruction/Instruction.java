@@ -34,7 +34,7 @@ public interface Instruction extends IUnique {
         writeUUID(stream, uuid());
     }
 
-    default boolean get(final @NotNull State state) {
+    default int get(final @NotNull State state) {
         throw new RTException();
     }
 

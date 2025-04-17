@@ -46,7 +46,7 @@ public class EditorView extends View {
 
     private static boolean showFullAttribute(final @NotNull Attribute attribute) {
         ImGui.beginDisabled(attribute.output());
-        ImGui.checkbox("##powered", attribute.powered());
+        ImGui.inputInt("##data", attribute.data());
         ImGui.endDisabled();
         ImGui.sameLine();
         ImGui.selectable(attribute.label().get());
@@ -238,6 +238,12 @@ public class EditorView extends View {
 
         handleLinkDropped();
         handleLinkCreated();
+
+        final var hoveredLinkId = ImNodes.getHoveredLink();
+        if (hoveredLinkId >= 0)
+            source
+                    .findLink(hoveredLinkId)
+                    .ifPresent(link -> ImGui.setTooltip("%08X".formatted(link.source().data(source))));
 
         events.runTasks(this);
 
@@ -461,11 +467,11 @@ public class EditorView extends View {
     }
 
     private void onAddInput() {
-        source.add(new Attribute("New Input", false));
+        source.add(new Attribute("New Input", false, (byte) 1)); // TODO: take user input for bitwidth
     }
 
     private void onAddOutput() {
-        source.add(new Attribute("New Output", true));
+        source.add(new Attribute("New Output", true, (byte) 1)); // TODO: take user input for bitwidth
     }
 
     private void onAttributeDelete() {
@@ -526,8 +532,8 @@ public class EditorView extends View {
             return;
 
         targetPin = sourcePin.output()
-                ? node.input(0)
-                : node.output(0);
+                ? node.input(0, sourcePin.bitwidth())
+                : node.output(0, sourcePin.bitwidth());
 
         source
                 .findLink(targetPin.output()
@@ -561,9 +567,9 @@ public class EditorView extends View {
                 .filter(link -> link.uses(selectedNode))
                 .map(link -> {
                     if (link.source().uses(selectedNode) && link.source().index() < node.numOutputs()) {
-                        return new Link(node.output(link.source().index()), link.target());
+                        return new Link(node.output(link.source().index()).orElseThrow(), link.target());
                     } else if (link.target().uses(selectedNode) && link.target().index() < node.numInputs()) {
-                        return new Link(link.source(), node.input(link.target().index()));
+                        return new Link(link.source(), node.input(link.target().index()).orElseThrow());
                     }
                     throw new RTException();
                 })

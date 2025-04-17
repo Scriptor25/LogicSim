@@ -29,17 +29,18 @@ import java.util.stream.Stream;
 
 import static io.scriptor.util.IO.*;
 
-public record Pin(@NotNull Node node, int index, boolean output) {
+public record Pin(@NotNull Node node, int index, boolean output, byte bitwidth) {
 
     public static @NotNull Pin read(final @NotNull Graph graph, final @NotNull InputStream stream) throws IOException {
         final var nodeUUID = readUUID(stream);
         final var index = readInt(stream);
         final var output = readBool(stream);
+        final var bitwidth = readByte(stream);
         return graph
                 .findNode(nodeUUID)
                 .map(node -> output
-                        ? node.output(index)
-                        : node.input(index))
+                        ? node.output(index, bitwidth)
+                        : node.input(index, bitwidth))
                 .orElseThrow();
     }
 
@@ -47,8 +48,8 @@ public record Pin(@NotNull Node node, int index, boolean output) {
         return hashCode();
     }
 
-    public boolean powered(final @NotNull Graph graph) {
-        return node.powered(graph, output, index);
+    public int data(final @NotNull Graph graph) {
+        return node.data(graph, output, index) & ((1 << bitwidth) - 1);
     }
 
     public boolean uses(final @NotNull Node node) {
@@ -75,5 +76,6 @@ public record Pin(@NotNull Node node, int index, boolean output) {
         writeUUID(stream, node.uuid());
         writeInt(stream, index);
         writeBool(stream, output);
+        writeByte(stream, bitwidth);
     }
 }

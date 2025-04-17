@@ -154,7 +154,21 @@ public record Blueprint(
         return function.numOutputs();
     }
 
-    public void execute(final @NotNull State state, final boolean @NotNull [] inputs, final boolean @NotNull [] outputs) {
+    public byte inputBitwidth(final int index) {
+        return source
+                .input(index)
+                .map(Attribute::bitwidth)
+                .orElseThrow();
+    }
+
+    public byte outputBitwidth(final int index) {
+        return source
+                .output(index)
+                .map(Attribute::bitwidth)
+                .orElseThrow();
+    }
+
+    public void execute(final @NotNull State state, final int @NotNull [] inputs, final int @NotNull [] outputs) {
         function.execute(state, inputs, outputs);
     }
 
@@ -167,7 +181,7 @@ public record Blueprint(
     }
 
     @Override
-    public String toString() {
+    public @NotNull String toString() {
         return label.get();
     }
 
@@ -216,18 +230,18 @@ public record Blueprint(
 
         int i = 0;
         for (; i < Math.min(inputs.length, outputs.length); ++i) {
-            showInput(inputFormat, graph, node.input(i));
+            node.input(i).ifPresent(pin -> showInput(inputFormat, graph, pin));
             ImGui.sameLine();
-            showOutput(outputFormat, graph, node.output(i));
+            node.output(i).ifPresent(pin -> showOutput(outputFormat, graph, pin));
         }
         for (; i < inputs.length; ++i)
-            showInput(inputFormat, graph, node.input(i));
+            node.input(i).ifPresent(pin -> showInput(inputFormat, graph, pin));
         for (; i < outputs.length; ++i) {
             if (inputs.length > 0) {
                 showStatic(inputFormat, i);
                 ImGui.sameLine();
             }
-            showOutput(outputFormat, graph, node.output(i));
+            node.output(i).ifPresent(pin -> showOutput(outputFormat, graph, pin));
         }
 
         ImNodes.endNode();
@@ -258,7 +272,7 @@ public record Blueprint(
     }
 
     private void showInput(final String format, final @NotNull Graph graph, final @NotNull Pin pin) {
-        final var powered = pin.powered(graph);
+        final var powered = pin.data(graph) != 0;
         if (powered)
             ImNodes.pushColorStyle(ImNodesCol.Pin, Constants.COLOR_POWERED);
         ImNodes.beginInputAttribute(pin.id());
@@ -269,7 +283,7 @@ public record Blueprint(
     }
 
     private void showOutput(final String format, final @NotNull Graph graph, final @NotNull Pin pin) {
-        final var powered = pin.powered(graph);
+        final var powered = pin.data(graph) != 0;
         if (powered)
             ImNodes.pushColorStyle(ImNodesCol.Pin, Constants.COLOR_POWERED);
         ImNodes.beginOutputAttribute(pin.id());

@@ -31,9 +31,9 @@ public class State {
 
     private final Context context;
 
-    private final Map<UUID, Boolean> attributeMap = new HashMap<>();
-    private final Map<UUID, Map<Integer, Boolean>> registerMap = new HashMap<>();
-    private final Map<UUID, boolean[]> resultMap = new HashMap<>();
+    private final Map<UUID, Integer> attributeMap = new HashMap<>();
+    private final Map<UUID, Map<Integer, Integer>> registerMap = new HashMap<>();
+    private final Map<UUID, int[]> resultMap = new HashMap<>();
     private final Map<UUID, State> substateMap = new HashMap<>();
 
     /**
@@ -58,10 +58,10 @@ public class State {
      * Set a global attribute in this state.
      *
      * @param attribute the attribute uuid
-     * @param value     the value
+     * @param data      the value
      */
-    public void setAttribute(final @NotNull UUID attribute, final boolean value) {
-        attributeMap.put(attribute, value);
+    public void setAttribute(final @NotNull UUID attribute, final int data) {
+        attributeMap.put(attribute, data);
     }
 
     /**
@@ -70,8 +70,8 @@ public class State {
      * @param attribute the attribute uuid
      * @return the value
      */
-    public boolean getAttribute(final @NotNull UUID attribute) {
-        return attributeMap.computeIfAbsent(attribute, key -> false);
+    public int getAttribute(final @NotNull UUID attribute) {
+        return attributeMap.computeIfAbsent(attribute, key -> 0);
     }
 
     /**
@@ -79,10 +79,10 @@ public class State {
      *
      * @param register the register uuid
      * @param index    the index
-     * @param value    the value
+     * @param data     the value
      */
-    public void setRegister(final @NotNull UUID register, final int index, final boolean value) {
-        registerMap.computeIfAbsent(register, key -> new HashMap<>()).put(index, value);
+    public void setRegister(final @NotNull UUID register, final int index, final int data) {
+        registerMap.computeIfAbsent(register, key -> new HashMap<>()).put(index, data);
     }
 
     /**
@@ -92,8 +92,8 @@ public class State {
      * @param index    the index
      * @return the value
      */
-    public boolean getRegister(final @NotNull UUID register, final int index) {
-        return registerMap.computeIfAbsent(register, key -> new HashMap<>()).computeIfAbsent(index, key -> false);
+    public int getRegister(final @NotNull UUID register, final int index) {
+        return registerMap.computeIfAbsent(register, key -> new HashMap<>()).computeIfAbsent(index, key -> 0);
     }
 
     /**
@@ -104,11 +104,11 @@ public class State {
      * @param args   the args
      * @return true if the callee does not exist
      */
-    public boolean call(final @NotNull UUID caller, final @NotNull UUID callee, final boolean @NotNull [] args) {
+    public boolean call(final @NotNull UUID caller, final @NotNull UUID callee, final int @NotNull [] args) {
         return context
                 .get(callee)
                 .map(blueprint -> {
-                    resultMap.put(caller, new boolean[blueprint.numOutputs()]);
+                    resultMap.put(caller, new int[blueprint.numOutputs()]);
                     final var substate = substateMap.computeIfAbsent(caller, key -> new State(this));
                     blueprint.execute(substate, args, resultMap.get(caller));
                     return false;
@@ -123,7 +123,7 @@ public class State {
      * @param index  the index
      * @return the result value
      */
-    public boolean getResult(final @NotNull UUID caller, final int index) {
+    public int getResult(final @NotNull UUID caller, final int index) {
         return resultMap.get(caller)[index];
     }
 }

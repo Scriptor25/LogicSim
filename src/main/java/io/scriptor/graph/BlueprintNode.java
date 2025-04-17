@@ -69,7 +69,7 @@ public class BlueprintNode extends Node {
     private final Map<Integer, Pin> outputs = new HashMap<>();
 
     private boolean running = false;
-    private boolean[] output;
+    private int[] output;
     private State state;
 
     public BlueprintNode(final @NotNull Blueprint blueprint) {
@@ -79,6 +79,11 @@ public class BlueprintNode extends Node {
     public BlueprintNode(final @NotNull UUID uuid, final @NotNull Blueprint blueprint) {
         super(uuid);
         this.blueprint = blueprint;
+
+        for (int i = 0; i < this.blueprint.numInputs(); ++i)
+            this.inputs.put(i, new Pin(this, i, false, this.blueprint.inputBitwidth(i)));
+        for (int i = 0; i < this.blueprint.numOutputs(); ++i)
+            this.outputs.put(i, new Pin(this, i, true, this.blueprint.outputBitwidth(i)));
     }
 
     public @NotNull Blueprint blueprint() {
@@ -86,17 +91,31 @@ public class BlueprintNode extends Node {
     }
 
     @Override
-    public @NotNull Pin input(final int i) {
+    public @NotNull Pin input(final int i, final byte bitwidth) {
         if (i < 0 || i >= numInputs())
             throw new RTException();
-        return inputs.computeIfAbsent(i, key -> new Pin(this, key, false));
+        return inputs.computeIfAbsent(i, key -> new Pin(this, key, false, bitwidth));
     }
 
     @Override
-    public @NotNull Pin output(final int i) {
+    public @NotNull Pin output(final int i, final byte bitwidth) {
         if (i < 0 || i >= numOutputs())
             throw new RTException();
-        return outputs.computeIfAbsent(i, key -> new Pin(this, key, true));
+        return outputs.computeIfAbsent(i, key -> new Pin(this, key, true, bitwidth));
+    }
+
+    @Override
+    public @NotNull Optional<Pin> input(final int i) {
+        if (i < 0 || i >= numInputs())
+            return Optional.empty();
+        return Optional.ofNullable(inputs.get(i));
+    }
+
+    @Override
+    public @NotNull Optional<Pin> output(final int i) {
+        if (i < 0 || i >= numOutputs())
+            return Optional.empty();
+        return Optional.ofNullable(outputs.get(i));
     }
 
     @Override
@@ -110,15 +129,17 @@ public class BlueprintNode extends Node {
     }
 
     @Override
-    public boolean powered(final @NotNull Graph graph, final boolean output, final int index) {
+    public int data(final @NotNull Graph graph, final boolean output, final int index) {
         if (output && index >= 0 && index < numOutputs())
-            return this.output != null && this.output[index];
+            return this.output != null ? this.output[index] : 0;
         if (!output && index >= 0 && index < numInputs())
             return input(index)
-                    .predecessor(graph)
-                    .map(pin -> pin.powered(graph))
-                    .orElse(false);
-        throw new RTException("cannot get powered state of %s pin at index '%d'", output ? "output" : "input", index);
+                    .map(pin -> pin
+                            .predecessor(graph)
+                            .map(x -> x.data(graph))
+                            .orElse(0))
+                    .orElse(0);
+        throw new RTException("cannot get data state of %s pin at index '%d'", output ? "output" : "input", index);
     }
 
     @Override
@@ -200,14 +221,16 @@ public class BlueprintNode extends Node {
         final var input = new Instruction[numInputs()];
         for (int i = 0; i < input.length; ++i)
             input[i] = input(i)
-                    .predecessor(graph)
-                    .<Instruction>map(pre -> {
-                        pre
-                                .node()
-                                .compile(graph, instructions);
-                        return new GetRegInstruction(pre.node().uuid(), pre.index());
-                    })
-                    .orElseGet(() -> new ConstInstruction(false));
+                    .map(pin -> pin
+                            .predecessor(graph)
+                            .<Instruction>map(x -> {
+                                x
+                                        .node()
+                                        .compile(graph, instructions);
+                                return new GetRegInstruction(x.node().uuid(), x.index());
+                            })
+                            .orElseGet(() -> new ConstInstruction(0)))
+                    .orElseGet(() -> new ConstInstruction(0));
 
         final var call = new CallInstruction(blueprint.uuid(), input);
         instructions.add(call);
@@ -220,24 +243,26 @@ public class BlueprintNode extends Node {
     }
 
     @Override
-    public boolean @NotNull [] execute(final @NotNull Graph graph) {
+    public int @NotNull [] execute(final @NotNull Graph graph) {
         if (running)
-            return output != null ? output : new boolean[numOutputs()];
+            return output != null ? output : new int[numOutputs()];
         running = true;
 
-        final var input = new boolean[numInputs()];
+        final var input = new int[numInputs()];
         for (int i = 0; i < input.length; ++i)
             input[i] = input(i)
-                    .predecessor(graph)
-                    .map(pre -> pre
-                            .node()
-                            .execute(graph)[pre.index()])
-                    .orElse(false);
+                    .map(pin -> pin
+                            .predecessor(graph)
+                            .map(x -> x
+                                    .node()
+                                    .execute(graph)[x.index()])
+                            .orElse(0))
+                    .orElse(0);
 
         if (state == null)
             state = new State(graph.state());
 
-        output = new boolean[numOutputs()];
+        output = new int[numOutputs()];
         blueprint.execute(state, input, output);
 
         running = false;

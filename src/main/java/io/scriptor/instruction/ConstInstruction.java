@@ -29,26 +29,26 @@ import java.util.UUID;
 
 import static io.scriptor.util.IO.*;
 
-public record ConstInstruction(@NotNull UUID uuid, boolean value) implements Instruction {
+public record ConstInstruction(@NotNull UUID uuid, int value) implements Instruction {
 
     public static void read(final @NotNull InputStream stream, final @NotNull Function function) throws IOException {
         final var uuid = readUUID(stream);
-        final var value = readBool(stream);
+        final var value = readInt(stream);
         function.add(new ConstInstruction(uuid, value));
     }
 
-    public ConstInstruction(final boolean value) {
+    public ConstInstruction(final int value) {
         this(UUID.randomUUID(), value);
     }
 
     @Override
-    public boolean get(final @NotNull State state) {
+    public int get(final @NotNull State state) {
         return value;
     }
 
     @Override
     public void write(final @NotNull OutputStream stream) throws IOException {
         Instruction.super.write(stream);
-        writeBool(stream, value);
+        writeInt(stream, value);
     }
 }

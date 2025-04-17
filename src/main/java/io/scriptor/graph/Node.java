@@ -126,15 +126,19 @@ public abstract class Node implements IUnique {
         ImNodes.setNodeScreenSpacePos(id(), pos);
     }
 
-    public abstract @NotNull Pin input(final int i);
+    public abstract @NotNull Pin input(final int i, final byte bitwidth);
 
-    public abstract @NotNull Pin output(final int i);
+    public abstract @NotNull Pin output(final int i, final byte bitwidth);
+
+    public abstract @NotNull Optional<Pin> input(final int i);
+
+    public abstract @NotNull Optional<Pin> output(final int i);
 
     public abstract int numInputs();
 
     public abstract int numOutputs();
 
-    public abstract boolean powered(final @NotNull Graph graph, final boolean output, final int index);
+    public abstract int data(final @NotNull Graph graph, final boolean output, final int index);
 
     public abstract @NotNull Optional<Pin> pin(final int id);
 
@@ -182,7 +186,7 @@ public abstract class Node implements IUnique {
 
     public abstract void compile(final @NotNull Graph graph, final @NotNull Collection<Instruction> instructions);
 
-    public abstract boolean @NotNull [] execute(final @NotNull Graph graph);
+    public abstract int @NotNull [] execute(final @NotNull Graph graph);
 
     public abstract @NotNull String string();
 
