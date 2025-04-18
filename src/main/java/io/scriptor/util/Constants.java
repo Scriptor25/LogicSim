@@ -30,6 +30,7 @@ public class Constants {
         return Color.mix(COLOR_ZERO_POWER, COLOR_FULL_POWER, t).asInt(0.5f);
     }
 
+    public static final byte NODE_ID_UNDEFINED = -1;
     public static final byte NODE_ID_INPUT = 0;
     public static final byte NODE_ID_OUTPUT = 1;
     public static final byte NODE_ID_BLUEPRINT = 2;

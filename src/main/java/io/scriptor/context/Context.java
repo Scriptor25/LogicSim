@@ -153,15 +153,41 @@ public class Context {
      * @throws IOException if any
      */
     public void write(final @NotNull OutputStream stream) throws IOException {
+        final Map<Blueprint, List<Blueprint>> dependencies = new HashMap<>();
+        final Map<Blueprint, Integer> degree = new HashMap<>();
+
+        for (final var blueprint : blueprints.values()) {
+            dependencies.put(blueprint, new ArrayList<>());
+            degree.put(blueprint, 0);
+        }
+
+        for (final var a : blueprints.values())
+            for (final var b : blueprints.values())
+                if (a.uses(b)) {
+                    dependencies.get(b).add(a);
+                    degree.put(a, degree.get(a) + 1);
+                }
+
+        final Queue<Blueprint> queue = new LinkedList<>();
+        final List<Blueprint> sorted = new ArrayList<>();
+
+        for (final var entry : degree.entrySet())
+            if (entry.getValue() == 0)
+                queue.add(entry.getKey());
+
+        while (!queue.isEmpty()) {
+            final var blueprint = queue.poll();
+            sorted.add(blueprint);
+
+            for (final var dep : dependencies.get(blueprint)) {
+                degree.put(dep, degree.get(dep) - 1);
+                if (degree.get(dep) == 0)
+                    queue.add(dep);
+            }
+        }
+
         writeInt(stream, blueprints.size());
-        blueprints
-                .values()
-                .stream()
-                .sorted((a, b) -> {
-                    final var x = b.uses(a) ? -1 : 0;
-                    return a.uses(b) ? 1 : x;
-                })
-                .forEach(blueprint -> handleVoid(() -> blueprint.write(stream)));
+        sorted.forEach(blueprint -> handleVoid(() -> blueprint.write(stream)));
     }
 
     /**

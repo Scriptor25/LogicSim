@@ -90,32 +90,34 @@ public class Function implements IFunction, Collection<Instruction> {
         return source.numOutputs();
     }
 
-    private @NotNull UUID input(final int i) {
+    private @NotNull Optional<UUID> input(final int index) {
         return source
-                .input(i)
-                .map(Attribute::uuid)
-                .orElseThrow();
+                .input(index)
+                .map(Attribute::uuid);
     }
 
-    private @NotNull UUID output(final int i) {
+    private @NotNull Optional<UUID> output(final int index) {
         return source
-                .output(i)
-                .map(Attribute::uuid)
-                .orElseThrow();
+                .output(index)
+                .map(Attribute::uuid);
     }
 
     @Override
     public void execute(final @NotNull State state, final int @NotNull [] inputs, final int @NotNull [] outputs) {
         final var inputCount = numInputs();
-        for (int i = 0; i < inputCount; ++i)
-            state.setAttribute(input(i), inputs[i]);
+        for (int i = 0; i < inputCount; ++i) {
+            final var fi = i;
+            input(i).ifPresent(uuid -> state.setAttribute(uuid, inputs[fi]));
+        }
 
         for (final var instruction : this)
             instruction.execute(state);
 
         final var outputCount = numOutputs();
-        for (int i = 0; i < outputCount; ++i)
-            outputs[i] = state.getAttribute(output(i));
+        for (int i = 0; i < outputCount; ++i) {
+            final var fi = i;
+            output(i).ifPresent(uuid -> outputs[fi] = state.getAttribute(uuid));
+        }
     }
 
     @Override

@@ -35,6 +35,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Supplier;
 
@@ -140,20 +141,18 @@ public record Blueprint(
         source.write(stream);
     }
 
-    public @NotNull String input(final int index) {
+    public @NotNull Optional<String> input(final int index) {
         return source
                 .input(index)
                 .map(Attribute::label)
-                .map(ImString::get)
-                .orElseThrow();
+                .map(ImString::get);
     }
 
-    public @NotNull String output(final int index) {
+    public @NotNull Optional<String> output(final int index) {
         return source
                 .output(index)
                 .map(Attribute::label)
-                .map(ImString::get)
-                .orElseThrow();
+                .map(ImString::get);
     }
 
     public int numInputs() {
@@ -164,18 +163,16 @@ public record Blueprint(
         return function.numOutputs();
     }
 
-    public byte inputBitwidth(final int index) {
+    public @NotNull Optional<Byte> inputBitwidth(final int index) {
         return source
                 .input(index)
-                .map(Attribute::bitwidth)
-                .orElseThrow();
+                .map(Attribute::bitwidth);
     }
 
-    public byte outputBitwidth(final int index) {
+    public @NotNull Optional<Byte> outputBitwidth(final int index) {
         return source
                 .output(index)
-                .map(Attribute::bitwidth)
-                .orElseThrow();
+                .map(Attribute::bitwidth);
     }
 
     public void execute(final @NotNull State state, final int @NotNull [] inputs, final int @NotNull [] outputs) {
@@ -285,7 +282,7 @@ public record Blueprint(
         final var data = pin.data(graph);
         ImNodes.pushColorStyle(ImNodesCol.Pin, getPowerLevel(data, pin.bitwidth()));
         ImNodes.beginInputAttribute(pin.id());
-        ImGui.textUnformatted(format.formatted(input(pin.index())));
+        ImGui.textUnformatted(format.formatted(input(pin.index()).orElseThrow()));
         ImNodes.endInputAttribute();
         ImNodes.popColorStyle();
     }
@@ -294,7 +291,7 @@ public record Blueprint(
         final var data = pin.data(graph);
         ImNodes.pushColorStyle(ImNodesCol.Pin, getPowerLevel(data, pin.bitwidth()));
         ImNodes.beginOutputAttribute(pin.id());
-        ImGui.textUnformatted(format.formatted(output(pin.index())));
+        ImGui.textUnformatted(format.formatted(output(pin.index()).orElseThrow()));
         ImNodes.endOutputAttribute();
         ImNodes.popColorStyle();
     }

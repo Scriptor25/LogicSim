@@ -41,8 +41,8 @@ public class BlueprintNode extends Node {
         final var node = graph
                 .context()
                 .get(blueprintUUID)
-                .map(BlueprintNode::new)
-                .orElseThrow();
+                .<Node>map(BlueprintNode::new)
+                .orElseGet(UndefinedNode::new);
         final var posX = Integer.parseInt(split[2]);
         final var posY = Integer.parseInt(split[3]);
         node.editorPosition(new ImVec2(posX, posY));
@@ -55,8 +55,8 @@ public class BlueprintNode extends Node {
         final var node = graph
                 .context()
                 .get(blueprintUUID)
-                .map(blueprint -> new BlueprintNode(uuid, blueprint))
-                .orElseThrow();
+                .<Node>map(blueprint -> new BlueprintNode(uuid, blueprint))
+                .orElseGet(() -> new UndefinedNode(uuid));
         final var posX = readInt(stream);
         final var posY = readInt(stream);
         node.position(posX, posY);
@@ -81,13 +81,17 @@ public class BlueprintNode extends Node {
 
         this.blueprint = blueprint;
 
-        this.inputs = new Pin[numInputs()];
-        for (int i = 0; i < this.inputs.length; ++i)
-            this.inputs[i] = new Pin(this, i, false, this.blueprint.inputBitwidth(i));
+        inputs = new Pin[numInputs()];
+        for (int i = 0; i < inputs.length; ++i) {
+            final var fi = i;
+            blueprint.inputBitwidth(i).ifPresent(bitwidth -> inputs[fi] = new Pin(this, fi, false, bitwidth));
+        }
 
-        this.outputs = new Pin[numOutputs()];
-        for (int i = 0; i < this.outputs.length; ++i)
-            this.outputs[i] = new Pin(this, i, true, this.blueprint.outputBitwidth(i));
+        outputs = new Pin[numOutputs()];
+        for (int i = 0; i < outputs.length; ++i) {
+            final var fi = i;
+            blueprint.outputBitwidth(i).ifPresent(bitwidth -> outputs[fi] = new Pin(this, fi, true, bitwidth));
+        }
     }
 
     public @NotNull Blueprint blueprint() {
@@ -95,14 +99,14 @@ public class BlueprintNode extends Node {
     }
 
     @Override
-    public @NotNull Pin input(final int i) {
-        if (i >= 0 && i < inputs.length) return inputs[i];
+    public @NotNull Pin input(final int index) {
+        if (index >= 0 && index < inputs.length) return inputs[index];
         throw new RTException();
     }
 
     @Override
-    public @NotNull Pin output(final int i) {
-        if (i >= 0 && i < outputs.length) return outputs[i];
+    public @NotNull Pin output(final int index) {
+        if (index >= 0 && index < outputs.length) return outputs[index];
         throw new RTException();
     }
 

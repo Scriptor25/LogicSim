@@ -40,7 +40,7 @@ public record Pin(@NotNull Node node, int index, boolean output, byte bitwidth) 
                 .map(node -> output
                         ? node.output(index)
                         : node.input(index))
-                .orElseThrow();
+                .orElseThrow(() -> new RTException("no node with uuid '%s'", nodeUUID));
     }
 
     public int id() {

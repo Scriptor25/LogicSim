@@ -56,6 +56,16 @@ public class BlueprintView extends View {
             events.scheduleTask(blueprintPopup::open);
         if (blueprint.editable() && ImGui.isMouseClicked(ImGuiMouseButton.Left))
             events.callService(ID_BLUEPRINT_EDIT, blueprint);
+        if (blueprint.editable()) {
+            ImGui.beginTooltip();
+            ImGui.textUnformatted("Dependencies:");
+            for (final var other : context.blueprints())
+                if (other != blueprint && blueprint.uses(other)) {
+                    ImGui.bullet();
+                    ImGui.textUnformatted(other.label().get());
+                }
+            ImGui.endTooltip();
+        }
     }
 
     private void onLabelEnter(final @NotNull String label) {

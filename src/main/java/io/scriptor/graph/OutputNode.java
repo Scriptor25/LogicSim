@@ -48,8 +48,8 @@ public class OutputNode extends Node {
         final var split = string.split(",");
         final var node = graph
                 .findAttribute(UUID.fromString(split[1]))
-                .map(OutputNode::new)
-                .orElseThrow();
+                .<Node>map(OutputNode::new)
+                .orElseGet(UndefinedNode::new);
         final var posX = Integer.parseInt(split[2]);
         final var posY = Integer.parseInt(split[3]);
         node.editorPosition(new ImVec2(posX, posY));
@@ -61,8 +61,8 @@ public class OutputNode extends Node {
         final var attributeUUID = readUUID(stream);
         final var node = graph
                 .findAttribute(attributeUUID)
-                .map(attribute -> new OutputNode(uuid, attribute))
-                .orElseThrow();
+                .<Node>map(attribute -> new OutputNode(uuid, attribute))
+                .orElseGet(() -> new UndefinedNode(uuid));
         final var posX = readInt(stream);
         final var posY = readInt(stream);
         node.position(posX, posY);
@@ -87,14 +87,14 @@ public class OutputNode extends Node {
     }
 
     @Override
-    public @NotNull Pin input(final int i) {
-        if (i == 0) return pin;
-        throw new RTException("no input pin at index '%d'", i);
+    public @NotNull Pin input(final int index) {
+        if (index == 0) return pin;
+        throw new RTException("no input pin at index '%d'", index);
     }
 
     @Override
-    public @NotNull Pin output(final int i) {
-        throw new RTException("no output pin at index '%d'", i);
+    public @NotNull Pin output(final int index) {
+        throw new RTException("no output pin at index '%d'", index);
     }
 
     @Override

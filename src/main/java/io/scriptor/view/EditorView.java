@@ -146,9 +146,11 @@ public class EditorView extends View {
                         .filter(blueprint -> sourcePin.output()
                                 ? blueprint.numInputs() > 0
                                 : blueprint.numOutputs() > 0)
-                        .filter(blueprint -> sourcePin.bitwidth() == (sourcePin.output()
+                        .filter(blueprint -> (sourcePin.output()
                                 ? blueprint.inputBitwidth(0)
-                                : blueprint.outputBitwidth(0)))
+                                : blueprint.outputBitwidth(0))
+                                .map(bitwidth -> sourcePin.bitwidth() == bitwidth)
+                                .orElse(false))
                         .sorted(Comparator.comparing(Blueprint::label)),
                 this::onAddBlueprint,
                 EditorView::showBlueprint);
@@ -357,9 +359,9 @@ public class EditorView extends View {
     private void showAddAttributeContext() {
         ImGui.checkbox("Output", addAttributeOutput);
         ImGui.inputText("Label", addAttributeLabel);
-        ImGui.inputInt("Bitwidth", addAttributeBitwidth);
+        ImGui.sliderInt("Bitwidth", addAttributeBitwidth.getData(), 1, 32);
 
-        if (ImGui.button("Add"))
+        if (ImGui.button("Create"))
             events.scheduleTask(this, () -> source.add(new Attribute(addAttributeLabel.get(), addAttributeOutput.get(), addAttributeBitwidth.byteValue())));
     }
 
@@ -587,9 +589,9 @@ public class EditorView extends View {
                 .links()
                 .filter(link -> link.uses(selectedNode))
                 .map(link -> {
-                    if (link.source().uses(selectedNode) && link.source().index() < node.numOutputs() && link.source().bitwidth() == node.output(link.source().index()).bitwidth())
+                    if (link.source().uses(selectedNode) && link.source().index() < node.numOutputs() && (link.source().bitwidth() == 0 || link.source().bitwidth() == node.output(link.source().index()).bitwidth()))
                         return new Link(node.output(link.source().index()), link.target());
-                    if (link.target().uses(selectedNode) && link.target().index() < node.numInputs() && link.target().bitwidth() == node.input(link.target().index()).bitwidth())
+                    if (link.target().uses(selectedNode) && link.target().index() < node.numInputs() && (link.target().bitwidth() == 0 || link.target().bitwidth() == node.input(link.target().index()).bitwidth()))
                         return new Link(link.source(), node.input(link.target().index()));
                     return null;
                 })
