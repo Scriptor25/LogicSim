@@ -33,6 +33,7 @@ import io.scriptor.view.EditorView;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.glfw.GLFWImage;
 import org.lwjgl.opengl.GL;
+import org.lwjgl.system.Callback;
 import org.lwjgl.system.MemoryStack;
 
 import java.io.File;
@@ -40,6 +41,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 import static io.scriptor.util.Constants.*;
@@ -144,8 +146,8 @@ public class Main {
             throw new RTException(e);
         }
 
-        glfwSetKeyCallback(window, this::onKey);
-        glfwSetFramebufferSizeCallback(window, this::onSize);
+        Optional.ofNullable(glfwSetKeyCallback(window, this::onKey)).ifPresent(Callback::free);
+        Optional.ofNullable(glfwSetFramebufferSizeCallback(window, this::onSize)).ifPresent(Callback::free);
 
         glfwMakeContextCurrent(window);
         GL.createCapabilities();
