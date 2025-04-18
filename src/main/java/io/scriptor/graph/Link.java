@@ -20,7 +20,6 @@ package io.scriptor.graph;
 
 import imgui.extension.imnodes.ImNodes;
 import imgui.extension.imnodes.flag.ImNodesCol;
-import io.scriptor.util.Constants;
 import io.scriptor.util.IUnique;
 import org.jetbrains.annotations.NotNull;
 
@@ -32,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import static io.scriptor.util.Constants.getPowerLevel;
 import static io.scriptor.util.IO.readUUID;
 import static io.scriptor.util.IO.writeUUID;
 
@@ -74,12 +74,10 @@ public record Link(@NotNull UUID uuid, @NotNull Pin source, @NotNull Pin target)
     }
 
     public void show(final @NotNull Graph graph) {
-        final var powered = source.powered(graph);
-        if (powered)
-            ImNodes.pushColorStyle(ImNodesCol.Link, Constants.COLOR_POWERED);
+        final var data = source.data(graph);
+        ImNodes.pushColorStyle(ImNodesCol.Link, getPowerLevel(data, source.bitwidth()));
         ImNodes.link(id(), source.id(), target.id());
-        if (powered)
-            ImNodes.popColorStyle();
+        ImNodes.popColorStyle();
     }
 
     public boolean uses(final @NotNull Node node) {

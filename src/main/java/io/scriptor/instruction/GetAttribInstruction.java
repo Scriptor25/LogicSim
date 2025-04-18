@@ -49,7 +49,7 @@ public record GetAttribInstruction(@NotNull UUID uuid, @NotNull UUID attrib) imp
     }
 
     @Override
-    public boolean get(final @NotNull State state) {
+    public int get(final @NotNull State state) {
         return state.getAttribute(attrib);
     }
 }

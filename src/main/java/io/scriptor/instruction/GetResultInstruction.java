@@ -58,7 +58,7 @@ public record GetResultInstruction(
     }
 
     @Override
-    public boolean get(final @NotNull State state) {
+    public int get(final @NotNull State state) {
         return call.get(state, index);
     }
 }

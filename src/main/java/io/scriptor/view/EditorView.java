@@ -23,11 +23,10 @@ import imgui.ImVec2;
 import imgui.extension.imnodes.ImNodes;
 import imgui.extension.imnodes.ImNodesEditorContext;
 import imgui.extension.imnodes.flag.ImNodesMiniMapLocation;
-import imgui.flag.ImGuiCond;
-import imgui.flag.ImGuiFocusedFlags;
-import imgui.flag.ImGuiMouseButton;
+import imgui.flag.*;
 import imgui.type.ImBoolean;
 import imgui.type.ImInt;
+import imgui.type.ImString;
 import io.scriptor.event.EventManager;
 import io.scriptor.graph.*;
 import io.scriptor.util.RTException;
@@ -37,6 +36,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 
 import static io.scriptor.util.Constants.*;
 
@@ -46,11 +46,11 @@ public class EditorView extends View {
 
     private static boolean showFullAttribute(final @NotNull Attribute attribute) {
         ImGui.beginDisabled(attribute.output());
-        ImGui.checkbox("##powered", attribute.powered());
+        ImGui.sliderInt("##data@%s".formatted(attribute.uuid()), attribute.data().getData(), 0, (1 << attribute.bitwidth()) - 1);
         ImGui.endDisabled();
         ImGui.sameLine();
-        ImGui.selectable(attribute.label().get());
-        return ImGui.isItemHovered() && ImGui.isMouseClicked(ImGuiMouseButton.Right);
+        ImGui.selectable("%s##label@%s".formatted(attribute.label().get(), attribute.uuid()));
+        return ImGui.isItemHovered();
     }
 
     private static boolean showAttribute(final @NotNull Attribute attribute) {
@@ -79,6 +79,7 @@ public class EditorView extends View {
     private final Popup addDirectPopup;
     private final Popup replacePopup;
     private final Popup deletePopup;
+    private final Popup addAttributePopup;
 
     private final ImBoolean open = new ImBoolean(true);
 
@@ -94,6 +95,10 @@ public class EditorView extends View {
     private float mouseX;
     private float mouseY;
     private boolean first = true;
+
+    private final ImInt addAttributeBitwidth = new ImInt();
+    private final ImBoolean addAttributeOutput = new ImBoolean();
+    private final ImString addAttributeLabel = new ImString();
 
     public EditorView(final @NotNull EventManager events, final @NotNull Blueprint instance) {
         super(events);
@@ -119,7 +124,7 @@ public class EditorView extends View {
                 events,
                 new Range<>(source.context().blueprints())
                         .filter(blueprint -> blueprint != instance)
-                        .filter(blueprint -> !blueprint.uses(instance))
+                        .filter(blueprint -> !blueprint.uses(instance, true))
                         .sorted(Comparator.comparing(Blueprint::label)),
                 this::onAddBlueprint,
                 EditorView::showBlueprint);
@@ -128,6 +133,7 @@ public class EditorView extends View {
                 new Range<>(source.attributes())
                         .filter(attribute -> sourcePin != null)
                         .filter(attribute -> sourcePin.output() == attribute.output())
+                        .filter(attribute -> sourcePin.bitwidth() == attribute.bitwidth())
                         .sorted(Comparator.comparing(Attribute::label))
                         .sorted(Comparator.comparing(Attribute::output)),
                 this::onAddAttribute,
@@ -137,10 +143,15 @@ public class EditorView extends View {
                 new Range<>(source.context().blueprints())
                         .filter(blueprint -> sourcePin != null)
                         .filter(blueprint -> blueprint != instance)
-                        .filter(blueprint -> !blueprint.uses(instance))
+                        .filter(blueprint -> !blueprint.uses(instance, true))
                         .filter(blueprint -> sourcePin.output()
                                 ? blueprint.numInputs() > 0
                                 : blueprint.numOutputs() > 0)
+                        .filter(blueprint -> (sourcePin.output()
+                                ? blueprint.inputBitwidth(0)
+                                : blueprint.outputBitwidth(0))
+                                .map(bitwidth -> sourcePin.bitwidth() == bitwidth)
+                                .orElse(false))
                         .sorted(Comparator.comparing(Blueprint::label)),
                 this::onAddBlueprint,
                 EditorView::showBlueprint);
@@ -158,7 +169,7 @@ public class EditorView extends View {
                 new Range<>(source.context().blueprints())
                         .filter(blueprint -> selectedNode != null)
                         .filter(blueprint -> blueprint != instance)
-                        .filter(blueprint -> !blueprint.uses(instance))
+                        .filter(blueprint -> !blueprint.uses(instance, true))
                         .filter(blueprint -> !selectedNode.same(blueprint))
                         .sorted(Comparator.comparing(Blueprint::label)),
                 this::onReplaceBlueprint,
@@ -173,6 +184,7 @@ public class EditorView extends View {
         addDirectPopup = new Popup(events, this::showAddDirectContext);
         replacePopup = new Popup(events, this::showReplaceContext);
         deletePopup = new Popup(events, this::showDeleteContext);
+        addAttributePopup = new Popup(events, this::showAddAttributeContext);
 
         events.registerEvent("key.delete.press", this::onKeyDelete);
         events.registerEvent("key.a.press+control", this::onKeyCtrlA);
@@ -206,11 +218,8 @@ public class EditorView extends View {
         }
 
         ImGui.beginGroup();
-        if (ImGui.button("Add Input"))
-            events.scheduleTask(this, this::onAddInput);
-        ImGui.sameLine();
-        if (ImGui.button("Add Output"))
-            events.scheduleTask(this, this::onAddOutput);
+        if (ImGui.button("Add Attribute"))
+            addAttribute();
         if (ImGui.beginChild("attributes", 200, 0))
             attributeView.show();
         ImGui.endChild();
@@ -234,6 +243,12 @@ public class EditorView extends View {
         ImNodes.miniMap(.2f, ImNodesMiniMapLocation.BottomRight);
         ImNodes.endNodeEditor();
 
+        final var hoveredLink = new ImInt();
+        if (ImNodes.isLinkHovered(hoveredLink))
+            source
+                    .findLink(hoveredLink.get())
+                    .ifPresent(link -> ImGui.setTooltip("%d".formatted(link.source().data(source))));
+
         handleMouse(hovered);
 
         handleLinkDropped();
@@ -252,6 +267,7 @@ public class EditorView extends View {
         addDirectPopup.show();
         replacePopup.show();
         deletePopup.show();
+        addAttributePopup.show();
     }
 
     private void onLabelEnter(final @NotNull String label) {
@@ -261,8 +277,10 @@ public class EditorView extends View {
     }
 
     private void onAttributeSelect(final @NotNull Attribute attribute) {
-        selectedAttribute = attribute;
-        events.scheduleTask(attributePopup::open);
+        if (ImGui.isMouseClicked(ImGuiMouseButton.Right) || ImGui.isKeyPressed(ImGuiKey.Menu)) {
+            selectedAttribute = attribute;
+            events.scheduleTask(attributePopup::open);
+        }
     }
 
     private void showAttributeContext() {
@@ -333,6 +351,16 @@ public class EditorView extends View {
             events.scheduleTask(this::onNodeDelete);
         if (ImGui.selectable("Links"))
             events.scheduleTask(this::onLinkDelete);
+    }
+
+    private void showAddAttributeContext() {
+        ImGui.sliderInt("Bitwidth", addAttributeBitwidth.getData(), 1, 32);
+        ImGui.sameLine();
+        ImGui.checkbox("Output", addAttributeOutput);
+        if (ImGui.inputTextWithHint("Label", "press enter to confirm", addAttributeLabel, ImGuiInputTextFlags.EnterReturnsTrue)) {
+            events.scheduleTask(this, () -> source.add(new Attribute(addAttributeLabel.get(), addAttributeOutput.get(), addAttributeBitwidth.byteValue())));
+            ImGui.closeCurrentPopup();
+        }
     }
 
     private void onKeyDelete() {
@@ -460,12 +488,11 @@ public class EditorView extends View {
         });
     }
 
-    private void onAddInput() {
-        source.add(new Attribute("New Input", false));
-    }
-
-    private void onAddOutput() {
-        source.add(new Attribute("New Output", true));
+    private void addAttribute() {
+        addAttributeBitwidth.set(1);
+        addAttributeOutput.set(false);
+        addAttributeLabel.set("");
+        events.scheduleTask(addAttributePopup::open);
     }
 
     private void onAttributeDelete() {
@@ -529,6 +556,9 @@ public class EditorView extends View {
                 ? node.input(0)
                 : node.output(0);
 
+        if (sourcePin.bitwidth() != targetPin.bitwidth())
+            throw new RTException();
+
         source
                 .findLink(targetPin.output()
                         ? sourcePin
@@ -560,13 +590,13 @@ public class EditorView extends View {
                 .links()
                 .filter(link -> link.uses(selectedNode))
                 .map(link -> {
-                    if (link.source().uses(selectedNode) && link.source().index() < node.numOutputs()) {
+                    if (link.source().uses(selectedNode) && link.source().index() < node.numOutputs() && (link.source().bitwidth() == 0 || link.source().bitwidth() == node.output(link.source().index()).bitwidth()))
                         return new Link(node.output(link.source().index()), link.target());
-                    } else if (link.target().uses(selectedNode) && link.target().index() < node.numInputs()) {
+                    if (link.target().uses(selectedNode) && link.target().index() < node.numInputs() && (link.target().bitwidth() == 0 || link.target().bitwidth() == node.input(link.target().index()).bitwidth()))
                         return new Link(link.source(), node.input(link.target().index()));
-                    }
-                    throw new RTException();
+                    return null;
                 })
+                .filter(Objects::nonNull)
                 .toList();
 
         source.remove(selectedNode);
@@ -662,6 +692,12 @@ public class EditorView extends View {
         source
                 .findPin(targetId.get())
                 .ifPresent(pin -> targetPin = pin);
+
+        if (sourcePin == null || targetPin == null)
+            throw new RTException();
+
+        if (sourcePin.bitwidth() != targetPin.bitwidth())
+            return;
 
         source
                 .findLink(targetPin.output()

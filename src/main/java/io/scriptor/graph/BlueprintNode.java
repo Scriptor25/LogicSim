@@ -42,7 +42,7 @@ public class BlueprintNode extends Node {
                 .context()
                 .get(blueprintUUID)
                 .<Node>map(BlueprintNode::new)
-                .orElseGet(InvalidNode::new);
+                .orElseGet(UndefinedNode::new);
         final var posX = Integer.parseInt(split[2]);
         final var posY = Integer.parseInt(split[3]);
         node.editorPosition(new ImVec2(posX, posY));
@@ -56,7 +56,7 @@ public class BlueprintNode extends Node {
                 .context()
                 .get(blueprintUUID)
                 .<Node>map(blueprint -> new BlueprintNode(uuid, blueprint))
-                .orElseGet(() -> new InvalidNode(uuid));
+                .orElseGet(() -> new UndefinedNode(uuid));
         final var posX = readInt(stream);
         final var posY = readInt(stream);
         node.position(posX, posY);
@@ -65,11 +65,11 @@ public class BlueprintNode extends Node {
 
     private final Blueprint blueprint;
 
-    private final Map<Integer, Pin> inputs = new HashMap<>();
-    private final Map<Integer, Pin> outputs = new HashMap<>();
+    private final Pin[] inputs;
+    private final Pin[] outputs;
 
     private boolean running = false;
-    private boolean[] output;
+    private int[] output;
     private State state;
 
     public BlueprintNode(final @NotNull Blueprint blueprint) {
@@ -78,7 +78,20 @@ public class BlueprintNode extends Node {
 
     public BlueprintNode(final @NotNull UUID uuid, final @NotNull Blueprint blueprint) {
         super(uuid);
+
         this.blueprint = blueprint;
+
+        inputs = new Pin[numInputs()];
+        for (int i = 0; i < inputs.length; ++i) {
+            final var fi = i;
+            blueprint.inputBitwidth(i).ifPresent(bitwidth -> inputs[fi] = new Pin(this, fi, false, bitwidth));
+        }
+
+        outputs = new Pin[numOutputs()];
+        for (int i = 0; i < outputs.length; ++i) {
+            final var fi = i;
+            blueprint.outputBitwidth(i).ifPresent(bitwidth -> outputs[fi] = new Pin(this, fi, true, bitwidth));
+        }
     }
 
     public @NotNull Blueprint blueprint() {
@@ -86,17 +99,15 @@ public class BlueprintNode extends Node {
     }
 
     @Override
-    public @NotNull Pin input(final int i) {
-        if (i < 0 || i >= numInputs())
-            throw new RTException();
-        return inputs.computeIfAbsent(i, key -> new Pin(this, key, false));
+    public @NotNull Pin input(final int index) {
+        if (index >= 0 && index < inputs.length) return inputs[index];
+        throw new RTException();
     }
 
     @Override
-    public @NotNull Pin output(final int i) {
-        if (i < 0 || i >= numOutputs())
-            throw new RTException();
-        return outputs.computeIfAbsent(i, key -> new Pin(this, key, true));
+    public @NotNull Pin output(final int index) {
+        if (index >= 0 && index < outputs.length) return outputs[index];
+        throw new RTException();
     }
 
     @Override
@@ -110,36 +121,29 @@ public class BlueprintNode extends Node {
     }
 
     @Override
-    public boolean powered(final @NotNull Graph graph, final boolean output, final int index) {
+    public int data(final @NotNull Graph graph, final boolean output, final int index) {
         if (output && index >= 0 && index < numOutputs())
-            return this.output != null && this.output[index];
+            return this.output != null ? this.output[index] : 0;
         if (!output && index >= 0 && index < numInputs())
             return input(index)
                     .predecessor(graph)
-                    .map(pin -> pin.powered(graph))
-                    .orElse(false);
-        throw new RTException("cannot get powered state of %s pin at index '%d'", output ? "output" : "input", index);
+                    .map(pin -> pin.data(graph))
+                    .orElse(0);
+        throw new RTException("cannot get data state of %s pin at index '%d'", output ? "output" : "input", index);
     }
 
     @Override
     public @NotNull Optional<Pin> pin(final int id) {
         return Stream
-                .concat(
-                        inputs
-                                .values()
-                                .stream(),
-                        outputs
-                                .values()
-                                .stream())
-                .filter(x -> x.id() == id)
+                .concat(Arrays.stream(inputs), Arrays.stream(outputs))
+                .filter(pin -> pin.id() == id)
                 .findFirst();
     }
 
     @Override
     public boolean front(final @NotNull Graph graph) {
-        return inputs
-                .values()
-                .stream()
+        return Arrays
+                .stream(inputs)
                 .allMatch(pin -> pin
                         .predecessor(graph)
                         .isEmpty());
@@ -147,10 +151,9 @@ public class BlueprintNode extends Node {
 
     @Override
     public boolean back(final @NotNull Graph graph) {
-        return outputs
-                .values()
-                .stream()
-                .allMatch(x -> x
+        return Arrays
+                .stream(outputs)
+                .allMatch(pin -> pin
                         .successors(graph)
                         .findAny()
                         .isEmpty());
@@ -158,9 +161,8 @@ public class BlueprintNode extends Node {
 
     @Override
     public @NotNull Stream<Node> successors(final @NotNull Graph graph) {
-        return outputs
-                .values()
-                .stream()
+        return Arrays
+                .stream(outputs)
                 .mapMulti((pin, consumer) -> graph
                         .findLinks(pin)
                         .map(link -> link
@@ -175,8 +177,8 @@ public class BlueprintNode extends Node {
     }
 
     @Override
-    public boolean uses(final @NotNull Blueprint blueprint) {
-        return this.blueprint == blueprint || this.blueprint.uses(blueprint);
+    public boolean uses(final @NotNull Blueprint blueprint, final boolean recursive) {
+        return this.blueprint == blueprint || (recursive && this.blueprint.uses(blueprint, true));
     }
 
     @Override
@@ -201,13 +203,13 @@ public class BlueprintNode extends Node {
         for (int i = 0; i < input.length; ++i)
             input[i] = input(i)
                     .predecessor(graph)
-                    .<Instruction>map(pre -> {
-                        pre
+                    .<Instruction>map(pin -> {
+                        pin
                                 .node()
                                 .compile(graph, instructions);
-                        return new GetRegInstruction(pre.node().uuid(), pre.index());
+                        return new GetRegInstruction(pin.node().uuid(), pin.index());
                     })
-                    .orElseGet(() -> new ConstInstruction(false));
+                    .orElseGet(() -> new ConstInstruction(0));
 
         final var call = new CallInstruction(blueprint.uuid(), input);
         instructions.add(call);
@@ -220,24 +222,24 @@ public class BlueprintNode extends Node {
     }
 
     @Override
-    public boolean @NotNull [] execute(final @NotNull Graph graph) {
+    public int @NotNull [] execute(final @NotNull Graph graph) {
         if (running)
-            return output != null ? output : new boolean[numOutputs()];
+            return output != null ? output : new int[numOutputs()];
         running = true;
 
-        final var input = new boolean[numInputs()];
+        final var input = new int[numInputs()];
         for (int i = 0; i < input.length; ++i)
             input[i] = input(i)
                     .predecessor(graph)
-                    .map(pre -> pre
+                    .map(pin -> pin
                             .node()
-                            .execute(graph)[pre.index()])
-                    .orElse(false);
+                            .execute(graph)[pin.index()])
+                    .orElse(0);
 
         if (state == null)
             state = new State(graph.state());
 
-        output = new boolean[numOutputs()];
+        output = new int[numOutputs()];
         blueprint.execute(state, input, output);
 
         running = false;

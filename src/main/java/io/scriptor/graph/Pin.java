@@ -29,7 +29,7 @@ import java.util.stream.Stream;
 
 import static io.scriptor.util.IO.*;
 
-public record Pin(@NotNull Node node, int index, boolean output) {
+public record Pin(@NotNull Node node, int index, boolean output, byte bitwidth) {
 
     public static @NotNull Pin read(final @NotNull Graph graph, final @NotNull InputStream stream) throws IOException {
         final var nodeUUID = readUUID(stream);
@@ -40,15 +40,15 @@ public record Pin(@NotNull Node node, int index, boolean output) {
                 .map(node -> output
                         ? node.output(index)
                         : node.input(index))
-                .orElseThrow();
+                .orElseThrow(() -> new RTException("no node with uuid '%s'", nodeUUID));
     }
 
     public int id() {
         return hashCode();
     }
 
-    public boolean powered(final @NotNull Graph graph) {
-        return node.powered(graph, output, index);
+    public int data(final @NotNull Graph graph) {
+        return node.data(graph, output, index);
     }
 
     public boolean uses(final @NotNull Node node) {

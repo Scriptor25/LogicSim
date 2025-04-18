@@ -18,7 +18,7 @@
  */
 package io.scriptor.graph;
 
-import imgui.type.ImBoolean;
+import imgui.type.ImInt;
 import imgui.type.ImString;
 import io.scriptor.util.IUnique;
 import org.jetbrains.annotations.NotNull;
@@ -34,15 +34,16 @@ public record Attribute(
         @NotNull UUID uuid,
         @NotNull ImString label,
         boolean output,
-        @NotNull ImBoolean powered
+        byte bitwidth,
+        @NotNull ImInt data
 ) implements IUnique {
 
-    public Attribute(final @NotNull String label, final boolean output) {
-        this(UUID.randomUUID(), new ImString(label), output, new ImBoolean());
+    public Attribute(final @NotNull String label, final boolean output, final byte bitwidth) {
+        this(UUID.randomUUID(), new ImString(label), output, bitwidth, new ImInt());
     }
 
-    public Attribute(final @NotNull UUID uuid, final @NotNull String label, final boolean output) {
-        this(uuid, new ImString(label), output, new ImBoolean());
+    public Attribute(final @NotNull UUID uuid, final @NotNull String label, final boolean output, final byte bitwidth) {
+        this(uuid, new ImString(label), output, bitwidth, new ImInt());
     }
 
     public boolean input() {
@@ -50,24 +51,30 @@ public record Attribute(
     }
 
     public @NotNull Attribute copy() {
-        return new Attribute(UUID.randomUUID(), new ImString(label.get()), output, new ImBoolean());
+        return new Attribute(UUID.randomUUID(), new ImString(label.get()), output, bitwidth, new ImInt());
+    }
+
+    public int getData() {
+        return data.get() & ((1 << bitwidth) - 1);
     }
 
     public void write(final @NotNull OutputStream stream) throws IOException {
         writeUUID(stream, uuid);
         writeString(stream, label.get());
         writeBool(stream, output);
+        writeByte(stream, bitwidth);
     }
 
     public static @NotNull Attribute read(final @NotNull InputStream stream) throws IOException {
         final var uuid = readUUID(stream);
         final var label = readString(stream);
         final var output = readBool(stream);
-        return new Attribute(uuid, label, output);
+        final var bitwidth = readByte(stream);
+        return new Attribute(uuid, label, output, bitwidth);
     }
 
     @Override
-    public String toString() {
+    public @NotNull String toString() {
         return label.get();
     }
 }

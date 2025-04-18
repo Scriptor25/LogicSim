@@ -30,8 +30,7 @@ import java.io.OutputStream;
 import java.nio.file.Files;
 import java.util.*;
 
-import static io.scriptor.util.Constants.UUID_AND;
-import static io.scriptor.util.Constants.UUID_NOT;
+import static io.scriptor.util.Constants.*;
 import static io.scriptor.util.IO.readInt;
 import static io.scriptor.util.IO.writeInt;
 import static io.scriptor.util.Task.handleVoid;
@@ -61,32 +60,68 @@ public class Context {
         if (!addDefaults)
             return;
 
-        final var notGraph = new Graph(this);
-        notGraph.add(new Attribute("In", false));
-        notGraph.add(new Attribute("Out", true));
+        {
+            final var graph = new Graph(this);
+            graph.add(new Attribute("IN", false, (byte) 1));
+            graph.add(new Attribute("OUT", true, (byte) 1));
 
-        final var notBlueprint = new Blueprint.Builder()
-                .uuid(UUID_NOT)
-                .label("Not")
-                .baseColor(0x3f579a)
-                .source(notGraph)
-                .editable(false)
-                .build(this);
-        add(notBlueprint);
+            final var blueprint = new Blueprint.Builder()
+                    .uuid(UUID_NOT)
+                    .label("NOT-01")
+                    .baseColor(0x3f579a)
+                    .source(graph)
+                    .editable(false)
+                    .build(this);
+            add(blueprint);
+        }
 
-        final var andGraph = new Graph(this);
-        andGraph.add(new Attribute("In A", false));
-        andGraph.add(new Attribute("In B", false));
-        andGraph.add(new Attribute("Out", true));
+        {
+            final var graph = new Graph(this);
+            graph.add(new Attribute("IN A", false, (byte) 1));
+            graph.add(new Attribute("IN B", false, (byte) 1));
+            graph.add(new Attribute("OUT", true, (byte) 1));
 
-        final var andBlueprint = new Blueprint.Builder()
-                .uuid(UUID_AND)
-                .label("And")
-                .baseColor(0x3f579a)
-                .source(andGraph)
-                .editable(false)
-                .build(this);
-        add(andBlueprint);
+            final var blueprint = new Blueprint.Builder()
+                    .uuid(UUID_AND)
+                    .label("AND-01")
+                    .baseColor(0x3f579a)
+                    .source(graph)
+                    .editable(false)
+                    .build(this);
+            add(blueprint);
+        }
+
+        for (int i = 0; i < 5; ++i) {
+            final var graph = new Graph(this);
+            for (int j = 0; j < (2 << i); ++j)
+                graph.add(new Attribute("IN %d".formatted(j), false, (byte) 1));
+            graph.add(new Attribute("OUT", true, (byte) (2 << i)));
+
+            final var blueprint = new Blueprint.Builder()
+                    .uuid(UUID_MERGE[i])
+                    .label("MERGE-%02d".formatted(2 << i))
+                    .baseColor(0x3f579a)
+                    .source(graph)
+                    .editable(false)
+                    .build(this);
+            add(blueprint);
+        }
+
+        for (int i = 0; i < 5; ++i) {
+            final var graph = new Graph(this);
+            graph.add(new Attribute("IN", false, (byte) (2 << i)));
+            for (int j = 0; j < (2 << i); ++j)
+                graph.add(new Attribute("OUT %d".formatted(j), true, (byte) 1));
+
+            final var blueprint = new Blueprint.Builder()
+                    .uuid(UUID_SPLIT[i])
+                    .label("SPLIT-%02d".formatted(2 << i))
+                    .baseColor(0x3f579a)
+                    .source(graph)
+                    .editable(false)
+                    .build(this);
+            add(blueprint);
+        }
     }
 
     /**
@@ -118,16 +153,41 @@ public class Context {
      * @throws IOException if any
      */
     public void write(final @NotNull OutputStream stream) throws IOException {
+        final Map<Blueprint, List<Blueprint>> dependencies = new HashMap<>();
+        final Map<Blueprint, Integer> degree = new HashMap<>();
+
+        for (final var blueprint : blueprints.values()) {
+            dependencies.put(blueprint, new ArrayList<>());
+            degree.put(blueprint, 0);
+        }
+
+        for (final var a : blueprints.values())
+            for (final var b : blueprints.values())
+                if (a.uses(b, false)) {
+                    dependencies.get(b).add(a);
+                    degree.put(a, degree.get(a) + 1);
+                }
+
+        final Queue<Blueprint> queue = new LinkedList<>();
+        final List<Blueprint> sorted = new ArrayList<>();
+
+        for (final var entry : degree.entrySet())
+            if (entry.getValue() == 0)
+                queue.add(entry.getKey());
+
+        while (!queue.isEmpty()) {
+            final var blueprint = queue.poll();
+            sorted.add(blueprint);
+
+            for (final var dep : dependencies.get(blueprint)) {
+                degree.put(dep, degree.get(dep) - 1);
+                if (degree.get(dep) == 0)
+                    queue.add(dep);
+            }
+        }
+
         writeInt(stream, blueprints.size());
-        final var list = blueprints
-                .values()
-                .stream()
-                .sorted((a, b) -> {
-                    final var x = b.uses(a) ? -1 : 0;
-                    return a.uses(b) ? 1 : x;
-                })
-                .toList();
-        list.forEach(blueprint -> handleVoid(() -> blueprint.write(stream)));
+        sorted.forEach(blueprint -> handleVoid(() -> blueprint.write(stream)));
     }
 
     /**
@@ -163,10 +223,10 @@ public class Context {
         blueprints.remove(blueprint.uuid());
     }
 
-    public boolean uses(final @NotNull Blueprint blueprint) {
+    public boolean uses(final @NotNull Blueprint blueprint, final boolean recursive) {
         return blueprints
                 .values()
                 .stream()
-                .anyMatch(b -> b.uses(blueprint));
+                .anyMatch(b -> b.uses(blueprint, recursive));
     }
 }

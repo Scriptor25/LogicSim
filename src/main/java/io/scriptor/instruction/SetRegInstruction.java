@@ -43,7 +43,7 @@ public record SetRegInstruction(
         final var valueUUID = readUUID(stream);
         final var value = function
                 .get(valueUUID)
-                .orElseGet(() -> new ConstInstruction(valueUUID, false));
+                .orElseGet(() -> new ConstInstruction(valueUUID, 0));
         function.add(new SetRegInstruction(uuid, register, index, value));
     }
 

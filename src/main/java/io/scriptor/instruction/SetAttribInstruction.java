@@ -42,7 +42,7 @@ public record SetAttribInstruction(
         final var valueUUID = readUUID(stream);
         final var value = function
                 .get(valueUUID)
-                .orElseGet(() -> new ConstInstruction(valueUUID, false));
+                .orElseGet(() -> new ConstInstruction(valueUUID, 0));
         function.add(new SetAttribInstruction(uuid, attribute, value));
     }
 

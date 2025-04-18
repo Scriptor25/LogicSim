@@ -25,7 +25,6 @@ import imgui.extension.imnodes.flag.ImNodesCol;
 import io.scriptor.instruction.GetAttribInstruction;
 import io.scriptor.instruction.Instruction;
 import io.scriptor.instruction.SetRegInstruction;
-import io.scriptor.util.Constants;
 import io.scriptor.util.RTException;
 import org.jetbrains.annotations.NotNull;
 
@@ -39,6 +38,7 @@ import java.util.UUID;
 import java.util.stream.Stream;
 
 import static io.scriptor.util.Constants.NODE_ID_INPUT;
+import static io.scriptor.util.Constants.getPowerLevel;
 import static io.scriptor.util.IO.*;
 
 public class InputNode extends Node {
@@ -48,7 +48,7 @@ public class InputNode extends Node {
         final var node = graph
                 .findAttribute(UUID.fromString(split[1]))
                 .<Node>map(InputNode::new)
-                .orElseGet(InvalidNode::new);
+                .orElseGet(UndefinedNode::new);
         final var posX = Integer.parseInt(split[2]);
         final var posY = Integer.parseInt(split[3]);
         node.editorPosition(new ImVec2(posX, posY));
@@ -61,7 +61,7 @@ public class InputNode extends Node {
         final var node = graph
                 .findAttribute(attributeUUID)
                 .<Node>map(attribute -> new InputNode(uuid, attribute))
-                .orElseGet(() -> new InvalidNode(uuid));
+                .orElseGet(() -> new UndefinedNode(uuid));
         final var posX = readInt(stream);
         final var posY = readInt(stream);
         node.position(posX, posY);
@@ -69,11 +69,12 @@ public class InputNode extends Node {
     }
 
     private final Attribute attribute;
-    private final Pin pin = new Pin(this, 0, true);
+    private final Pin pin;
 
     public InputNode(final @NotNull UUID uuid, final @NotNull Attribute attribute) {
         super(uuid);
         this.attribute = attribute;
+        this.pin = new Pin(this, 0, true, attribute.bitwidth());
     }
 
     public InputNode(final @NotNull Attribute attribute) {
@@ -84,19 +85,19 @@ public class InputNode extends Node {
         return attribute.label().get();
     }
 
-    public boolean powered() {
-        return attribute.powered().get();
+    public int data() {
+        return attribute.getData();
     }
 
     @Override
-    public @NotNull Pin input(final int i) {
-        throw new RTException("no input pin at index '%d'", i);
+    public @NotNull Pin input(final int index) {
+        throw new RTException("no input pin at index '%d'", index);
     }
 
     @Override
-    public @NotNull Pin output(final int i) {
-        if (i == 0) return pin;
-        throw new RTException("no output pin at index '%d'", i);
+    public @NotNull Pin output(final int index) {
+        if (index == 0) return pin;
+        throw new RTException("no output pin at index '%d'", index);
     }
 
     @Override
@@ -110,9 +111,9 @@ public class InputNode extends Node {
     }
 
     @Override
-    public boolean powered(final @NotNull Graph graph, final boolean output, final int index) {
-        if (output && index == 0) return powered();
-        throw new RTException("cannot get powered state of %s pin at index '%d'", output ? "output" : "input", index);
+    public int data(final @NotNull Graph graph, final boolean output, final int index) {
+        if (output && index == 0) return data();
+        throw new RTException("cannot get data state of %s pin at index '%d'", output ? "output" : "input", index);
     }
 
     @Override
@@ -150,16 +151,14 @@ public class InputNode extends Node {
     public void show(final @NotNull Graph graph) {
         ImNodes.beginNode(id());
 
-        final var powered = powered();
-        if (powered)
-            ImNodes.pushColorStyle(ImNodesCol.Pin, Constants.COLOR_POWERED);
+        final var data = data();
+        ImNodes.pushColorStyle(ImNodesCol.Pin, getPowerLevel(data, attribute.bitwidth()));
         ImNodes.beginOutputAttribute(pin.id());
-        ImGui.checkbox("##powered", attribute.powered());
+        ImGui.textUnformatted("%d".formatted(data));
         ImGui.sameLine();
         ImGui.textUnformatted(label());
         ImNodes.endOutputAttribute();
-        if (powered)
-            ImNodes.popColorStyle();
+        ImNodes.popColorStyle();
 
         ImNodes.endNode();
     }
@@ -177,8 +176,8 @@ public class InputNode extends Node {
     }
 
     @Override
-    public boolean @NotNull [] execute(final @NotNull Graph graph) {
-        return new boolean[]{powered()};
+    public int @NotNull [] execute(final @NotNull Graph graph) {
+        return new int[]{data()};
     }
 
     @Override
