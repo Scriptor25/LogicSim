@@ -35,12 +35,11 @@ public record Pin(@NotNull Node node, int index, boolean output, byte bitwidth) 
         final var nodeUUID = readUUID(stream);
         final var index = readInt(stream);
         final var output = readBool(stream);
-        final var bitwidth = readByte(stream);
         return graph
                 .findNode(nodeUUID)
                 .map(node -> output
-                        ? node.output(index, bitwidth)
-                        : node.input(index, bitwidth))
+                        ? node.output(index)
+                        : node.input(index))
                 .orElseThrow();
     }
 
@@ -49,7 +48,7 @@ public record Pin(@NotNull Node node, int index, boolean output, byte bitwidth) 
     }
 
     public int data(final @NotNull Graph graph) {
-        return node.data(graph, output, index) & ((1 << bitwidth) - 1);
+        return node.data(graph, output, index);
     }
 
     public boolean uses(final @NotNull Node node) {
@@ -76,6 +75,5 @@ public record Pin(@NotNull Node node, int index, boolean output, byte bitwidth) 
         writeUUID(stream, node.uuid());
         writeInt(stream, index);
         writeBool(stream, output);
-        writeByte(stream, bitwidth);
     }
 }

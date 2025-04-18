@@ -26,20 +26,19 @@ import imgui.type.ImInt;
 import imgui.type.ImString;
 import io.scriptor.context.Context;
 import io.scriptor.context.State;
-import io.scriptor.function.AndFunction;
-import io.scriptor.function.IFunction;
-import io.scriptor.function.NotFunction;
-import io.scriptor.util.Constants;
+import io.scriptor.function.*;
 import io.scriptor.util.IUnique;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
+import java.util.function.Supplier;
 
-import static io.scriptor.util.Constants.UUID_AND;
-import static io.scriptor.util.Constants.UUID_NOT;
+import static io.scriptor.util.Constants.*;
 import static io.scriptor.util.IO.*;
 
 public record Blueprint(
@@ -53,6 +52,23 @@ public record Blueprint(
 ) implements IUnique {
 
     public static class Builder {
+
+        private static final Map<UUID, Supplier<IFunction>> factory = new HashMap<>();
+
+        static {
+            factory.put(UUID_NOT, () -> new NotFunction(UUID_NOT));
+            factory.put(UUID_AND, () -> new AndFunction(UUID_AND));
+            factory.put(UUID_MERGE_2, () -> new MergeFunction(UUID_MERGE_2, (byte) 2));
+            factory.put(UUID_MERGE_4, () -> new MergeFunction(UUID_MERGE_4, (byte) 4));
+            factory.put(UUID_MERGE_8, () -> new MergeFunction(UUID_MERGE_8, (byte) 8));
+            factory.put(UUID_MERGE_16, () -> new MergeFunction(UUID_MERGE_16, (byte) 16));
+            factory.put(UUID_MERGE_32, () -> new MergeFunction(UUID_MERGE_32, (byte) 32));
+            factory.put(UUID_SPLIT_2, () -> new SplitFunction(UUID_SPLIT_2, (byte) 2));
+            factory.put(UUID_SPLIT_4, () -> new SplitFunction(UUID_SPLIT_4, (byte) 4));
+            factory.put(UUID_SPLIT_8, () -> new SplitFunction(UUID_SPLIT_8, (byte) 8));
+            factory.put(UUID_SPLIT_16, () -> new SplitFunction(UUID_SPLIT_16, (byte) 16));
+            factory.put(UUID_SPLIT_32, () -> new SplitFunction(UUID_SPLIT_32, (byte) 32));
+        }
 
         private UUID uuid = UUID.randomUUID();
         private String label = "";
@@ -92,14 +108,8 @@ public record Blueprint(
         }
 
         public @NotNull Blueprint build(final @NotNull Context context) {
-            if (function == null) {
-                if (uuid.equals(UUID_NOT))
-                    function = new NotFunction(UUID_NOT);
-                else if (uuid.equals(UUID_AND))
-                    function = new AndFunction(UUID_AND);
-                else
-                    function = source.compile();
-            }
+            if (function == null)
+                function = factory.getOrDefault(uuid, source::compile).get();
 
             return new Blueprint(
                     context,
@@ -230,18 +240,18 @@ public record Blueprint(
 
         int i = 0;
         for (; i < Math.min(inputs.length, outputs.length); ++i) {
-            node.input(i).ifPresent(pin -> showInput(inputFormat, graph, pin));
+            showInput(inputFormat, graph, node.input(i));
             ImGui.sameLine();
-            node.output(i).ifPresent(pin -> showOutput(outputFormat, graph, pin));
+            showOutput(outputFormat, graph, node.output(i));
         }
         for (; i < inputs.length; ++i)
-            node.input(i).ifPresent(pin -> showInput(inputFormat, graph, pin));
+            showInput(inputFormat, graph, node.input(i));
         for (; i < outputs.length; ++i) {
             if (inputs.length > 0) {
                 showStatic(inputFormat, i);
                 ImGui.sameLine();
             }
-            node.output(i).ifPresent(pin -> showOutput(outputFormat, graph, pin));
+            showOutput(outputFormat, graph, node.output(i));
         }
 
         ImNodes.endNode();
@@ -272,25 +282,21 @@ public record Blueprint(
     }
 
     private void showInput(final String format, final @NotNull Graph graph, final @NotNull Pin pin) {
-        final var powered = pin.data(graph) != 0;
-        if (powered)
-            ImNodes.pushColorStyle(ImNodesCol.Pin, Constants.COLOR_POWERED);
+        final var data = pin.data(graph);
+        ImNodes.pushColorStyle(ImNodesCol.Pin, getPowerLevel(data, pin.bitwidth()));
         ImNodes.beginInputAttribute(pin.id());
         ImGui.textUnformatted(format.formatted(input(pin.index())));
         ImNodes.endInputAttribute();
-        if (powered)
-            ImNodes.popColorStyle();
+        ImNodes.popColorStyle();
     }
 
     private void showOutput(final String format, final @NotNull Graph graph, final @NotNull Pin pin) {
-        final var powered = pin.data(graph) != 0;
-        if (powered)
-            ImNodes.pushColorStyle(ImNodesCol.Pin, Constants.COLOR_POWERED);
+        final var data = pin.data(graph);
+        ImNodes.pushColorStyle(ImNodesCol.Pin, getPowerLevel(data, pin.bitwidth()));
         ImNodes.beginOutputAttribute(pin.id());
         ImGui.textUnformatted(format.formatted(output(pin.index())));
         ImNodes.endOutputAttribute();
-        if (powered)
-            ImNodes.popColorStyle();
+        ImNodes.popColorStyle();
     }
 
     private void showStatic(final String format, final int id) {

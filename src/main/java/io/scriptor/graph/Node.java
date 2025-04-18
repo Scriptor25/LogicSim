@@ -43,7 +43,6 @@ public abstract class Node implements IUnique {
                                       final @NotNull String string) {
         final var split = string.split(",");
         return switch (Byte.parseByte(split[0])) {
-            case NODE_ID_INVALID -> InvalidNode.parse(string);
             case NODE_ID_INPUT -> InputNode.parse(graph, string);
             case NODE_ID_OUTPUT -> OutputNode.parse(graph, string);
             case NODE_ID_BLUEPRINT -> BlueprintNode.parse(graph, string);
@@ -55,7 +54,6 @@ public abstract class Node implements IUnique {
                               final @NotNull InputStream stream) throws IOException {
         final var type = readByte(stream);
         return switch (type) {
-            case NODE_ID_INVALID -> InvalidNode.read(stream);
             case NODE_ID_INPUT -> InputNode.read(graph, stream);
             case NODE_ID_OUTPUT -> OutputNode.read(graph, stream);
             case NODE_ID_BLUEPRINT -> BlueprintNode.read(graph, stream);
@@ -126,13 +124,9 @@ public abstract class Node implements IUnique {
         ImNodes.setNodeScreenSpacePos(id(), pos);
     }
 
-    public abstract @NotNull Pin input(final int i, final byte bitwidth);
+    public abstract @NotNull Pin input(final int i);
 
-    public abstract @NotNull Pin output(final int i, final byte bitwidth);
-
-    public abstract @NotNull Optional<Pin> input(final int i);
-
-    public abstract @NotNull Optional<Pin> output(final int i);
+    public abstract @NotNull Pin output(final int i);
 
     public abstract int numInputs();
 

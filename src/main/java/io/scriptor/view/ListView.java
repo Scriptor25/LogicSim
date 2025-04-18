@@ -1,6 +1,5 @@
 package io.scriptor.view;
 
-import imgui.ImGui;
 import io.scriptor.event.EventManager;
 import io.scriptor.util.IRange;
 import org.jetbrains.annotations.NotNull;
@@ -26,10 +25,10 @@ public class ListView<T> extends View {
     @Override
     public void show() {
         range.stream().forEach(value -> {
-            ImGui.pushID(value.hashCode());
+            // ImGui.pushID(value.hashCode());
             if (view.show(value))
                 select.accept(value);
-            ImGui.popID();
+            // ImGui.popID();
         });
     }
 }

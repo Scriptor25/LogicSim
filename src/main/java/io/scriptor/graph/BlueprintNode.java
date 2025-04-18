@@ -41,8 +41,8 @@ public class BlueprintNode extends Node {
         final var node = graph
                 .context()
                 .get(blueprintUUID)
-                .<Node>map(BlueprintNode::new)
-                .orElseGet(InvalidNode::new);
+                .map(BlueprintNode::new)
+                .orElseThrow();
         final var posX = Integer.parseInt(split[2]);
         final var posY = Integer.parseInt(split[3]);
         node.editorPosition(new ImVec2(posX, posY));
@@ -55,8 +55,8 @@ public class BlueprintNode extends Node {
         final var node = graph
                 .context()
                 .get(blueprintUUID)
-                .<Node>map(blueprint -> new BlueprintNode(uuid, blueprint))
-                .orElseGet(() -> new InvalidNode(uuid));
+                .map(blueprint -> new BlueprintNode(uuid, blueprint))
+                .orElseThrow();
         final var posX = readInt(stream);
         final var posY = readInt(stream);
         node.position(posX, posY);
@@ -65,8 +65,8 @@ public class BlueprintNode extends Node {
 
     private final Blueprint blueprint;
 
-    private final Map<Integer, Pin> inputs = new HashMap<>();
-    private final Map<Integer, Pin> outputs = new HashMap<>();
+    private final Pin[] inputs;
+    private final Pin[] outputs;
 
     private boolean running = false;
     private int[] output;
@@ -78,12 +78,16 @@ public class BlueprintNode extends Node {
 
     public BlueprintNode(final @NotNull UUID uuid, final @NotNull Blueprint blueprint) {
         super(uuid);
+
         this.blueprint = blueprint;
 
-        for (int i = 0; i < this.blueprint.numInputs(); ++i)
-            this.inputs.put(i, new Pin(this, i, false, this.blueprint.inputBitwidth(i)));
-        for (int i = 0; i < this.blueprint.numOutputs(); ++i)
-            this.outputs.put(i, new Pin(this, i, true, this.blueprint.outputBitwidth(i)));
+        this.inputs = new Pin[numInputs()];
+        for (int i = 0; i < this.inputs.length; ++i)
+            this.inputs[i] = new Pin(this, i, false, this.blueprint.inputBitwidth(i));
+
+        this.outputs = new Pin[numOutputs()];
+        for (int i = 0; i < this.outputs.length; ++i)
+            this.outputs[i] = new Pin(this, i, true, this.blueprint.outputBitwidth(i));
     }
 
     public @NotNull Blueprint blueprint() {
@@ -91,31 +95,15 @@ public class BlueprintNode extends Node {
     }
 
     @Override
-    public @NotNull Pin input(final int i, final byte bitwidth) {
-        if (i < 0 || i >= numInputs())
-            throw new RTException();
-        return inputs.computeIfAbsent(i, key -> new Pin(this, key, false, bitwidth));
+    public @NotNull Pin input(final int i) {
+        if (i >= 0 && i < inputs.length) return inputs[i];
+        throw new RTException();
     }
 
     @Override
-    public @NotNull Pin output(final int i, final byte bitwidth) {
-        if (i < 0 || i >= numOutputs())
-            throw new RTException();
-        return outputs.computeIfAbsent(i, key -> new Pin(this, key, true, bitwidth));
-    }
-
-    @Override
-    public @NotNull Optional<Pin> input(final int i) {
-        if (i < 0 || i >= numInputs())
-            return Optional.empty();
-        return Optional.ofNullable(inputs.get(i));
-    }
-
-    @Override
-    public @NotNull Optional<Pin> output(final int i) {
-        if (i < 0 || i >= numOutputs())
-            return Optional.empty();
-        return Optional.ofNullable(outputs.get(i));
+    public @NotNull Pin output(final int i) {
+        if (i >= 0 && i < outputs.length) return outputs[i];
+        throw new RTException();
     }
 
     @Override
@@ -134,10 +122,8 @@ public class BlueprintNode extends Node {
             return this.output != null ? this.output[index] : 0;
         if (!output && index >= 0 && index < numInputs())
             return input(index)
-                    .map(pin -> pin
-                            .predecessor(graph)
-                            .map(x -> x.data(graph))
-                            .orElse(0))
+                    .predecessor(graph)
+                    .map(pin -> pin.data(graph))
                     .orElse(0);
         throw new RTException("cannot get data state of %s pin at index '%d'", output ? "output" : "input", index);
     }
@@ -145,22 +131,15 @@ public class BlueprintNode extends Node {
     @Override
     public @NotNull Optional<Pin> pin(final int id) {
         return Stream
-                .concat(
-                        inputs
-                                .values()
-                                .stream(),
-                        outputs
-                                .values()
-                                .stream())
-                .filter(x -> x.id() == id)
+                .concat(Arrays.stream(inputs), Arrays.stream(outputs))
+                .filter(pin -> pin.id() == id)
                 .findFirst();
     }
 
     @Override
     public boolean front(final @NotNull Graph graph) {
-        return inputs
-                .values()
-                .stream()
+        return Arrays
+                .stream(inputs)
                 .allMatch(pin -> pin
                         .predecessor(graph)
                         .isEmpty());
@@ -168,10 +147,9 @@ public class BlueprintNode extends Node {
 
     @Override
     public boolean back(final @NotNull Graph graph) {
-        return outputs
-                .values()
-                .stream()
-                .allMatch(x -> x
+        return Arrays
+                .stream(outputs)
+                .allMatch(pin -> pin
                         .successors(graph)
                         .findAny()
                         .isEmpty());
@@ -179,9 +157,8 @@ public class BlueprintNode extends Node {
 
     @Override
     public @NotNull Stream<Node> successors(final @NotNull Graph graph) {
-        return outputs
-                .values()
-                .stream()
+        return Arrays
+                .stream(outputs)
                 .mapMulti((pin, consumer) -> graph
                         .findLinks(pin)
                         .map(link -> link
@@ -221,15 +198,13 @@ public class BlueprintNode extends Node {
         final var input = new Instruction[numInputs()];
         for (int i = 0; i < input.length; ++i)
             input[i] = input(i)
-                    .map(pin -> pin
-                            .predecessor(graph)
-                            .<Instruction>map(x -> {
-                                x
-                                        .node()
-                                        .compile(graph, instructions);
-                                return new GetRegInstruction(x.node().uuid(), x.index());
-                            })
-                            .orElseGet(() -> new ConstInstruction(0)))
+                    .predecessor(graph)
+                    .<Instruction>map(pin -> {
+                        pin
+                                .node()
+                                .compile(graph, instructions);
+                        return new GetRegInstruction(pin.node().uuid(), pin.index());
+                    })
                     .orElseGet(() -> new ConstInstruction(0));
 
         final var call = new CallInstruction(blueprint.uuid(), input);
@@ -251,12 +226,10 @@ public class BlueprintNode extends Node {
         final var input = new int[numInputs()];
         for (int i = 0; i < input.length; ++i)
             input[i] = input(i)
+                    .predecessor(graph)
                     .map(pin -> pin
-                            .predecessor(graph)
-                            .map(x -> x
-                                    .node()
-                                    .execute(graph)[x.index()])
-                            .orElse(0))
+                            .node()
+                            .execute(graph)[pin.index()])
                     .orElse(0);
 
         if (state == null)

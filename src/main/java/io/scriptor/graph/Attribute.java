@@ -54,6 +54,10 @@ public record Attribute(
         return new Attribute(UUID.randomUUID(), new ImString(label.get()), output, bitwidth, new ImInt());
     }
 
+    public int getData() {
+        return data.get() & ((1 << bitwidth) - 1);
+    }
+
     public void write(final @NotNull OutputStream stream) throws IOException {
         writeUUID(stream, uuid);
         writeString(stream, label.get());

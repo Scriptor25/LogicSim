@@ -1,6 +1,7 @@
 package io.scriptor.view;
 
 import imgui.ImGui;
+import imgui.flag.ImGuiKey;
 import imgui.flag.ImGuiMouseButton;
 import io.scriptor.context.Context;
 import io.scriptor.event.EventManager;
@@ -51,7 +52,7 @@ public class BlueprintView extends View {
 
     private void onBlueprintSelected(final @NotNull Blueprint blueprint) {
         selectedBlueprint = blueprint;
-        if (ImGui.isMouseClicked(ImGuiMouseButton.Right))
+        if (ImGui.isMouseClicked(ImGuiMouseButton.Right) || ImGui.isKeyPressed(ImGuiKey.Menu))
             events.scheduleTask(blueprintPopup::open);
         if (blueprint.editable() && ImGui.isMouseClicked(ImGuiMouseButton.Left))
             events.callService(ID_BLUEPRINT_EDIT, blueprint);

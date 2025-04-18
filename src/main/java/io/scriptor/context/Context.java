@@ -30,8 +30,7 @@ import java.io.OutputStream;
 import java.nio.file.Files;
 import java.util.*;
 
-import static io.scriptor.util.Constants.UUID_AND;
-import static io.scriptor.util.Constants.UUID_NOT;
+import static io.scriptor.util.Constants.*;
 import static io.scriptor.util.IO.readInt;
 import static io.scriptor.util.IO.writeInt;
 import static io.scriptor.util.Task.handleVoid;
@@ -61,32 +60,68 @@ public class Context {
         if (!addDefaults)
             return;
 
-        final var notGraph = new Graph(this);
-        notGraph.add(new Attribute("In", false, (byte) 1));
-        notGraph.add(new Attribute("Out", true, (byte) 1));
+        {
+            final var graph = new Graph(this);
+            graph.add(new Attribute("IN", false, (byte) 1));
+            graph.add(new Attribute("OUT", true, (byte) 1));
 
-        final var notBlueprint = new Blueprint.Builder()
-                .uuid(UUID_NOT)
-                .label("Not")
-                .baseColor(0x3f579a)
-                .source(notGraph)
-                .editable(false)
-                .build(this);
-        add(notBlueprint);
+            final var blueprint = new Blueprint.Builder()
+                    .uuid(UUID_NOT)
+                    .label("NOT-01")
+                    .baseColor(0x3f579a)
+                    .source(graph)
+                    .editable(false)
+                    .build(this);
+            add(blueprint);
+        }
 
-        final var andGraph = new Graph(this);
-        andGraph.add(new Attribute("In A", false, (byte) 1));
-        andGraph.add(new Attribute("In B", false, (byte) 1));
-        andGraph.add(new Attribute("Out", true, (byte) 1));
+        {
+            final var graph = new Graph(this);
+            graph.add(new Attribute("IN A", false, (byte) 1));
+            graph.add(new Attribute("IN B", false, (byte) 1));
+            graph.add(new Attribute("OUT", true, (byte) 1));
 
-        final var andBlueprint = new Blueprint.Builder()
-                .uuid(UUID_AND)
-                .label("And")
-                .baseColor(0x3f579a)
-                .source(andGraph)
-                .editable(false)
-                .build(this);
-        add(andBlueprint);
+            final var blueprint = new Blueprint.Builder()
+                    .uuid(UUID_AND)
+                    .label("AND-01")
+                    .baseColor(0x3f579a)
+                    .source(graph)
+                    .editable(false)
+                    .build(this);
+            add(blueprint);
+        }
+
+        for (int i = 0; i < 5; ++i) {
+            final var graph = new Graph(this);
+            for (int j = 0; j < (2 << i); ++j)
+                graph.add(new Attribute("IN %d".formatted(j), false, (byte) 1));
+            graph.add(new Attribute("OUT", true, (byte) (2 << i)));
+
+            final var blueprint = new Blueprint.Builder()
+                    .uuid(UUID_MERGE[i])
+                    .label("MERGE-%02d".formatted(2 << i))
+                    .baseColor(0x3f579a)
+                    .source(graph)
+                    .editable(false)
+                    .build(this);
+            add(blueprint);
+        }
+
+        for (int i = 0; i < 5; ++i) {
+            final var graph = new Graph(this);
+            graph.add(new Attribute("IN", false, (byte) (2 << i)));
+            for (int j = 0; j < (2 << i); ++j)
+                graph.add(new Attribute("OUT %d".formatted(j), true, (byte) 1));
+
+            final var blueprint = new Blueprint.Builder()
+                    .uuid(UUID_SPLIT[i])
+                    .label("SPLIT-%02d".formatted(2 << i))
+                    .baseColor(0x3f579a)
+                    .source(graph)
+                    .editable(false)
+                    .build(this);
+            add(blueprint);
+        }
     }
 
     /**
