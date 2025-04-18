@@ -219,6 +219,8 @@ public class Main {
                 .forEach(EditorView::show);
 
         blueprints.show();
+
+        ++TICK;
     }
 
     private void onFrameEnd() {

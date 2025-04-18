@@ -22,6 +22,9 @@ import java.util.UUID;
 
 public class Constants {
 
+    public static final long TICKS_PER_CLOCK = 50;
+    public static long TICK = 0;
+
     public static final Color COLOR_ZERO_POWER = new Color(0.25f, 0.45f, 0.75f);
     public static final Color COLOR_FULL_POWER = new Color(1.0f, 0.1f, 0.1f);
 
@@ -38,6 +41,7 @@ public class Constants {
     public static final UUID UUID_NULL = UUID.fromString("00000000-0000-0000-0000-00000000");
     public static final UUID UUID_NOT = UUID.fromString("00000000-0000-0000-0000-00000001");
     public static final UUID UUID_AND = UUID.fromString("00000000-0000-0000-0000-00000002");
+    public static final UUID UUID_CLOCK = UUID.fromString("00000000-0000-0000-0000-00000003");
     public static final UUID UUID_MERGE_2 = UUID.fromString("00000000-0000-0000-0000-00000010");
     public static final UUID UUID_MERGE_4 = UUID.fromString("00000000-0000-0000-0000-00000011");
     public static final UUID UUID_MERGE_8 = UUID.fromString("00000000-0000-0000-0000-00000012");
