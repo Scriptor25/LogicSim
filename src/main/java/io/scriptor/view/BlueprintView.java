@@ -60,7 +60,7 @@ public class BlueprintView extends View {
             ImGui.beginTooltip();
             ImGui.textUnformatted("Dependencies:");
             for (final var other : context.blueprints())
-                if (other != blueprint && blueprint.uses(other)) {
+                if (other != blueprint && blueprint.uses(other, false)) {
                     ImGui.bullet();
                     ImGui.textUnformatted(other.label().get());
                 }

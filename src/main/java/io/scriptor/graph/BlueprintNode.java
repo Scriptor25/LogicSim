@@ -177,8 +177,8 @@ public class BlueprintNode extends Node {
     }
 
     @Override
-    public boolean uses(final @NotNull Blueprint blueprint) {
-        return this.blueprint == blueprint || this.blueprint.uses(blueprint);
+    public boolean uses(final @NotNull Blueprint blueprint, final boolean recursive) {
+        return this.blueprint == blueprint || (recursive && this.blueprint.uses(blueprint, true));
     }
 
     @Override

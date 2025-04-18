@@ -172,7 +172,7 @@ public abstract class Node implements IUnique {
     }
 
     @SuppressWarnings("java:S1172")
-    public boolean uses(final @NotNull Blueprint blueprint) {
+    public boolean uses(final @NotNull Blueprint blueprint, final boolean recursive) {
         return false;
     }
 

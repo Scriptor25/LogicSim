@@ -23,10 +23,7 @@ import imgui.ImVec2;
 import imgui.extension.imnodes.ImNodes;
 import imgui.extension.imnodes.ImNodesEditorContext;
 import imgui.extension.imnodes.flag.ImNodesMiniMapLocation;
-import imgui.flag.ImGuiCond;
-import imgui.flag.ImGuiFocusedFlags;
-import imgui.flag.ImGuiKey;
-import imgui.flag.ImGuiMouseButton;
+import imgui.flag.*;
 import imgui.type.ImBoolean;
 import imgui.type.ImInt;
 import imgui.type.ImString;
@@ -52,7 +49,7 @@ public class EditorView extends View {
         ImGui.sliderInt("##data@%s".formatted(attribute.uuid()), attribute.data().getData(), 0, (1 << attribute.bitwidth()) - 1);
         ImGui.endDisabled();
         ImGui.sameLine();
-        ImGui.selectable(attribute.label().get());
+        ImGui.selectable("%s##label@%s".formatted(attribute.label().get(), attribute.uuid()));
         return ImGui.isItemHovered();
     }
 
@@ -99,6 +96,10 @@ public class EditorView extends View {
     private float mouseY;
     private boolean first = true;
 
+    private final ImInt addAttributeBitwidth = new ImInt();
+    private final ImBoolean addAttributeOutput = new ImBoolean();
+    private final ImString addAttributeLabel = new ImString();
+
     public EditorView(final @NotNull EventManager events, final @NotNull Blueprint instance) {
         super(events);
 
@@ -123,7 +124,7 @@ public class EditorView extends View {
                 events,
                 new Range<>(source.context().blueprints())
                         .filter(blueprint -> blueprint != instance)
-                        .filter(blueprint -> !blueprint.uses(instance))
+                        .filter(blueprint -> !blueprint.uses(instance, true))
                         .sorted(Comparator.comparing(Blueprint::label)),
                 this::onAddBlueprint,
                 EditorView::showBlueprint);
@@ -142,7 +143,7 @@ public class EditorView extends View {
                 new Range<>(source.context().blueprints())
                         .filter(blueprint -> sourcePin != null)
                         .filter(blueprint -> blueprint != instance)
-                        .filter(blueprint -> !blueprint.uses(instance))
+                        .filter(blueprint -> !blueprint.uses(instance, true))
                         .filter(blueprint -> sourcePin.output()
                                 ? blueprint.numInputs() > 0
                                 : blueprint.numOutputs() > 0)
@@ -168,7 +169,7 @@ public class EditorView extends View {
                 new Range<>(source.context().blueprints())
                         .filter(blueprint -> selectedNode != null)
                         .filter(blueprint -> blueprint != instance)
-                        .filter(blueprint -> !blueprint.uses(instance))
+                        .filter(blueprint -> !blueprint.uses(instance, true))
                         .filter(blueprint -> !selectedNode.same(blueprint))
                         .sorted(Comparator.comparing(Blueprint::label)),
                 this::onReplaceBlueprint,
@@ -352,17 +353,14 @@ public class EditorView extends View {
             events.scheduleTask(this::onLinkDelete);
     }
 
-    private final ImBoolean addAttributeOutput = new ImBoolean();
-    private final ImString addAttributeLabel = new ImString();
-    private final ImInt addAttributeBitwidth = new ImInt();
-
     private void showAddAttributeContext() {
-        ImGui.checkbox("Output", addAttributeOutput);
-        ImGui.inputText("Label", addAttributeLabel);
         ImGui.sliderInt("Bitwidth", addAttributeBitwidth.getData(), 1, 32);
-
-        if (ImGui.button("Create"))
+        ImGui.sameLine();
+        ImGui.checkbox("Output", addAttributeOutput);
+        if (ImGui.inputTextWithHint("Label", "press enter to confirm", addAttributeLabel, ImGuiInputTextFlags.EnterReturnsTrue)) {
             events.scheduleTask(this, () -> source.add(new Attribute(addAttributeLabel.get(), addAttributeOutput.get(), addAttributeBitwidth.byteValue())));
+            ImGui.closeCurrentPopup();
+        }
     }
 
     private void onKeyDelete() {
@@ -491,6 +489,9 @@ public class EditorView extends View {
     }
 
     private void addAttribute() {
+        addAttributeBitwidth.set(1);
+        addAttributeOutput.set(false);
+        addAttributeLabel.set("");
         events.scheduleTask(addAttributePopup::open);
     }
 

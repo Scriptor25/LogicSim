@@ -163,7 +163,7 @@ public class Context {
 
         for (final var a : blueprints.values())
             for (final var b : blueprints.values())
-                if (a.uses(b)) {
+                if (a.uses(b, false)) {
                     dependencies.get(b).add(a);
                     degree.put(a, degree.get(a) + 1);
                 }
@@ -223,10 +223,10 @@ public class Context {
         blueprints.remove(blueprint.uuid());
     }
 
-    public boolean uses(final @NotNull Blueprint blueprint) {
+    public boolean uses(final @NotNull Blueprint blueprint, final boolean recursive) {
         return blueprints
                 .values()
                 .stream()
-                .anyMatch(b -> b.uses(blueprint));
+                .anyMatch(b -> b.uses(blueprint, recursive));
     }
 }

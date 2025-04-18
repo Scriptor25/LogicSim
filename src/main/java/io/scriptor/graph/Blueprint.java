@@ -179,12 +179,12 @@ public record Blueprint(
         function.execute(state, inputs, outputs);
     }
 
-    public boolean uses(final @NotNull Blueprint blueprint) {
-        return source.uses(blueprint);
+    public boolean uses(final @NotNull Blueprint blueprint, final boolean recursive) {
+        return source.uses(blueprint, recursive);
     }
 
     public boolean used() {
-        return context.uses(this);
+        return context.uses(this, true);
     }
 
     @Override
