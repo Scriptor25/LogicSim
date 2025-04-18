@@ -30,6 +30,7 @@ import io.scriptor.graph.Blueprint;
 import io.scriptor.util.RTException;
 import io.scriptor.view.BlueprintView;
 import io.scriptor.view.EditorView;
+import io.scriptor.view.SimulationView;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.glfw.GLFWImage;
 import org.lwjgl.opengl.GL;
@@ -93,6 +94,7 @@ public class Main {
 
     private final Map<UUID, EditorView> editors = new HashMap<>();
     private BlueprintView blueprints;
+    private SimulationView simulation;
 
     private Main() {
         onInit();
@@ -193,6 +195,7 @@ public class Main {
                 blueprint -> editors.containsKey(blueprint.uuid()));
 
         blueprints = new BlueprintView(events, context);
+        simulation = new SimulationView(events);
     }
 
     private void onFrame() {
@@ -219,8 +222,9 @@ public class Main {
                 .forEach(EditorView::show);
 
         blueprints.show();
+        simulation.show();
 
-        ++TICK;
+        TICK++;
     }
 
     private void onFrameEnd() {

@@ -22,8 +22,10 @@ import java.util.UUID;
 
 public class Constants {
 
-    public static final long TICKS_PER_CLOCK = 50;
-    public static long TICK = 0;
+    public static int TICKS_PER_FRAME = 1;
+    public static int TICKS_PER_CLOCK = 50;
+    public static int TICK_THRESHOLD = 10;
+    public static int TICK = 0;
 
     public static final Color COLOR_ZERO_POWER = new Color(0.25f, 0.45f, 0.75f);
     public static final Color COLOR_FULL_POWER = new Color(1.0f, 0.1f, 0.1f);
