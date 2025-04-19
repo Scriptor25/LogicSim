@@ -30,6 +30,7 @@ import io.scriptor.graph.Blueprint;
 import io.scriptor.util.RTException;
 import io.scriptor.view.BlueprintView;
 import io.scriptor.view.EditorView;
+import io.scriptor.view.SimulationView;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.glfw.GLFWImage;
 import org.lwjgl.opengl.GL;
@@ -39,10 +40,7 @@ import org.lwjgl.system.MemoryStack;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 import static io.scriptor.util.Constants.*;
 import static io.scriptor.util.Task.handle;
@@ -93,6 +91,12 @@ public class Main {
 
     private final Map<UUID, EditorView> editors = new HashMap<>();
     private BlueprintView blueprints;
+    private SimulationView simulation;
+
+    private final int[] width = new int[1];
+    private final int[] height = new int[1];
+    private final int[] xpos = new int[1];
+    private final int[] ypos = new int[1];
 
     private Main() {
         onInit();
@@ -119,14 +123,67 @@ public class Main {
         handleVoid(() -> context.write(file));
     }
 
+    private void fullscreen() {
+        var monitor = glfwGetWindowMonitor(window);
+        if (monitor == NULL) {
+            monitor = glfwGetPrimaryMonitor();
+
+            glfwGetMonitorPos(monitor, xpos, ypos);
+            final var monitorXPos = xpos[0];
+            final var monitorYPos = ypos[0];
+
+            final var videoMode = glfwGetVideoMode(monitor);
+            assert videoMode != null;
+
+            glfwGetWindowSize(window, width, height);
+            glfwGetWindowPos(window, xpos, ypos);
+
+            glfwSetWindowMonitor(window, monitor, monitorXPos, monitorYPos, videoMode.width(), videoMode.height(), videoMode.refreshRate());
+            return;
+        }
+
+        glfwSetWindowMonitor(window, NULL, xpos[0], ypos[0], width[0], height[0], GLFW_DONT_CARE);
+    }
+
+    private boolean init() {
+        final var PLATFORMS = List.of(GLFW_PLATFORM_WIN32, GLFW_PLATFORM_COCOA, GLFW_PLATFORM_X11, GLFW_PLATFORM_WAYLAND, GLFW_ANY_PLATFORM);
+
+        int platformIndex = 0;
+        boolean initialized = false;
+
+        do {
+
+            if (platformIndex >= PLATFORMS.size())
+                return false;
+
+            final int platform = PLATFORMS.get(platformIndex++);
+            if (!glfwPlatformSupported(platform))
+                continue;
+
+            glfwInitHint(GLFW_PLATFORM, platform);
+            initialized = glfwInit();
+
+        } while (!initialized || glfwGetPlatform() == GLFW_PLATFORM_ERROR || glfwGetPlatform() == GLFW_PLATFORM_UNAVAILABLE);
+
+        return true;
+    }
+
     private void onInit() {
         GLFWErrorCallback
                 .createPrint(System.err)
                 .set();
 
-        glfwInit();
+        if (!init())
+            throw new RTException("failed to initialize GLFW for any platform");
+
+        final var platform = glfwGetPlatform();
+
         glfwDefaultWindowHints();
-        window = glfwCreateWindow(1024, 768, "Java Logic Sim", NULL, NULL);
+
+        if (platform == GLFW_PLATFORM_WAYLAND)
+            glfwWindowHintString(GLFW_WAYLAND_APP_ID, "Logic Sim");
+
+        window = glfwCreateWindow(1600, 1000, "Logic Sim", NULL, NULL);
 
         try (final var iconStream = ClassLoader.getSystemResourceAsStream("image/icon.png")) {
             assert iconStream != null;
@@ -169,6 +226,7 @@ public class Main {
 
         events = new EventManager();
         events.registerEvent("key.s.press+control", this::save);
+        events.registerEvent("key.f11.press", this::fullscreen);
         events.registerTimer(this, 5 * 60 * 1000L, true, this::save);
         events.offerService(ID_CLIPBOARD_GET, () -> requireNonNullElse(glfwGetClipboardString(window), ""));
         events.<String>offerService(ID_CLIPBOARD_SET, clipboard -> glfwSetClipboardString(window, clipboard));
@@ -193,6 +251,7 @@ public class Main {
                 blueprint -> editors.containsKey(blueprint.uuid()));
 
         blueprints = new BlueprintView(events, context);
+        simulation = new SimulationView(events);
     }
 
     private void onFrame() {
@@ -219,6 +278,9 @@ public class Main {
                 .forEach(EditorView::show);
 
         blueprints.show();
+        simulation.show();
+
+        TICK++;
     }
 
     private void onFrameEnd() {

@@ -423,7 +423,7 @@ public class EditorView extends View {
 
         final var data = new StringBuilder();
         data
-                .append("JLS")
+                .append("LS")
                 .append('\n')
                 .append(nodes.size())
                 .append('\n');
@@ -458,7 +458,7 @@ public class EditorView extends View {
         int i = 0;
 
         final var magic = lines[i++];
-        if (!magic.equals("JLS"))
+        if (!magic.equals("LS"))
             return;
 
         final var nodeArrayLength = Integer.parseInt(lines[i++], 10);

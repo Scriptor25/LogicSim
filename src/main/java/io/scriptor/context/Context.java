@@ -122,6 +122,23 @@ public class Context {
                     .build(this);
             add(blueprint);
         }
+
+        {
+            final var graph = new Graph(this);
+            graph.add(new Attribute("OUT 1", true, (byte) 1));
+            graph.add(new Attribute("OUT 2", true, (byte) 1));
+            graph.add(new Attribute("OUT 3", true, (byte) 1));
+            graph.add(new Attribute("OUT 4", true, (byte) 1));
+
+            final var blueprint = new Blueprint.Builder()
+                    .uuid(UUID_CLOCK)
+                    .label("CLOCK")
+                    .baseColor(0x3f579a)
+                    .source(graph)
+                    .editable(false)
+                    .build(this);
+            add(blueprint);
+        }
     }
 
     /**

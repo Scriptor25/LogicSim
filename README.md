@@ -5,7 +5,7 @@ work. So don't blame me for not automatically converting your projects into some
 such thing does not make much sense at this point in time. So just don't expect everything to be perfect, don't create
 anything you will regret losing because it took a very long time to make or something like that... Just a warning.
 
-# Java Logic Sim - A digital logic simulation written in Java
+# Logic Sim - A digital logic simulation written in Java
 
 I think the title already tells you a lot about what this project is. But if it does not, here a short explanation: This
 program allows you to use nodes and links to build up logical circuits consisting of two base building blocks, the "and"

@@ -59,6 +59,7 @@ public record Blueprint(
         static {
             factory.put(UUID_NOT, () -> new NotFunction(UUID_NOT));
             factory.put(UUID_AND, () -> new AndFunction(UUID_AND));
+            factory.put(UUID_CLOCK, () -> new ClockFunction(UUID_CLOCK));
             factory.put(UUID_MERGE_2, () -> new MergeFunction(UUID_MERGE_2, (byte) 2));
             factory.put(UUID_MERGE_4, () -> new MergeFunction(UUID_MERGE_4, (byte) 4));
             factory.put(UUID_MERGE_8, () -> new MergeFunction(UUID_MERGE_8, (byte) 8));
