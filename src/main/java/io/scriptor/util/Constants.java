@@ -30,9 +30,9 @@ public class Constants {
     public static final Color COLOR_ZERO_POWER = new Color(0.25f, 0.45f, 0.75f);
     public static final Color COLOR_FULL_POWER = new Color(1.0f, 0.1f, 0.1f);
 
-    public static int getPowerLevel(final int data, final int bitwidth) {
+    public static int getPowerLevel(final int data, final int bitwidth, final float alpha) {
         final var t = (float) data / (float) ((1 << bitwidth) - 1);
-        return Color.mix(COLOR_ZERO_POWER, COLOR_FULL_POWER, t).asInt(0.5f);
+        return Color.mix(COLOR_ZERO_POWER, COLOR_FULL_POWER, t).asInt(alpha);
     }
 
     public static final byte NODE_ID_UNDEFINED = -1;

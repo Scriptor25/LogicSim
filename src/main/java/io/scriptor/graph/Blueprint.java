@@ -22,6 +22,7 @@ import imgui.ImColor;
 import imgui.ImGui;
 import imgui.extension.imnodes.ImNodes;
 import imgui.extension.imnodes.flag.ImNodesCol;
+import imgui.extension.imnodes.flag.ImNodesPinShape;
 import imgui.type.ImInt;
 import imgui.type.ImString;
 import io.scriptor.context.Context;
@@ -281,8 +282,8 @@ public record Blueprint(
 
     private void showInput(final String format, final @NotNull Graph graph, final @NotNull Pin pin) {
         final var data = pin.data(graph);
-        ImNodes.pushColorStyle(ImNodesCol.Pin, getPowerLevel(data, pin.bitwidth()));
-        ImNodes.beginInputAttribute(pin.id());
+        ImNodes.pushColorStyle(ImNodesCol.Pin, getPowerLevel(data, pin.bitwidth(), 1.0f));
+        ImNodes.beginInputAttribute(pin.id(), ImNodesPinShape.TriangleFilled);
         ImGui.textUnformatted(format.formatted(input(pin.index()).orElseThrow()));
         ImNodes.endInputAttribute();
         ImNodes.popColorStyle();
@@ -290,8 +291,8 @@ public record Blueprint(
 
     private void showOutput(final String format, final @NotNull Graph graph, final @NotNull Pin pin) {
         final var data = pin.data(graph);
-        ImNodes.pushColorStyle(ImNodesCol.Pin, getPowerLevel(data, pin.bitwidth()));
-        ImNodes.beginOutputAttribute(pin.id());
+        ImNodes.pushColorStyle(ImNodesCol.Pin, getPowerLevel(data, pin.bitwidth(), 1.0f));
+        ImNodes.beginOutputAttribute(pin.id(), ImNodesPinShape.CircleFilled);
         ImGui.textUnformatted(format.formatted(output(pin.index()).orElseThrow()));
         ImNodes.endOutputAttribute();
         ImNodes.popColorStyle();

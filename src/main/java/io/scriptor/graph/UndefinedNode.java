@@ -4,6 +4,7 @@ import imgui.ImGui;
 import imgui.ImVec2;
 import imgui.extension.imnodes.ImNodes;
 import imgui.extension.imnodes.flag.ImNodesCol;
+import imgui.extension.imnodes.flag.ImNodesPinShape;
 import io.scriptor.instruction.ConstInstruction;
 import io.scriptor.instruction.Instruction;
 import io.scriptor.instruction.SetRegInstruction;
@@ -154,8 +155,8 @@ public class UndefinedNode extends Node {
 
     private void showInput(final @NotNull Graph graph, final @NotNull Pin pin) {
         final var data = pin.data(graph);
-        ImNodes.pushColorStyle(ImNodesCol.Pin, getPowerLevel(data, pin.bitwidth()));
-        ImNodes.beginInputAttribute(pin.id());
+        ImNodes.pushColorStyle(ImNodesCol.Pin, getPowerLevel(data, pin.bitwidth(), 1.0f));
+        ImNodes.beginInputAttribute(pin.id(), ImNodesPinShape.TriangleFilled);
         ImGui.textUnformatted("PIN");
         ImNodes.endInputAttribute();
         ImNodes.popColorStyle();
@@ -163,8 +164,8 @@ public class UndefinedNode extends Node {
 
     private void showOutput(final @NotNull Graph graph, final @NotNull Pin pin) {
         final var data = pin.data(graph);
-        ImNodes.pushColorStyle(ImNodesCol.Pin, getPowerLevel(data, pin.bitwidth()));
-        ImNodes.beginOutputAttribute(pin.id());
+        ImNodes.pushColorStyle(ImNodesCol.Pin, getPowerLevel(data, pin.bitwidth(), 1.0f));
+        ImNodes.beginOutputAttribute(pin.id(), ImNodesPinShape.CircleFilled);
         ImGui.textUnformatted("PIN");
         ImNodes.endOutputAttribute();
         ImNodes.popColorStyle();
