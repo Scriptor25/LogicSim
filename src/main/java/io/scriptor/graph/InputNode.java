@@ -22,6 +22,7 @@ import imgui.ImGui;
 import imgui.ImVec2;
 import imgui.extension.imnodes.ImNodes;
 import imgui.extension.imnodes.flag.ImNodesCol;
+import imgui.extension.imnodes.flag.ImNodesPinShape;
 import io.scriptor.instruction.GetAttribInstruction;
 import io.scriptor.instruction.Instruction;
 import io.scriptor.instruction.SetRegInstruction;
@@ -152,8 +153,8 @@ public class InputNode extends Node {
         ImNodes.beginNode(id());
 
         final var data = data();
-        ImNodes.pushColorStyle(ImNodesCol.Pin, getPowerLevel(data, attribute.bitwidth()));
-        ImNodes.beginOutputAttribute(pin.id());
+        ImNodes.pushColorStyle(ImNodesCol.Pin, getPowerLevel(data, attribute.bitwidth(), 1.0f));
+        ImNodes.beginOutputAttribute(pin.id(), ImNodesPinShape.CircleFilled);
         ImGui.textUnformatted("%d".formatted(data));
         ImGui.sameLine();
         ImGui.textUnformatted(label());

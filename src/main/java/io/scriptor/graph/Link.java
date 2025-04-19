@@ -75,7 +75,7 @@ public record Link(@NotNull UUID uuid, @NotNull Pin source, @NotNull Pin target)
 
     public void show(final @NotNull Graph graph) {
         final var data = source.data(graph);
-        ImNodes.pushColorStyle(ImNodesCol.Link, getPowerLevel(data, source.bitwidth()));
+        ImNodes.pushColorStyle(ImNodesCol.Link, getPowerLevel(data, source.bitwidth(), 0.7f));
         ImNodes.link(id(), source.id(), target.id());
         ImNodes.popColorStyle();
     }
