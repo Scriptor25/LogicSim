@@ -22,6 +22,9 @@ import java.util.UUID;
 
 public class Constants {
 
+    public static final byte[] MODEL_SIGNATURE = {'L', 'S'};
+    public static final int MODEL_VERSION = 0x00000001;
+
     public static int TICKS_PER_FRAME = 1;
     public static int TICKS_PER_CLOCK = 50;
     public static int TICK_THRESHOLD = 10;

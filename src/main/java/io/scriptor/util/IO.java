@@ -24,8 +24,31 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.UUID;
+import java.util.function.IntFunction;
 
 public class IO {
+
+    public interface Writer<T> {
+
+        void write(final @NotNull OutputStream stream, final @NotNull T element) throws IOException;
+    }
+
+    public interface Reader<T> {
+
+        T read(final @NotNull InputStream stream) throws IOException;
+    }
+
+    public static <T> void writeArray(final @NotNull OutputStream stream, final @NotNull T @NotNull [] array, final @NotNull Writer<T> writeT) throws IOException {
+        for (final var element : array)
+            writeT.write(stream, element);
+    }
+
+    public static <T> T[] readArray(final @NotNull InputStream stream, final int count, final @NotNull IntFunction<T[]> create, final @NotNull Reader<T> readT) throws IOException {
+        final var array = create.apply(count);
+        for (int i = 0; i < array.length; ++i)
+            array[i] = readT.read(stream);
+        return array;
+    }
 
     public static void writeUUID(final @NotNull OutputStream stream, final @NotNull UUID uuid) throws IOException {
         writeLong(stream, uuid.getMostSignificantBits());
@@ -43,6 +66,10 @@ public class IO {
     }
 
     public static void writeByte(final @NotNull OutputStream stream, final byte value) throws IOException {
+        stream.write(value);
+    }
+
+    public static void writeBytes(final @NotNull OutputStream stream, final byte @NotNull [] value) throws IOException {
         stream.write(value);
     }
 
@@ -89,6 +116,10 @@ public class IO {
 
     public static byte readByte(final @NotNull InputStream stream) throws IOException {
         return (byte) stream.read();
+    }
+
+    public static byte[] readBytes(final @NotNull InputStream stream, final int count) throws IOException {
+        return stream.readNBytes(count);
     }
 
     public static short readShort(final @NotNull InputStream stream) throws IOException {
