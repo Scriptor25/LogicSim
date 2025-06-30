@@ -14,6 +14,7 @@ import static io.scriptor.util.IO.writeInt;
 public record ProjectModel(@NotNull BlueprintModel @NotNull [] blueprints) {
 
     public static @NotNull ProjectModel read(final @NotNull InputStream stream) throws IOException {
+        return new ProjectModel(new BlueprintModel[0]);
     }
 
     public void write(final @NotNull OutputStream stream) throws IOException {
